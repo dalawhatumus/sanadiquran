@@ -11,9 +11,11 @@ A free Quran memorisation app connecting elderly students with volunteer teacher
 - [Design prompts](docs/DESIGN_PROMPTS.md)
 
 ## Get the test app on your phone
-1. Open the **Actions** tab on GitHub and click the latest green **Android build** run.
-2. Scroll to **Artifacts** and download **sanadi-apk** (a zip).
-3. Unzip it on your phone and tap `app-release.apk` to install. Allow "Install unknown apps" if asked.
+1. On your phone, open **https://github.com/dalawhatumus/sanadiquran/releases/latest** (signed in to GitHub).
+2. Under **Assets**, tap **`sanadi-build-N.apk`** to download it.
+3. Open the downloaded file and tap **Install**. Allow "Install unknown apps" if asked; if Play Protect warns, tap **More details → Install anyway**.
+
+Every successful build publishes a new release, so that link always has the newest APK.
 
 ## Develop locally (optional)
 Needs Flutter 3.47.6 and the Android SDK (via Android Studio).

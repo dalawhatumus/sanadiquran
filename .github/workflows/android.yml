@@ -6,6 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write  # to publish the APK as a GitHub Release
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -42,9 +45,29 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
+      - name: Name APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk "sanadi-build-${{ github.run_number }}.apk"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: sanadi-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: sanadi-build-${{ github.run_number }}.apk
           retention-days: 30
+
+      # Every successful push build becomes a release, so the newest APK is
+      # always one tap away at /releases/latest on a phone.
+      - name: Publish release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Test build ${{ github.run_number }}
+          body: |
+            Test build from `${{ github.ref_name }}` at ${{ github.sha }}.
+
+            **Install on Android:** tap `sanadi-build-${{ github.run_number }}.apk` below, open it, and tap Install.
+            Allow "Install unknown apps" if asked; if Play Protect warns, tap More details → Install anyway.
+          files: sanadi-build-${{ github.run_number }}.apk
+          make_latest: true
