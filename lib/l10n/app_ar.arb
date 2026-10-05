@@ -1,0 +1,76 @@
+{
+  "@@locale": "ar",
+
+  "appName": "سَنَدي",
+  "appTagline": "اقرأ القرآن على معلّمك في أي وقت.",
+
+  "chooseLanguageTitle": "اختر لغتك",
+  "languageArabic": "العربية",
+  "languageEnglish": "English",
+
+  "continueWithGoogle": "المتابعة بحساب Google",
+  "privacyPolicy": "سياسة الخصوصية",
+  "terms": "الشروط",
+
+  "back": "رجوع",
+  "next": "التالي",
+  "comingSoon": "قريبًا",
+  "comingSoonBody": "هذا الجزء من سَنَدي قيد الإنشاء، إن شاء الله.",
+  "ok": "حسنًا",
+
+  "roleQuestion": "أريد أن…",
+  "roleStudent": "أحفظ وأُسمِّع",
+  "roleStudentHint": "سمِّع على معلّم وتابع تقدّمك",
+  "roleTeacher": "أعلّم متطوّعًا",
+  "roleTeacherHint": "استمع إلى الطلاب وساعدهم على الحفظ",
+
+  "greeting": "السلام عليكم، {name}",
+  "guestName": "ضيفنا العزيز",
+
+  "tabHome": "الرئيسية",
+  "tabQuran": "المصحف",
+  "tabAthkar": "الأذكار",
+  "tabMessages": "الرسائل",
+  "tabStudents": "طلابي",
+
+  "reciteNow": "سمِّع الآن",
+  "teachersAvailable": "{count, plural, =0{لا يوجد معلّمون متاحون الآن} =1{معلّم واحد متاح الآن} =2{معلّمان متاحان الآن} few{{count} معلّمين متاحون الآن} many{{count} معلّمًا متاحًا الآن} other{{count} معلّم متاح الآن}}",
+  "nextPortionTitle": "وِردك القادم",
+  "nextPortionEmpty": "سيحدّد معلّمك وِردك القادم بعد أول جلسة.",
+  "openInQuran": "افتح في المصحف",
+  "myTeacherTitle": "معلّمي",
+  "myTeacherEmpty": "بعد أول جلسة سيظهر معلّمك هنا.",
+
+  "availableToTeach": "أنت متاح للتعليم",
+  "away": "أنت غير متاح",
+  "availabilityHint": "يمكن للطلاب الاتصال بك ما دام هذا مفعّلًا.",
+  "todayStats": "اليوم: {sessions} جلسات · {minutes} دقيقة",
+  "studentsWaiting": "{count, plural, =0{لا يوجد طلاب في الانتظار} =1{طالب واحد ينتظر معلّمًا} =2{طالبان ينتظران معلّمًا} few{{count} طلاب ينتظرون معلّمًا} many{{count} طالبًا ينتظرون معلّمًا} other{{count} طالب ينتظرون معلّمًا}}",
+
+  "athkarTitle": "الأذكار",
+  "athkarMorning": "أذكار الصباح",
+  "athkarEvening": "أذكار المساء",
+  "athkarAfterSalah": "أذكار بعد الصلاة",
+  "athkarTasbeeh": "تسابيح",
+  "athkarSleep": "أذكار النوم",
+  "athkarWaking": "أذكار الاستيقاظ",
+
+  "quranTitle": "المصحف",
+  "quranPlaceholder": "سيكون المصحف هنا: القراءة صفحةً صفحة، والاستماع، وفتح وِردك القادم.",
+
+  "messagesTitle": "الرسائل",
+  "messagesEmpty": "لا توجد رسائل بعد. بعد أول جلسة يمكنك مراسلة معلّمك من هنا.",
+
+  "studentsTitle": "طلابي",
+  "studentsEmpty": "سيظهر هنا الطلاب الذين تعلّمهم مع تقدّمهم.",
+
+  "settingsTitle": "الإعدادات",
+  "settingsLanguage": "اللغة",
+  "settingsTextSize": "حجم الخط",
+  "settingsTextSizeHint": "يتبع سَنَدي حجم الخط في هاتفك. غيّره من إعدادات الهاتف ← الشاشة ← حجم الخط.",
+  "settingsPreviewRole": "وضع المعاينة",
+  "settingsPreviewRoleHint": "للتجربة فقط: التبديل بين تطبيق الطالب وتطبيق المعلّم.",
+  "settingsSignOut": "تسجيل الخروج",
+  "settingsVersion": "الإصدار {version}",
+  "profile": "الملف الشخصي والإعدادات"
+}
