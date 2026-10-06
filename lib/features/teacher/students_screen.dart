@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 
-import '../../l10n/app_localizations.dart';
-import '../../widgets/common.dart';
+import '../../core/strings.dart';
+import '../../widgets/ui.dart';
 
+/// Teacher "Students" tab (screens 35–36 are in the next design batch).
 class StudentsScreen extends StatelessWidget {
   const StudentsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final s = S.of(context);
     return Scaffold(
-      appBar: SanadiAppBar(title: l10n.studentsTitle),
-      body: EmptyState(icon: Icons.groups, message: l10n.studentsEmpty),
+      body: SafeArea(
+        child: EmptyState(
+          icon: const SIcon(SIcons.students, size: 52),
+          title: s.studentsSoonTitle,
+          body: s.studentsSoonBody,
+        ),
+      ),
     );
   }
 }

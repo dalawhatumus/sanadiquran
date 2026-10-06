@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/app_localizations.dart';
-import '../../widgets/common.dart';
+import '../../core/settings.dart';
+import '../../core/strings.dart';
+import '../../widgets/ui.dart';
 
-class MessagesScreen extends StatelessWidget {
+/// Messages tab (screens 48–50 are in a later design batch).
+class MessagesScreen extends ConsumerWidget {
   const MessagesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = S.of(context);
+    final teacher = ref.watch(settingsProvider).role == UserRole.teacher;
     return Scaffold(
-      appBar: SanadiAppBar(title: l10n.messagesTitle),
-      body: EmptyState(icon: Icons.chat_bubble_outline, message: l10n.messagesEmpty),
+      body: SafeArea(
+        child: EmptyState(
+          icon: const Icon(Icons.chat_bubble_rounded),
+          title: s.messagesSoonTitle,
+          body: teacher ? s.messagesSoonBodyTeacher : s.messagesSoonBody,
+        ),
+      ),
     );
   }
 }

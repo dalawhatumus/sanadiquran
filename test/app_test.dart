@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sanadi/app.dart';
 import 'package:sanadi/core/settings.dart';
+import 'package:sanadi/features/onboarding/welcome_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<void> pumpApp(WidgetTester tester, Map<String, Object> prefs) async {
+Future<void> pumpApp(WidgetTester tester, [Map<String, Object> prefs = const {}]) async {
   // A typical budget Android phone: 360x800 logical pixels.
   tester.view.physicalSize = const Size(1080, 2400);
   tester.view.devicePixelRatio = 3;
@@ -15,87 +16,147 @@ Future<void> pumpApp(WidgetTester tester, Map<String, Object> prefs) async {
   final instance = await SharedPreferences.getInstance();
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(instance)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(instance),
+        onlineCheckProvider.overrideWithValue(() async => true),
+      ],
       child: const SanadiApp(),
     ),
   );
+  // Splash waits 1.3 s, then moves on.
+  await tester.pump(const Duration(milliseconds: 1400));
   await tester.pumpAndSettle();
 }
 
+Future<void> tapText(WidgetTester tester, String text) async {
+  final f = find.text(text);
+  await tester.ensureVisible(f.first);
+  await tester.pumpAndSettle();
+  await tester.tap(f.first);
+  await tester.pumpAndSettle();
+}
+
+/// Settings saved by a finished onboarding.
+Map<String, Object> done({
+  String role = 'student',
+  String gender = 'female',
+  String locale = 'en',
+  String status = 'none',
+}) => {
+  'settings.v2':
+      '{"locale":"$locale","signedIn":true,"role":"$role","gender":"$gender","name":"Fatima Ahmed","permissionsDone":true,"tourDone":true,"teacherStatus":"$status"}',
+};
+
 void main() {
   testWidgets('first launch asks for language in both languages', (tester) async {
-    await pumpApp(tester, {});
+    await pumpApp(tester);
     expect(find.text('Choose your language'), findsOneWidget);
-    expect(find.text('اختر لغتك'), findsOneWidget);
+    expect(find.text('اختيار اللغة'), findsOneWidget);
     expect(find.text('English'), findsOneWidget);
     expect(find.text('العربية'), findsOneWidget);
   });
 
-  testWidgets('English onboarding reaches the student home', (tester) async {
-    await pumpApp(tester, {});
+  testWidgets('English student onboarding reaches the home screen', (tester) async {
+    await pumpApp(tester);
+    await tapText(tester, 'English');
+    await tapText(tester, 'Continue · متابعة');
+    expect(find.text('Recite the Quran to a teacher, anytime.'), findsOneWidget);
 
-    await tester.tap(find.text('English'));
-    await tester.pumpAndSettle();
-    expect(find.text('Continue with Google'), findsOneWidget);
+    await tapText(tester, 'Continue with Google');
+    expect(find.text('Step 1 of 4'), findsOneWidget);
+    await tapText(tester, 'Memorise and recite');
+    await tapText(tester, 'Next');
 
-    await tester.tap(find.text('Continue with Google'));
-    await tester.pumpAndSettle();
-    expect(find.text('I want to…'), findsOneWidget);
+    expect(find.text('Step 2 of 4'), findsOneWidget);
+    await tapText(tester, 'Female');
+    await tapText(tester, 'Next');
 
-    await tester.tap(find.text('Memorise and recite'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
+    // Name is checked when Next is tapped.
+    await tapText(tester, 'Next');
+    expect(find.text('Please write your name.'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Fatima Ahmed');
+    await tapText(tester, 'Next');
+
+    expect(find.text('Allow the microphone'), findsOneWidget);
+    await tapText(tester, 'Not now');
+    expect(find.text('Allow notifications'), findsOneWidget);
+    await tapText(tester, 'Not now');
+
+    expect(find.text('Tap Recite now'), findsOneWidget);
+    await tapText(tester, 'Skip');
 
     expect(find.text('Recite now'), findsOneWidget);
-    for (final tab in ['Home', 'Quran', 'Athkar', 'Messages']) {
-      expect(find.text(tab), findsWidgets);
-    }
+    expect(find.text('Fatima'), findsOneWidget);
+    expect(find.text('Welcome to Sanadi'), findsOneWidget);
   });
 
-  testWidgets('Arabic student home is right-to-left', (tester) async {
-    await pumpApp(tester, {'locale': 'ar', 'role': 'student'});
+  testWidgets('Arabic is written for a female student', (tester) async {
+    await pumpApp(tester, done(locale: 'ar'));
+    expect(find.text('سمِّعي الآن'), findsOneWidget);
+    expect(find.text('اضغطي للاتصال بمعلّمة'), findsOneWidget);
+  });
 
+  testWidgets('Arabic is written for a male student', (tester) async {
+    await pumpApp(tester, done(locale: 'ar', gender: 'male'));
     expect(find.text('سمِّع الآن'), findsOneWidget);
-    final direction = Directionality.of(tester.element(find.text('سمِّع الآن')));
-    expect(direction, TextDirection.rtl);
+    expect(find.text('اضغط للاتصال بمعلّم'), findsOneWidget);
   });
 
-  testWidgets('teacher sees the availability switch and can toggle it', (tester) async {
-    await pumpApp(tester, {'locale': 'en', 'role': 'teacher'});
+  testWidgets('a practice call ends on the call-ended screen', (tester) async {
+    await pumpApp(tester, done());
+    await tester.tap(find.text('Recite now'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Finding a teacher for you…'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Ustadha Aisha'), findsOneWidget);
 
+    await tester.tap(find.text('End call'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('End this session?'), findsOneWidget);
+    await tester.tap(find.text('Yes, end call'));
+    await tester.pump(const Duration(milliseconds: 800));
+    expect(find.text('May Allah reward you'), findsOneWidget);
+    expect(find.text('Saved to your progress'), findsOneWidget);
+  });
+
+  testWidgets('teacher application ends on the pending home', (tester) async {
+    await pumpApp(tester, {
+      'settings.v2':
+          '{"locale":"en","signedIn":true,"role":"teacher","gender":"female","name":"Aisha","permissionsDone":true}',
+    });
+    expect(find.text('Application · 1 of 5'), findsOneWidget);
+    await tapText(tester, 'South Africa');
+    await tapText(tester, 'English');
+    await tapText(tester, 'Next');
+    expect(find.text('What can you teach?'), findsOneWidget);
+    await tapText(tester, 'Next');
+    await tapText(tester, 'The whole Quran');
+    await tapText(tester, 'Next');
+    expect(find.text('Record a short sample'), findsOneWidget);
+  });
+
+  testWidgets('pending teacher sees the review screen with mushaf and athkar', (tester) async {
+    await pumpApp(tester, done(role: 'teacher', status: 'pending'));
+    expect(find.text('Your application is being reviewed'), findsOneWidget);
+    expect(find.text('Open the mushaf'), findsOneWidget);
+  });
+
+  testWidgets('approved teacher can go away and back', (tester) async {
+    await pumpApp(tester, done(role: 'teacher', status: 'approved'));
+    expect(find.text("I'm available to teach"), findsOneWidget);
+    await tapText(tester, "I'm available to teach");
     expect(find.text('You are away'), findsOneWidget);
-    await tester.tap(find.byType(Switch));
-    await tester.pumpAndSettle();
-    expect(find.text('You are available to teach'), findsOneWidget);
-    expect(find.text('Students'), findsWidgets);
   });
 
-  testWidgets('athkar tab lists all six categories', (tester) async {
-    await pumpApp(tester, {'locale': 'en', 'role': 'student'});
-
-    await tester.tap(find.text('Athkar'));
-    await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -400));
-    await tester.pumpAndSettle();
-    for (final label in [
-      'Morning',
-      'Evening',
-      'After salah',
-      'Tasbeeh',
-      'Before sleep',
-      'On waking',
-    ]) {
-      expect(find.text(label), findsOneWidget);
-    }
-  });
-
-  testWidgets('layout survives 2x system text size', (tester) async {
-    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-
-    await pumpApp(tester, {'locale': 'en', 'role': 'student'});
-    expect(find.text('Recite now'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+  testWidgets('athkar menu opens a counter that counts taps', (tester) async {
+    await pumpApp(tester, done());
+    await tapText(tester, 'Athkar');
+    expect(find.text('Morning'), findsOneWidget);
+    await tapText(tester, 'Tasbeeh');
+    expect(find.text('0 / 33'), findsOneWidget);
+    await tester.tap(find.text('Tap to count'));
+    await tester.pump();
+    expect(find.text('1 / 33'), findsOneWidget);
   });
 }

@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router.dart';
 import 'core/settings.dart';
+import 'core/strings.dart';
 import 'core/theme.dart';
-import 'l10n/app_localizations.dart';
 
 class SanadiApp extends ConsumerWidget {
   const SanadiApp({super.key});
@@ -13,27 +13,28 @@ class SanadiApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    final chosen = ref.watch(settingsProvider.select((s) => s.locale));
+    final settings = ref.watch(settingsProvider);
 
     // Before the user picks a language, follow the phone (Arabic if the phone
     // is in Arabic, otherwise English).
-    final systemCode =
-        WidgetsBinding.instance.platformDispatcher.locale.languageCode;
-    final locale = chosen ?? Locale(systemCode == 'ar' ? 'ar' : 'en');
+    final systemCode = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+    final locale = settings.locale ?? Locale(systemCode == 'ar' ? 'ar' : 'en');
 
     return MaterialApp.router(
       title: 'Sanadi',
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       locale: locale,
-      supportedLocales: AppLocalizations.supportedLocales,
+      supportedLocales: const [Locale('en'), Locale('ar')],
       localizationsDelegates: const [
-        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: buildTheme(locale),
+      theme: buildTheme(locale, Brightness.light),
+      darkTheme: buildTheme(locale, Brightness.dark),
+      themeMode: settings.themeMode,
+      builder: (context, child) => StringsScope(s: StringsScope.fromSettings(settings, locale), child: child!),
     );
   }
 }

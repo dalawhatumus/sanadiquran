@@ -1,59 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../l10n/app_localizations.dart';
+import '../../core/strings.dart';
+import '../../widgets/ui.dart';
 
-class ShellTab {
-  const ShellTab({
-    required this.icon,
-    required this.selectedIcon,
-    required this.label,
-  });
-
-  final IconData icon;
-  final IconData selectedIcon;
-  final String Function(AppLocalizations l10n) label;
-}
-
-final studentTabs = <ShellTab>[
-  ShellTab(icon: Icons.home_outlined, selectedIcon: Icons.home, label: (l) => l.tabHome),
-  ShellTab(icon: Icons.menu_book_outlined, selectedIcon: Icons.menu_book, label: (l) => l.tabQuran),
-  ShellTab(icon: Icons.wb_sunny_outlined, selectedIcon: Icons.wb_sunny, label: (l) => l.tabAthkar),
-  ShellTab(icon: Icons.chat_bubble_outline, selectedIcon: Icons.chat_bubble, label: (l) => l.tabMessages),
-];
-
-final teacherTabs = <ShellTab>[
-  ShellTab(icon: Icons.home_outlined, selectedIcon: Icons.home, label: (l) => l.tabHome),
-  ShellTab(icon: Icons.groups_outlined, selectedIcon: Icons.groups, label: (l) => l.tabStudents),
-  ShellTab(icon: Icons.menu_book_outlined, selectedIcon: Icons.menu_book, label: (l) => l.tabQuran),
-  ShellTab(icon: Icons.chat_bubble_outline, selectedIcon: Icons.chat_bubble, label: (l) => l.tabMessages),
-];
-
-/// Bottom navigation with 4 labelled tabs. The selected tab is shown by
-/// colour, a filled icon and the indicator pill, never colour alone.
+/// Bottom tabs. Student: Home · Quran · Athkar · Messages.
+/// Teacher: Home · Students · Quran · Messages (athkar is reached from Quran).
+/// Tab labels are capped at 130% text size (approved in the design review).
 class HomeShell extends StatelessWidget {
-  const HomeShell({super.key, required this.shell, required this.tabs});
+  const HomeShell({super.key, required this.shell, required this.teacher});
 
   final StatefulNavigationShell shell;
-  final List<ShellTab> tabs;
+  final bool teacher;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final s = S.of(context);
+    final home = NavigationDestination(icon: const Icon(Icons.home_rounded, size: 28), label: s.navHome);
+    final quran = NavigationDestination(icon: const SIcon(SIcons.rehal), label: s.navQuran);
+    final messages = NavigationDestination(icon: const Icon(Icons.chat_bubble_rounded, size: 28), label: s.navMessages);
+    final destinations = teacher
+        ? [home, NavigationDestination(icon: const SIcon(SIcons.students), label: s.navStudents), quran, messages]
+        : [home, quran, NavigationDestination(icon: const SIcon(SIcons.misbaha), label: s.navAthkar), messages];
+
     return Scaffold(
       body: shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (index) =>
-            shell.goBranch(index, initialLocation: index == shell.currentIndex),
-        destinations: [
-          for (final tab in tabs)
-            NavigationDestination(
-              icon: Icon(tab.icon),
-              selectedIcon: Icon(tab.selectedIcon),
-              label: tab.label(l10n),
-            ),
-        ],
+      bottomNavigationBar: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.3,
+        child: NavigationBar(
+          selectedIndex: shell.currentIndex,
+          onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+          destinations: destinations,
+        ),
       ),
     );
   }
