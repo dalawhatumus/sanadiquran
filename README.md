@@ -10,7 +10,7 @@ A free Quran memorisation app connecting elderly students with volunteer teacher
 - [Product spec](docs/SPEC.md)
 - [Design prompts](docs/DESIGN_PROMPTS.md)
 - [Claude Design brief](docs/CLAUDE_DESIGN_BRIEF.md)
-- Logo: [assets/brand](assets/brand)
+- [Brand sheet](assets/brand/sanadi-brand-sheet.png) · logo files in [assets/brand](assets/brand)
 
 ## Get the test app on your phone
 1. On your phone, open **https://github.com/dalawhatumus/sanadiquran/releases/latest** (signed in to GitHub).

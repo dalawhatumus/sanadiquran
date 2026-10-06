@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Tajawal; src: url(Tajawal-Medium.ttf); font-weight: 500; }
+  @font-face { font-family: Tajawal; src: url(Tajawal-Bold.ttf); font-weight: 700; }
+  @font-face { font-family: Montserrat; src: url('Montserrat[wght].ttf'); font-weight: 100 900; }
+  :root { --green:#0B6B3F; --deep:#0D4A3C; --slate:#1E3A40; --sage:#8FAE9E; --sagedark:#4F6F60; --sagetint:#DDE8E1; --cream:#F4F0E8; --warn:#A04A0A; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--cream); color:var(--slate); font-family:Montserrat, sans-serif; font-weight:500; }
+  .page { width:1600px; padding:72px 80px 88px; }
+  h1 { font-size:44px; margin:0 0 6px; color:var(--deep); font-weight:700; }
+  .sub { font-size:20px; color:var(--sagedark); margin:0 0 48px; }
+  h2 { font-size:15px; letter-spacing:.18em; text-transform:uppercase; color:var(--sagedark); margin:56px 0 18px; font-weight:700; }
+  .row { display:flex; gap:24px; align-items:stretch; }
+  .tile { background:#fff; border-radius:20px; padding:36px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; }
+  .tile.green { background:var(--green); } .tile.deep { background:var(--deep); } .tile.cream { background:var(--cream); outline:2px solid var(--sagetint); }
+  .tile img { display:block; }
+  .cap { font-size:15px; color:var(--sagedark); text-align:center; }
+  .tile.green .cap, .tile.deep .cap { color:#DDE8E1; }
+  .sw { flex:1; border-radius:18px; overflow:hidden; background:#fff; }
+  .sw .c { height:120px; }
+  .sw .t { padding:16px 18px 18px; font-size:15px; line-height:1.5; }
+  .sw b { display:block; font-size:18px; color:var(--deep); }
+  .ok { color:var(--green); font-weight:700; } .no { color:var(--warn); font-weight:700; }
+  .type { flex:1; background:#fff; border-radius:20px; padding:32px 36px; }
+  .ar { font-family:Tajawal; direction:rtl; text-align:right; }
+  .icons { display:flex; gap:28px; align-items:center; }
+  .icons img { border-radius:50%; }
+  .icons .sq { border-radius:28%; }
+  ul { margin:0; padding-left:22px; font-size:17px; line-height:1.7; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Sanadi · سَنَدي — brand sheet</h1>
+  <p class="sub">Logo, app icon, colours and type. Vector originals in <code>assets/brand/svg</code>, high-resolution transparent PNGs in <code>assets/brand/png</code>.</p>
+
+  <h2>Primary logo</h2>
+  <div class="row">
+    <div class="tile" style="flex:1.6"><img src="out/sanadi-horizontal-green.svg" height="230"><div class="cap">Horizontal (default)</div></div>
+    <div class="tile" style="flex:1"><img src="out/sanadi-vertical-green.svg" height="300"><div class="cap">Vertical / stacked</div></div>
+  </div>
+
+  <h2>Variations</h2>
+  <div class="row">
+    <div class="tile" style="flex:1.4"><img src="out/sanadi-horizontal-rtl-green.svg" height="150"><div class="cap">Horizontal, mark on the right (Arabic layouts)</div></div>
+    <div class="tile green" style="flex:1.4"><img src="out/sanadi-horizontal-cream.svg" height="150"><div class="cap">Reversed on Sanadi Green</div></div>
+    <div class="tile" style="flex:1"><img src="out/sanadi-wordmark-green.svg" height="150"><div class="cap">Wordmark only</div></div>
+  </div>
+  <div class="row" style="margin-top:24px">
+    <div class="tile" style="flex:1"><img src="out/sanadi-mark-green.svg" height="170"><div class="cap">Mark only</div></div>
+    <div class="tile deep" style="flex:1"><img src="out/sanadi-mark-cream.svg" height="170"><div class="cap">Mark on Deep Green</div></div>
+    <div class="tile" style="flex:1"><img src="out/sanadi-mark-black.svg" height="170"><div class="cap">Single colour (print, fax, stamps)</div></div>
+    <div class="tile deep" style="flex:1.6"><img src="out/sanadi-vertical-cream.svg" height="190"><div class="cap">Vertical reversed (splash screen)</div></div>
+  </div>
+
+  <h2>App icon</h2>
+  <div class="row">
+    <div class="tile" style="flex:2; align-items:flex-start">
+      <div class="icons">
+        <img src="out/app-icon.svg" width="192" style="clip-path:inset(16.7% round 50%)">
+        <img src="out/app-icon.svg" width="144" class="sq" style="clip-path:inset(16.7% round 28%)">
+        <img src="out/app-icon.svg" width="96" style="clip-path:inset(16.7% round 50%)">
+        <img src="out/app-icon.svg" width="72" style="clip-path:inset(16.7% round 50%)">
+        <img src="out/play-store-icon.svg" width="160" style="border-radius:22%">
+      </div>
+      <div class="cap" style="text-align:left">Adaptive icon in circle and rounded-square launcher masks, down to 48px home-screen size, plus the 512px Play Store icon (right). The mark sits inside Android's safe zone so no launcher crops it.</div>
+    </div>
+    <div class="tile cream" style="flex:1"><img src="out/app-icon-light.svg" width="150" style="clip-path:inset(16.7% round 50%)"><div class="cap">Alternative light icon</div></div>
+  </div>
+
+  <h2>Colour (checked against WCAG AA, 4.5 : 1 for text)</h2>
+  <div class="row">
+    <div class="sw"><div class="c" style="background:#0B6B3F"></div><div class="t"><b>Sanadi Green</b>#0B6B3F<br>Primary, buttons, logo<br><span class="ok">5.8 : 1 on cream ✓</span></div></div>
+    <div class="sw"><div class="c" style="background:#0D4A3C"></div><div class="t"><b>Deep Green</b>#0D4A3C<br>Headings, pressed states<br><span class="ok">9.0 : 1 ✓</span></div></div>
+    <div class="sw"><div class="c" style="background:#1E3A40"></div><div class="t"><b>Slate</b>#1E3A40<br>Body text, dark surfaces<br><span class="ok">10.7 : 1 ✓</span></div></div>
+    <div class="sw"><div class="c" style="background:#8FAE9E"></div><div class="t"><b>Sage</b>#8FAE9E<br>Decorative only, dividers<br><span class="no">2.1 : 1 ✗ never for text</span></div></div>
+    <div class="sw"><div class="c" style="background:#4F6F60"></div><div class="t"><b>Sage Dark</b>#4F6F60<br>Secondary text (replaces sage)<br><span class="ok">4.9 : 1 ✓</span></div></div>
+    <div class="sw"><div class="c" style="background:#DDE8E1"></div><div class="t"><b>Sage Tint</b>#DDE8E1<br>Selected states, chips<br><span class="ok">slate on it 9.6 : 1 ✓</span></div></div>
+    <div class="sw"><div class="c" style="background:#F4F0E8; border-bottom:1px solid #ddd"></div><div class="t"><b>Cream</b>#F4F0E8<br>App background</div></div>
+    <div class="sw"><div class="c" style="background:#A04A0A"></div><div class="t"><b>Warning</b>#A04A0A<br>End call, busy, errors<br><span class="ok">5.3 : 1 ✓</span> (never red)</div></div>
+  </div>
+
+  <h2>Typography</h2>
+  <div class="row">
+    <div class="type">
+      <div style="font-size:15px;color:var(--sagedark)">ARABIC · TAJAWAL (Medium 500 and Bold 700 only)</div>
+      <div class="ar" style="font-size:52px;font-weight:700;color:var(--deep);margin-top:8px">سمِّع الآن</div>
+      <div class="ar" style="font-size:28px;font-weight:700;margin-top:4px">وِردك القادم: سورة المُلك ١–١٠</div>
+      <div class="ar" style="font-size:20px;margin-top:6px">السلام عليكم، سيظهر معلّمك هنا بعد أول جلسة.</div>
+    </div>
+    <div class="type">
+      <div style="font-size:15px;color:var(--sagedark)">ENGLISH · MONTSERRAT (Medium 500 and Bold 700 only)</div>
+      <div style="font-size:52px;font-weight:700;color:var(--deep);margin-top:8px">Recite now</div>
+      <div style="font-size:28px;font-weight:700;margin-top:4px">Your next portion: Al-Mulk 1–10</div>
+      <div style="font-size:20px;margin-top:6px">As-salamu alaykum. Your teacher will appear here after your first session.</div>
+    </div>
+  </div>
+
+  <h2>Rules</h2>
+  <div class="row">
+    <div class="type"><ul>
+      <li>Always write the Arabic name with its vowel marks: <span class="ar" style="font-weight:700">سَنَدي</span></li>
+      <li>Clear space around the logo = the height of the fatha mark on all sides</li>
+      <li>Minimum size: horizontal logo 120dp wide; mark 24dp</li>
+      <li>Use only the colour versions shown; never recolour, stretch, outline or add shadows</li>
+    </ul></div>
+    <div class="type"><ul>
+      <li>Body text at least 18sp; never Light or Thin weights</li>
+      <li>Sage is decoration only; use Sage Dark for secondary text</li>
+      <li>Quran text always uses an Uthmani (KFGQPC) font, never Tajawal</li>
+      <li>Warnings use dark orange, never bright red</li>
+    </ul></div>
+  </div>
+</div>
+</body>
+</html>

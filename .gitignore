@@ -46,3 +46,8 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# brand generator scratch output
+tools/brand/out/
+tools/brand/node_modules/
+tools/brand/*.ttf
