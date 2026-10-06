@@ -101,18 +101,18 @@ Deliver the full icon set as SVG on a 24dp grid, in filled style, with LTR and R
 - `svg/sanadi-horizontal-cream.svg` and `svg/sanadi-vertical-cream.svg`: reversed versions for green backgrounds
 - `app-icon/app-icon.svg` (plus its foreground and background layers) and `app-icon/play-store-icon-512.png`
 
-**The logo:** the mark is the letter **سَ** (with its fatha) rising out of an **open book**: the student's *sanad* growing from the Quran. The wordmark is **سَنَدي** in Tajawal Bold with both fathas, over a spaced **SANADI** in Montserrat. Variations:
+**The logo:** the mark is a flowing calligraphic **سَ** (with its fatha) whose long stroke sweeps down to become the pages of an **open book**: the student's *sanad* (support, chain of transmission) growing out of the Quran. The owner's original artwork is in `source/`; the files in `svg/` and `png/` are an exact vector trace of it. The wordmark is **سَنَدي** in Tajawal Bold with both fathas, over a spaced **SANADI** in Montserrat. Variations:
 - horizontal (mark left), and horizontal with the mark on the right for Arabic layouts
 - vertical/stacked, mark only, wordmark only
 - colour versions: green, deep green, cream (reversed), black and white
 
-**App icon:** cream mark on Sanadi Green, sized inside Android's adaptive-icon safe zone and tested in circle and rounded-square masks down to 48px. Use the vertical reversed logo on the splash screen.
+**App icon:** the mark in cream on Sanadi Green, sized inside Android's adaptive-icon safe zone and tested in circle and rounded-square masks down to 48px. Use the vertical reversed logo on the splash screen.
 
 **Colours** (already checked against Section 3; use exactly these):
 
 | Token | Hex | Use | Contrast on cream |
 |---|---|---|---|
-| Sanadi Green | `#0B6B3F` | Primary, buttons, logo, selected tab | 5.8 : 1 ✓ |
+| Sanadi Green | `#026C3B` | Primary, buttons, logo, selected tab | 5.8 : 1 ✓ |
 | Deep Green | `#0D4A3C` | Headings, pressed states, splash background | 9.0 : 1 ✓ |
 | Slate | `#1E3A40` | Body text, dark surfaces | 10.7 : 1 ✓ |
 | Sage | `#8FAE9E` | **Decoration only:** dividers, illustrations, large surfaces | 2.1 : 1 ✗ never for text or icons |
