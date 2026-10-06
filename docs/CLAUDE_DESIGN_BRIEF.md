@@ -12,7 +12,7 @@
 1. The student taps one giant **"Recite now"** button.
 2. The app rings an available same-gender teacher.
 3. They recite on a live audio call.
-4. The teacher logs a 20-second report.
+4. The teacher gives feedback live on the call, and can optionally add short notes afterwards.
 5. The student sees their progress and "your next portion".
 
 **The app also includes:**
@@ -33,7 +33,7 @@
 
 ## 3. Non-negotiable design criteria
 
-1. **Text size:** body ≥ **18sp**, headings ≥ 24sp, main button labels ≥ 22sp. Every screen must still work at **200% system font size**; show the student home and teacher report at 200% to prove it.
+1. **Text size:** body ≥ **18sp**, headings ≥ 24sp, main button labels ≥ 22sp. Every screen must still work at **200% system font size**; show the student home and teacher notes form at 200% to prove it.
 2. **Touch targets:** ≥ **56dp**, with ≥ 8dp between them. Primary buttons are full width and about 64dp tall. Nothing tiny, nothing crowded.
 3. **Contrast:** WCAG AA (≥ 4.5:1 for text, ≥ 3:1 for icons and borders). No grey text on coloured backgrounds, and no thin or light font weights.
 4. **One main action per screen.** The primary action is visually dominant, and secondary actions are clearly secondary.
@@ -190,7 +190,7 @@ Design each screen on a **360×800dp Android frame**, in **Arabic and English**.
 22. **In call with mushaf open:** split or overlay view showing the portion page, with call controls still reachable.
 23. **End call confirmation:** "End this session?" Yes / No.
 24. **Call ended:** "May Allah reward you", duration, optional rating with 3 large faces (Not good / OK / Good), "Done".
-25. **Report ready:** notification plus a screen showing:
+25. **Teacher's notes** (only when the teacher chose to add them): notification plus a screen showing:
    - the portion recited and the grade (Excellent / Good / Needs practice)
    - mistakes highlighted by ayah, with tags
    - the next portion and the teacher's note (text or voice)
@@ -200,19 +200,18 @@ Design each screen on a **360×800dp Android frame**, in **Arabic and English**.
 29. **My teachers:** teachers they've recited to, each with availability and a "Call" or "Message" button.
 
 ### 6.3 Teacher journey
-30. ★ **Teacher home:** huge **"I'm available to teach"** toggle card (on is green with a gold accent; off is neutral grey with "You are away"), today's sessions and minutes, and a "5 students waiting for a teacher" card. *States:* available, away, auto-away notice ("You missed 2 calls, so we set you to away"), pending reports reminder.
+30. ★ **Teacher home:** huge **"I'm available to teach"** toggle card (on is green with a gold accent; off is neutral grey with "You are away"), today's sessions and minutes, and a "5 students waiting for a teacher" card. *States:* available, away, auto-away notice ("You missed 2 calls, so we set you to away"). **No pending-report reminders; notes are optional.**
 31. ★ **Incoming call:** full screen, like a phone call, and also as a **lock-screen version**. Shows the student name, session type, last portion and grade; large **Accept** (green) and **Decline** (dark orange). *States:* ringing, auto-declined after 30 seconds.
 32. **In call (teacher):** like 21, plus a **"Student's portion"** button that opens the mushaf at their portion.
 33. **Missed call:** notification and a list entry.
-34. ★ **Session report form** (opens after the call; must take under 30 seconds):
-   - portion recited (surah / from ayah / to ayah pickers, pre-filled)
-   - session type
-   - grade with 3 big buttons
-   - mistakes: tap ayah chips and choose a tag (Tajweed / Memorisation / Pronunciation)
-   - next portion (smart default)
-   - optional note as text or a recorded voice note
-   - sticky **Submit**, plus "Skip for now"
-   *States:* validation (missing grade), submitting, submitted.
+34. ★ **Call ended (teacher) + optional notes.** Feedback happens live on the call, so **notes are never required**.
+   - **Call ended screen:** student name, duration, "JazakAllahu khairan"; big **Done** button; secondary **Add notes for {name} (optional)**.
+   - **Notes form** (only if the teacher taps it; also reachable later from the student's page). **Every field is optional:**
+     - portion recited (pre-filled), grade (3 big buttons)
+     - mistakes as ayah chips with tags, next portion (smart default)
+     - note as text or voice
+   - **Save notes** is enabled once any field is filled, plus **Cancel**. No validation errors, no "Skip for now", no reminders.
+   *States:* call ended, notes form, saving, saved.
 35. **My students:** list with name, last session, progress at a glance. *State:* empty.
 36. **Student detail:** that student's progress grid, history and "Message" button.
 
@@ -267,7 +266,7 @@ Design each screen on a **360×800dp Android frame**, in **Arabic and English**.
 71. **Loading** skeletons for home, lists and the mushaf.
 72. **Generic error** with "Try again".
 73. **Update required** screen.
-74. **Android notification designs:** incoming call (full-screen intent), missed call, new message, report ready, teacher now online, athkar reminder, application approved.
+74. **Android notification designs:** incoming call (full-screen intent), missed call, new message, teacher added notes, teacher now online, athkar reminder, application approved.
 75. **Snackbars/toasts and confirmation dialogs:** standard patterns.
 
 ## 7. Deliverables and phases

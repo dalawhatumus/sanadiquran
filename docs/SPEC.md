@@ -53,7 +53,7 @@ Male students are only ever connected to male teachers, and female students to f
 - Teacher availability switch
 - **"Recite now"**: automatic matching and a ringing audio call
 - Incoming call screen (full screen, works on the lock screen)
-- Structured session report → student progress
+- Optional session notes from the teacher (feedback mainly happens live on the call) → student progress
 - 1:1 chat (text + voice notes) between a student and their teachers
 - Mushaf reader (offline after first download)
 - Athkar: 6 categories, tap counter, morning/evening reminders
@@ -104,7 +104,7 @@ The bottom bar has large icons with labels always visible, and the selected tab 
 - Greeting: "As-salamu alaykum, {name}"
 - **The giant "Recite now / اقرأ الآن" button**, about 40% of the screen
 - Below it, the status line: "3 teachers available now" or "No teachers online — we'll notify you"
-- **"Your next portion"** card: e.g. "Al-Mulk 1–10", from the last report. Tap → opens that page in the mushaf.
+- **"Your next portion"** card: e.g. "Al-Mulk 1–10", set by the teacher's optional notes, or by the student via "Set as my next portion" in the mushaf. Tap → opens that page in the mushaf.
 - **"My teacher"** card: their usual teacher's name and an availability dot. Small "Call {name}" button if available.
 - When no teachers are online: a **"Notify me when a teacher is online"** toggle
 
@@ -118,7 +118,7 @@ Correction · Memorise / review · Learn to read (talqeen)
 - Large buttons: **Mute**, **Speaker**, **Open mushaf** (opens the portion in split view or switches screen), **End call** (red, with confirmation)
 - The screen stays awake. The call continues if the student leaves the app (ongoing notification).
 
-**ST5 After call:** "May Allah reward you." Rate the session (3 large faces: 🙁 😐 🙂), optional. Then "Your teacher is writing your report" → when it arrives, a notification takes them to ST6.
+**ST5 After call:** "May Allah reward you." Rate the session (3 large faces: 🙁 😐 🙂), optional. The session is saved to their history automatically. If the teacher later adds notes, a notification takes them to ST6. Students are never told to wait for a report.
 
 **ST6 My progress**
 - A visual map of 30 juz, or 114 surahs, coloured: memorised / in progress / not started
@@ -150,14 +150,14 @@ Student name, session type, their last portion and grade · **Accept** / **Decli
 
 **T3 In call** — same as ST4, plus a **"Student's portion"** button that opens the mushaf at their next portion.
 
-**T4 Session report** (opens automatically after the call ends; must be fast, under 30 seconds)
+**T4 Session notes: OPTIONAL.** The teacher gives feedback live during the call, so notes are never required. After the call the teacher sees a simple **Call ended** screen (duration, student name) with **Done** as the main button and **Add notes for {student} (optional)** as a secondary button. Notes can also be added later from the student's page (T5). There are no reminders, badges or "pending" counts. If opened, the form is short and every field is optional:
 - Portion recited: surah + from ayah → to ayah (pickers, pre-filled with the student's next portion)
 - Type: correction / memorise / review / talqeen
-- Grade: **Excellent · Good · Needs more practice** (large buttons)
+- Grade (optional): **Excellent · Good · Needs more practice** (large buttons)
 - Mistakes (optional): tap ayahs in a mini list to flag them, and choose a tag: tajweed / memorisation / pronunciation
-- Next portion: surah + ayah range (smart default: continue from where they stopped)
+- Next portion (optional): surah + ayah range (smart default: continue from where they stopped)
 - Note to student (optional): text or voice note
-- **Submit** · "Skip for now" (reminds later; reports pending over 24 hours show on T1)
+- **Save notes** (enabled as soon as any field is filled) · **Cancel**. No validation errors, nothing mandatory.
 
 **T5 Students:** list of students they've taught (name, last session, progress). Tap → that student's progress + history + chat.
 
@@ -200,8 +200,8 @@ Student taps "Recite now"
   → after 2 min or no candidates left → status: unmatched
      → student offered "notify me when a teacher is online"
   → teacher with 2 consecutive missed calls → availability set to away + notice
-Call ends → status: ended, duration saved → teacher gets the report form,
-student gets the rating prompt
+Call ends → status: ended, duration saved → session logged automatically →
+teacher sees "Call ended" (Done / optional notes), student gets the rating prompt
 ```
 
 **Media:** WebRTC peer-to-peer, audio only (Opus codec). Signalling via Firestore. STUN: Google public servers. TURN: Cloudflare Realtime TURN (short-lived credentials issued by a Cloud Function). Automatic reconnection if the network drops for under 15 seconds ("Reconnecting…").
@@ -228,12 +228,12 @@ callRequests/{id}
 
 sessions/{id}
   studentId, teacherId, type, startedAt, durationSec,
-  report: { surah, fromAyah, toAyah, grade, mistakes[{ayah,tag}],
+  report?: { surah, fromAyah, toAyah, grade?, mistakes[{ayah,tag}],   // optional
             nextPortion, note, voiceNoteUrl?, submittedAt },
   studentRating?
 
 progress/{studentId}
-  ayahStatus: compact map per surah (memorised / in progress), updated from reports
+  ayahStatus: compact map per surah (memorised / in progress), updated from teacher notes and the student's own "next portion" choices
 
 conversations/{id}   members[2], lastMessage, unread{uid:n}
   messages/{id}      senderId, type: text|voice, text?, audioUrl?, durationSec?, sentAt
@@ -251,12 +251,11 @@ reports/{id}         reporterId, reportedId, reason, context, status
 |---|---|---|
 | Incoming call | Full-screen, high priority | Teacher |
 | Missed call | Normal | Teacher |
-| Session report ready | Normal | Student |
+| Teacher added notes | Normal | Student |
 | New message | Normal (grouped per conversation) | Both |
 | A teacher is now online | Normal, max 1 per hour | Students with "notify me" on |
 | Teacher approved / rejected | Normal | Teacher |
 | Athkar reminders | Local, scheduled | Opted-in users |
-| Pending reports reminder | Normal, once a day max | Teacher |
 
 Notification channels are separated (Calls / Messages / Reminders) so users can silence one without losing calls.
 
@@ -321,7 +320,7 @@ Monthly cost target: **R0** at launch, with a Firebase budget alert at R100.
 | Oct wk 2 | Spec signed off · design directions explored · repo + CI set up |
 | Oct wk 3–4 | Design rules locked · clickable prototype tested with 2–3 elders · Flutter shell (theme, RTL, i18n, navigation) · mushaf + athkar |
 | Nov | Firebase: sign-in, onboarding, teacher approval, chat + voice notes, notifications |
-| Dec | Calls: matching, ringing, WebRTC, reconnection · session reports · progress |
+| Dec | Calls: matching, ringing, WebRTC, reconnection · optional session notes · progress |
 | Early Jan | Admin, polish, accessibility pass, performance on a cheap phone |
 | Jan (14 days) | Closed test with 12+ testers (5 teachers, 10 students) |
 | Late Jan / early Feb | Public launch on Google Play, before Ramadan (~8 Feb 2027) |
