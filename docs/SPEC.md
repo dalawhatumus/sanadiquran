@@ -279,6 +279,7 @@ Notification channels are separated (Calls / Messages / Reminders) so users can 
 | CI | GitHub Actions: analyse + test + build APK/AAB on every push |
 | Package name | `sanadi.quran` (**confirmed, permanent once published**) |
 | Min Android | 8.0 (API 26) |
+| Firebase region | **Dammam, Saudi Arabia (`me-central2`)**; if Firestore, Functions or Storage aren't offered there, Doha (`me-central1`), then Belgium (`europe-west1`). **Permanent once chosen.** |
 
 Monthly cost target: **R0** at launch, with a Firebase budget alert at R100.
 
