@@ -13,12 +13,14 @@ class SanadiApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    final settings = ref.watch(settingsProvider);
+    // Only what the app shell needs, so other settings changes don't
+    // rebuild every screen.
+    final settings = ref.watch(settingsProvider.select((s) => (s.locale, s.themeMode, s.gender)));
 
     // Before the user picks a language, follow the phone (Arabic if the phone
     // is in Arabic, otherwise English).
     final systemCode = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
-    final locale = settings.locale ?? Locale(systemCode == 'ar' ? 'ar' : 'en');
+    final locale = settings.$1 ?? Locale(systemCode == 'ar' ? 'ar' : 'en');
 
     return MaterialApp.router(
       title: 'Sanadi',
@@ -33,8 +35,11 @@ class SanadiApp extends ConsumerWidget {
       ],
       theme: buildTheme(locale, Brightness.light),
       darkTheme: buildTheme(locale, Brightness.dark),
-      themeMode: settings.themeMode,
-      builder: (context, child) => StringsScope(s: StringsScope.fromSettings(settings, locale), child: child!),
+      themeMode: settings.$2,
+      builder: (context, child) => StringsScope(
+        s: S(ar: locale.languageCode == 'ar', female: settings.$3 == Gender.female),
+        child: child!,
+      ),
     );
   }
 }

@@ -138,6 +138,9 @@ ThemeData buildTheme(Locale locale, Brightness brightness) {
     fontWeight: w,
     color: c,
     height: ar ? h + 0.1 : h,
+    // Spread extra line height evenly above and below, so text sits in the
+    // vertical centre of buttons and pills.
+    leadingDistribution: TextLeadingDistribution.even,
   );
 
   const m = FontWeight.w500;

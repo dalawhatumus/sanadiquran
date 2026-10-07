@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/connectivity.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
+import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 
 /// 17 · Student home: one giant "Recite now" action.
@@ -19,18 +21,39 @@ class StudentHomeScreen extends ConsumerWidget {
     final tt = Theme.of(context).textTheme;
     final settings = ref.watch(settingsProvider);
     final firstTime = settings.sessions == 0;
-    final initial = settings.name.characters.first.toUpperCase();
+    final offline = ref.watch(offlineProvider);
+
+    // Calling needs internet; everything else on this screen works offline.
+    Future<void> startCall() async {
+      if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
+        context.push(Routes.connecting);
+      }
+    }
 
     return Scaffold(
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           children: [
-            HomeHeader(top: s.salam, title: settings.firstName, initial: initial),
+            const HomeHeader(),
             const SizedBox(height: 16),
-            _ReciteButton(onTap: () => context.push(Routes.connecting)),
+            if (offline) ...[
+              WarnBanner(
+                icon: Icons.wifi_off_rounded,
+                title: s.needsInternetTitle,
+                text: s.needsInternetBody,
+                action: BigButton(
+                  label: s.tryAgain,
+                  icon: Icons.refresh_rounded,
+                  kind: ButtonKind.outline,
+                  onPressed: () => ref.read(offlineProvider.notifier).check(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            _ReciteButton(onTap: startCall, offline: offline),
             const SizedBox(height: 16),
-            StatusLine(text: s.teachersAvailable(3)),
+            if (!offline) StatusLine(text: s.teachersAvailable(3)),
             const SizedBox(height: 16),
             if (firstTime)
               SCard(
@@ -88,7 +111,7 @@ class StudentHomeScreen extends ConsumerWidget {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Avatar(s.teacherInitials, size: 52),
+                        Avatar(s.teacherInitials, size: 56, image: sampleTeacherAvatar(s.female)),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -118,11 +141,7 @@ class StudentHomeScreen extends ConsumerWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: BigButton(
-                            label: s.call,
-                            icon: Icons.call_rounded,
-                            onPressed: () => context.push(Routes.connecting),
-                          ),
+                          child: BigButton(label: s.call, icon: Icons.call_rounded, onPressed: startCall),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -171,9 +190,12 @@ class StudentHomeScreen extends ConsumerWidget {
 }
 
 class _ReciteButton extends StatelessWidget {
-  const _ReciteButton({required this.onTap});
+  const _ReciteButton({required this.onTap, this.offline = false});
 
   final VoidCallback onTap;
+
+  /// Greyed out with "Needs internet" (tapping checks again).
+  final bool offline;
 
   @override
   Widget build(BuildContext context) {
@@ -181,10 +203,10 @@ class _ReciteButton extends StatelessWidget {
     final t = context.t;
     return Semantics(
       button: true,
-      label: '${s.recite}. ${s.reciteSub}',
+      label: '${s.recite}. ${offline ? s.needsNet : s.reciteSub}',
       excludeSemantics: true,
       child: Material(
-        color: t.primary,
+        color: offline ? t.disabledBg : t.primary,
         borderRadius: BorderRadius.circular(32),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -199,21 +221,33 @@ class _ReciteButton extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: t.micBg,
-                    border: Border.all(color: t.onPrimary.withValues(alpha: 0.18), width: 14),
+                    border: Border.all(
+                      color: (offline ? t.disabledInk : t.onPrimary).withValues(alpha: 0.18),
+                      width: 14,
+                    ),
                   ),
-                  child: Icon(Icons.mic_rounded, size: 56, color: t.primary),
+                  child: Icon(Icons.mic_rounded, size: 56, color: offline ? t.disabledInk : t.primary),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   s.recite,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: t.onPrimary, height: 1.2),
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w700,
+                    color: offline ? t.disabledInk : t.onPrimary,
+                    height: 1.2,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  s.reciteSub,
+                  offline ? s.needsNet : s.reciteSub,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: t.onPrimary),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: offline ? t.disabledInk : t.onPrimary,
+                  ),
                 ),
               ],
             ),

@@ -79,6 +79,19 @@ class S {
     'No internet connection. Connect to Wi-Fi or mobile data, then try again.',
     'لا يوجد اتصال بالإنترنت. يُرجى الاتصال بشبكة Wi-Fi أو بيانات الجوال، ثم المحاولة مرة أخرى.',
   );
+  String get needsNet => t('Needs internet', 'يحتاج إلى إنترنت');
+  String get offlineWorks => t('The Quran and athkar work without internet.', 'المصحف والأذكار يعملان دون إنترنت.');
+  String get needsInternetTitle => t('No internet', 'لا يوجد اتصال بالإنترنت');
+  String get needsInternetBody => t(
+    'Reciting to a teacher needs internet. The Quran and athkar still work offline.',
+    'التسميع للمعلّمة يحتاج إلى إنترنت. المصحف والأذكار يعملان دون إنترنت.',
+    'التسميع للمعلّم يحتاج إلى إنترنت. المصحف والأذكار يعملان دون إنترنت.',
+  );
+  String get messagesNeedInternet => t(
+    'Messages need internet. Connect to Wi-Fi or mobile data.',
+    'الرسائل تحتاج إلى إنترنت. اتصلي بشبكة Wi-Fi أو بيانات الجوال.',
+    'الرسائل تحتاج إلى إنترنت. اتصل بشبكة Wi-Fi أو بيانات الجوال.',
+  );
   String get privacy => t('Privacy policy', 'سياسة الخصوصية');
   String get terms => t('Terms', 'الشروط');
 
@@ -110,6 +123,12 @@ class S {
     'من حسابكِ في Google، ويمكنكِ تغييره.',
     'من حسابك في Google، ويمكنك تغييره.',
   );
+  String get choosePicture => t('Choose your picture', 'اختاري صورتكِ', 'اختر صورتك');
+  String get choosePictureOptional =>
+      t('Choose your picture (optional)', 'اختاري صورتكِ (اختياري)', 'اختر صورتك (اختياري)');
+  String get useInitials => t('Use my initial', 'استخدام الحرف الأول من اسمي');
+  String pictureN(int k) => t('Picture $k', 'صورة ${n(k)}');
+  String get changePicture => t('Change picture', 'تغيير الصورة');
   String get nameEmpty => t('Please write your name.', 'يُرجى كتابة اسمكِ.', 'يُرجى كتابة اسمك.');
 
   // ---- 7 Permissions ----
@@ -409,7 +428,7 @@ class S {
     'بعد أول جلسة سترين ما حفظتِه، جزءًا بعد جزء.',
     'بعد أول جلسة سترى ما حفظته، جزءًا بعد جزء.',
   );
-  String juz(int k) => t('Juz $k', 'الجزء ${n(k)}');
+  String juz(int k) => t("Juz' $k", 'الجزء ${n(k)}');
 
   // ---- 30 Teacher home ----
   String get on => t('ON', 'مفعّل');
@@ -486,6 +505,7 @@ class S {
   String get remindersOff => t('Athkar reminders are off', 'تذكيرات الأذكار متوقّفة');
   String get turnOnReminders => t('Turn on reminders', 'فعّلي التذكيرات', 'فعّل التذكيرات');
   String get doneToday => t('Done today', 'تمّت اليوم');
+  String get virtue => t('Its virtue', 'فضله');
   String get showTranslit => t('Show transliteration', 'إظهار النطق بالحروف اللاتينية');
   String get tapToCount => t('Tap to count', 'اضغطي للعدّ', 'اضغط للعدّ');
   String get nextDhikr => t('Next dhikr…', 'الذكر التالي…');
@@ -499,6 +519,22 @@ class S {
 
   // ---- 37/39/40 Quran ----
   String get surahs => t('Surahs', 'السور');
+  String get juzTab => t("Juz'", 'الأجزاء');
+  String get makki => t('Makki', 'مكية');
+  String get madani => t('Madani', 'مدنية');
+  String get currentPage => t('Current page', 'الصفحة الحالية');
+  String get pageBookmarks => t('Page bookmarks', 'علامات الصفحات');
+  String get ayahBookmarks => t('Ayah bookmarks', 'علامات الآيات');
+  String get noPageBookmarks => t(
+    'Tap the bookmark at the top of a page to save it here.',
+    'اضغطي على العلامة أعلى الصفحة لحفظها هنا.',
+    'اضغط على العلامة أعلى الصفحة لحفظها هنا.',
+  );
+  String get noAyahBookmarks => t(
+    'Press and hold an ayah, then tap Bookmark.',
+    'اضغطي مطوّلًا على آية، ثم اختاري «علامة».',
+    'اضغط مطوّلًا على آية، ثم اختر «علامة».',
+  );
   String get continueReading => t('Continue reading', 'متابعة القراءة');
   String page(int p) => t('Page $p', 'صفحة ${n(p)}');
   String juzPage(int j, int p) => t('Juz $j · Page $p', 'الجزء ${n(j)} · صفحة ${n(p)}');
@@ -513,6 +549,14 @@ class S {
   String get repeatAyah => t('Repeat this ayah', 'كرّري هذه الآية', 'كرّر هذه الآية');
   String get bookmarkAyah => t('Bookmark this ayah', 'ضعي علامة على الآية', 'ضع علامة على الآية');
   String get removeBookmark => t('Remove bookmark', 'إزالة العلامة');
+  String get copy => t('Copy', 'نسخ');
+  String get tapToShowBars => t(
+    'Tap the page to show the controls again.',
+    'اضغطي على الصفحة لإظهار الأزرار مجددًا.',
+    'اضغط على الصفحة لإظهار الأزرار مجددًا.',
+  );
+  String get reciterName => t('Mishary Alafasy', 'مشاري العفاسي');
+  String get comingSoonShort => t('Coming soon', 'قريبًا');
   String get copyAyah => t('Copy ayah', 'انسخي الآية', 'انسخ الآية');
   String get copied => t('Ayah copied', 'نُسخت الآية');
   String get bookmarked => t('Bookmark saved', 'حُفظت العلامة');

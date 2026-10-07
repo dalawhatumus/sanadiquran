@@ -3,13 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sanadi/app.dart';
 import 'package:sanadi/core/settings.dart';
-import 'package:sanadi/features/onboarding/welcome_screen.dart';
+import 'package:sanadi/core/connectivity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<void> pumpApp(WidgetTester tester, [Map<String, Object> prefs = const {}]) async {
+Future<void> pumpApp(WidgetTester tester, [Map<String, Object> prefs = const {}, bool online = true]) async {
   // A typical budget Android phone: 360x800 logical pixels.
   tester.view.physicalSize = const Size(1080, 2400);
   tester.view.devicePixelRatio = 3;
+  // Names that don't fit would otherwise scroll (marquee) forever.
+  tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
   addTearDown(tester.view.reset);
 
   SharedPreferences.setMockInitialValues(prefs);
@@ -18,7 +21,7 @@ Future<void> pumpApp(WidgetTester tester, [Map<String, Object> prefs = const {}]
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(instance),
-        onlineCheckProvider.overrideWithValue(() async => true),
+        onlineCheckProvider.overrideWithValue(() async => online),
       ],
       child: const SanadiApp(),
     ),
@@ -86,7 +89,7 @@ void main() {
     await tapText(tester, 'Skip');
 
     expect(find.text('Recite now'), findsOneWidget);
-    expect(find.text('Fatima'), findsOneWidget);
+    expect(find.text('Fatima Ahmed'), findsOneWidget);
     expect(find.text('Welcome to Sanadi'), findsOneWidget);
   });
 
@@ -158,5 +161,23 @@ void main() {
     await tester.tap(find.text('Tap to count'));
     await tester.pump();
     expect(find.text('1 / 33'), findsOneWidget);
+  });
+
+  testWidgets('without internet, the Quran and athkar still open from the welcome screen', (tester) async {
+    await pumpApp(tester, {'settings.v2': '{"locale":"en"}'}, false);
+    await tapText(tester, 'Continue with Google');
+    expect(find.text('No internet connection. Connect to Wi-Fi or mobile data, then try again.'), findsOneWidget);
+    expect(find.text('The Quran and athkar work without internet.'), findsOneWidget);
+    await tapText(tester, 'Athkar');
+    expect(find.text('Morning'), findsOneWidget);
+  });
+
+  testWidgets('without internet, Recite now explains and the rest still works', (tester) async {
+    await pumpApp(tester, done(), false);
+    await tapText(tester, 'Recite now');
+    expect(find.text('No internet'), findsOneWidget);
+    expect(find.text('Needs internet'), findsOneWidget);
+    await tapText(tester, 'Athkar');
+    expect(find.text('Morning'), findsOneWidget);
   });
 }

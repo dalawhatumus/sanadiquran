@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sanadi/app.dart';
 import 'package:sanadi/core/router.dart';
 import 'package:sanadi/core/settings.dart';
-import 'package:sanadi/features/onboarding/welcome_screen.dart';
+import 'package:sanadi/core/connectivity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Opens every screen at 100% and 200% text, in English and Arabic, on a
@@ -56,6 +56,11 @@ void main() {
         testWidgets('$role screens fit: $locale at ${(scale * 100).round()}%', (tester) async {
           tester.view.physicalSize = const Size(1080, 2400);
           tester.view.devicePixelRatio = 3;
+          // Names that don't fit would otherwise scroll (marquee) forever.
+          tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+            disableAnimations: true,
+          );
+          addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
           tester.platformDispatcher.textScaleFactorTestValue = scale;
           addTearDown(tester.view.reset);
           addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);

@@ -1,9 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/connectivity.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -11,22 +10,11 @@ import '../../widgets/ui.dart';
 
 enum _State { idle, busy, failed, offline }
 
-/// Checks the internet before sign-in. Overridden in tests.
-final onlineCheckProvider = Provider<Future<bool> Function()>(
-  (ref) => () async {
-    try {
-      final r = await InternetAddress.lookup('google.com').timeout(const Duration(seconds: 5));
-      return r.isNotEmpty;
-    } on Object {
-      return false;
-    }
-  },
-);
-
 /// 3 · Welcome and Google sign-in. No passwords.
 ///
 /// Test build: Google sign-in isn't connected yet (needs Firebase), so the
-/// button checks the internet and then continues.
+/// button checks the internet and then continues. Without internet, the
+/// Quran and athkar can still be opened.
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
 
@@ -84,7 +72,34 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
         const SizedBox(height: 24),
       ],
       bottom: [
-        if (_state == _State.offline || _state == _State.failed)
+        if (_state == _State.offline) ...[
+          BigButton(label: s.tryAgain, icon: Icons.refresh_rounded, onPressed: _signIn),
+          // Offline content never needs an account or internet.
+          Row(
+            children: [
+              Expanded(
+                child: BigButton(
+                  label: s.navQuran,
+                  iconWidget: const SIcon(SIcons.rehal),
+                  kind: ButtonKind.outline,
+                  compact: true,
+                  onPressed: () => context.push(Routes.mushaf),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: BigButton(
+                  label: s.athkarTitle,
+                  iconWidget: const SIcon(SIcons.misbaha),
+                  kind: ButtonKind.outline,
+                  compact: true,
+                  onPressed: () => context.push(Routes.athkar),
+                ),
+              ),
+            ],
+          ),
+          Text(s.offlineWorks, textAlign: TextAlign.center, style: tt.bodySmall),
+        ] else if (_state == _State.failed)
           BigButton(label: s.tryAgain, icon: Icons.refresh_rounded, onPressed: _signIn)
         else
           BigButton(

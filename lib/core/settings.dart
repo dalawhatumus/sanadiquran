@@ -32,12 +32,13 @@ class AppSettings {
     this.teacherStatus = TeacherStatus.none,
     this.available = true,
     this.themeMode = ThemeMode.system,
-    this.mushafMode = MushafMode.large,
+    this.mushafMode = MushafMode.page,
     this.remindersOn = true,
     this.sessions = 0,
     this.bookmarks = const [],
     this.athkarDone = const {},
-    this.lastPage = 1,
+    this.pageBookmarks = const [],
+    this.avatar,
   });
 
   /// Null until the user picks a language on first launch.
@@ -64,7 +65,12 @@ class AppSettings {
 
   /// Athkar sets finished, keyed by set id, value = yyyy-mm-dd.
   final Map<String, String> athkarDone;
-  final int lastPage;
+
+  /// Bookmarked pages.
+  final List<int> pageBookmarks;
+
+  /// Chosen profile picture id (see avatars.dart), or null for initials.
+  final String? avatar;
 
   bool get female => gender == Gender.female;
   String get firstName => name.trim().split(RegExp(r'\s+')).first;
@@ -85,7 +91,9 @@ class AppSettings {
     int? sessions,
     List<String>? bookmarks,
     Map<String, String>? athkarDone,
-    int? lastPage,
+    List<int>? pageBookmarks,
+    String? avatar,
+    bool clearAvatar = false,
   }) {
     return AppSettings(
       locale: locale ?? this.locale,
@@ -103,7 +111,8 @@ class AppSettings {
       sessions: sessions ?? this.sessions,
       bookmarks: bookmarks ?? this.bookmarks,
       athkarDone: athkarDone ?? this.athkarDone,
-      lastPage: lastPage ?? this.lastPage,
+      pageBookmarks: pageBookmarks ?? this.pageBookmarks,
+      avatar: clearAvatar ? null : (avatar ?? this.avatar),
     );
   }
 
@@ -123,7 +132,8 @@ class AppSettings {
     'sessions': sessions,
     'bookmarks': bookmarks,
     'athkarDone': athkarDone,
-    'lastPage': lastPage,
+    'pageBookmarks': pageBookmarks,
+    'avatar': avatar,
   };
 
   static T? _enum<T extends Enum>(List<T> values, Object? name) => values.where((v) => v.name == name).firstOrNull;
@@ -144,7 +154,8 @@ class AppSettings {
     sessions: (j['sessions'] as num?)?.toInt() ?? 0,
     bookmarks: [...((j['bookmarks'] as List?) ?? const []).cast<String>()],
     athkarDone: {...((j['athkarDone'] as Map?) ?? const {}).cast<String, String>()},
-    lastPage: (j['lastPage'] as num?)?.toInt() ?? 1,
+    pageBookmarks: [...((j['pageBookmarks'] as List?) ?? const []).cast<num>().map((x) => x.toInt())],
+    avatar: j['avatar'] as String?,
   );
 }
 
@@ -178,6 +189,16 @@ class SettingsNotifier extends Notifier<AppSettings> {
     );
   }
 
+  void togglePageBookmark(int page) {
+    update(
+      (s) => s.copyWith(
+        pageBookmarks: s.pageBookmarks.contains(page)
+            ? (List.of(s.pageBookmarks)..remove(page))
+            : [...s.pageBookmarks, page],
+      ),
+    );
+  }
+
   void markAthkarDone(String setId) {
     final today = DateTime.now().toIso8601String().substring(0, 10);
     update((s) => s.copyWith(athkarDone: {...s.athkarDone, setId: today}));
@@ -191,3 +212,20 @@ class SettingsNotifier extends Notifier<AppSettings> {
 }
 
 final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
+
+/// The last mushaf page read. Kept apart from [settingsProvider] so turning
+/// a page doesn't rebuild the whole app.
+class LastPageNotifier extends Notifier<int> {
+  static const _key = 'lastPage';
+
+  @override
+  int build() => ref.read(sharedPreferencesProvider).getInt(_key) ?? 1;
+
+  void set(int page) {
+    if (page == state) return;
+    state = page;
+    ref.read(sharedPreferencesProvider).setInt(_key, page);
+  }
+}
+
+final lastPageProvider = NotifierProvider<LastPageNotifier, int>(LastPageNotifier.new);

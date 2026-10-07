@@ -9,6 +9,7 @@ import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
+import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 import '../quran/quran_data.dart';
 
@@ -241,7 +242,13 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
-          Center(child: Avatar(initials, size: 112)),
+          Center(
+            child: Avatar(
+              initials,
+              size: 112,
+              image: widget.asTeacher ? sampleStudentAvatar(s.female) : sampleTeacherAvatar(s.female),
+            ),
+          ),
           const SizedBox(height: 14),
           Text(name, style: tt.headlineMedium, textAlign: TextAlign.center),
           const SizedBox(height: 10),
@@ -520,7 +527,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
           ],
         ),
         const SizedBox(height: 36),
-        Center(child: Avatar(s.studentInitial, size: 120)),
+        Center(child: Avatar(s.studentInitial, size: 120, image: sampleStudentAvatar(s.female))),
         const SizedBox(height: 18),
         Text(s.studentName, style: tt.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 10),

@@ -1,18 +1,23 @@
-import 'package:flutter/gestures.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
+import 'large_text_view.dart';
+import 'mushaf_page.dart';
 import 'quran_data.dart';
 import 'surah_index_screen.dart';
 
-/// 39 · Mushaf with two modes: Large text (default, reflowing, with page
-/// dividers) and Mushaf page (one page at a time, swipe right-to-left).
-/// 40 · Long-press an ayah for the ayah menu.
+/// 39 · The mushaf. Mushaf page mode shows the exact Madani 15-line pages
+/// (two side by side on wide landscape screens); Large text mode reflows the
+/// text in big type. Tap the page to show or hide the bars; long-press an
+/// ayah for its actions (40).
 class MushafScreen extends ConsumerStatefulWidget {
   const MushafScreen({super.key, this.sura, this.ayah, this.page});
 
@@ -25,183 +30,185 @@ class MushafScreen extends ConsumerStatefulWidget {
 }
 
 class _MushafScreenState extends ConsumerState<MushafScreen> {
-  int? _page;
+  final _page = ValueNotifier<int>(1);
+  final _selected = ValueNotifier<String?>(null);
+  Ayah? _selAyah;
+  Offset _selAt = Offset.zero;
+  bool _chrome = true;
+  bool _started = false;
   int _jump = 0;
-  String? _selected;
   PageController? _pc;
+  bool? _spreadMode;
+  Timer? _hide;
+
+  @override
+  void initState() {
+    super.initState();
+    // Bars show on opening, then step aside so the whole page is visible.
+    // A tap on the page brings them back.
+    _hide = Timer(const Duration(seconds: 4), () {
+      if (!mounted || !_chrome) return;
+      setState(() => _chrome = false);
+      final prefs = ref.read(sharedPreferencesProvider);
+      if (prefs.getBool('mushafHint') != true) {
+        prefs.setBool('mushafHint', true);
+        toast(context, S.of(context).tapToShowBars);
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _hide?.cancel();
     _pc?.dispose();
+    _page.dispose();
+    _selected.dispose();
     super.dispose();
   }
 
-  int _startPage(QuranData q) {
-    if (widget.sura != null) return q.ayah(widget.sura!, widget.ayah ?? 1)?.page ?? 1;
-    return widget.page ?? ref.read(settingsProvider).lastPage;
+  void _start(QuranData q) {
+    if (_started) return;
+    _started = true;
+    final a = widget.sura == null ? null : q.ayah(widget.sura!, widget.ayah ?? 1);
+    _page.value = a != null ? q.pageOf(a) : (widget.page ?? ref.read(lastPageProvider));
+    if (a != null && widget.ayah != null && widget.ayah! > 1) _selected.value = a.key;
   }
 
-  void _setPage(int p) {
-    if (p == _page) return;
-    setState(() => _page = p);
-    ref.read(settingsProvider.notifier).update((s) => s.copyWith(lastPage: p));
+  void _onPage(int p) {
+    if (p == _page.value) return;
+    _page.value = p;
+    ref.read(lastPageProvider.notifier).set(p);
+    if (_selAyah != null) _clearSelection();
   }
 
   void _goTo(int p) {
-    setState(() {
-      _page = p;
-      _jump++;
-    });
-    _pc?.jumpToPage(p - 1);
-    ref.read(settingsProvider.notifier).update((s) => s.copyWith(lastPage: p));
+    _clearSelection();
+    _page.value = p;
+    ref.read(lastPageProvider.notifier).set(p);
+    final spread = _spreadMode ?? false;
+    if (_pc != null && _pc!.hasClients) {
+      _pc!.jumpToPage(spread ? (p - 1) ~/ 2 : p - 1);
+    }
+    setState(() => _jump++);
   }
 
-  void _onAyah(Ayah a) async {
-    setState(() => _selected = '${a.sura}:${a.ayah}');
-    await showAyahMenu(context, ref, a);
-    if (mounted) setState(() => _selected = null);
+  void _onAyah(Ayah a, Offset at) {
+    HapticFeedback.selectionClick();
+    _selected.value = a.key;
+    setState(() {
+      _selAyah = a;
+      _selAt = at;
+    });
+  }
+
+  void _clearSelection() {
+    _selected.value = null;
+    if (_selAyah != null) setState(() => _selAyah = null);
+  }
+
+  void _onTapPage() {
+    if (_selAyah != null) {
+      _clearSelection();
+    } else {
+      _hide?.cancel();
+      setState(() => _chrome = !_chrome);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final quran = ref.watch(quranProvider);
+    final t = context.t;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      body: SafeArea(
-        child: quran.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('$e')),
-          data: (q) {
-            _page ??= _startPage(q);
-            return _body(context, q);
-          },
-        ),
+      backgroundColor: dark ? t.bg : const Color(0xFFFFFCF2),
+      body: quran.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('$e')),
+        data: (q) {
+          _start(q);
+          return _body(context, q);
+        },
       ),
     );
   }
 
   Widget _body(BuildContext context, QuranData q) {
-    final s = S.of(context);
-    final t = context.t;
     final mode = ref.watch(settingsProvider.select((x) => x.mushafMode));
-    final landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
-    final page = _page!;
-    final first = q.page(page).first;
-    final sura = q.sura(first.sura);
+    final size = MediaQuery.sizeOf(context);
+    final landscape = size.width > size.height;
+    final spread = mode == MushafMode.page && landscape && size.width >= 840;
+    if (_spreadMode != spread) {
+      _pc?.dispose();
+      _pc = null;
+      _spreadMode = spread;
+    }
 
-    final title = Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          sura.name(s.ar),
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: t.heading),
+    final Widget content;
+    if (mode == MushafMode.large) {
+      content = LargeTextView(
+        key: ValueKey('large-$_jump'),
+        q: q,
+        startPage: _page.value,
+        selected: _selected,
+        onAyah: _onAyah,
+        onPage: _onPage,
+        onTap: _onTapPage,
+      );
+    } else {
+      _pc ??= PageController(initialPage: spread ? (_page.value - 1) ~/ 2 : _page.value - 1);
+      content = Directionality(
+        // Mushaf pages always turn right-to-left.
+        textDirection: TextDirection.rtl,
+        child: PageView.builder(
+          controller: _pc,
+          itemCount: spread ? QuranData.pageCount ~/ 2 : QuranData.pageCount,
+          onPageChanged: (i) => _onPage(spread ? i * 2 + 1 : i + 1),
+          itemBuilder: (_, i) {
+            Widget page(int p) => MushafPage(
+              q: q,
+              page: p,
+              selected: _selected,
+              onAyah: _onAyah,
+              onTap: _onTapPage,
+              scrollable: landscape && !spread,
+            );
+            if (!spread) return RepaintBoundary(child: page(i + 1));
+            // Right-to-left row: the odd page sits on the right.
+            return RepaintBoundary(
+              child: Row(
+                children: [
+                  Expanded(child: page(i * 2 + 1)),
+                  Container(width: 1, color: const Color(0x22000000)),
+                  Expanded(child: page(i * 2 + 2)),
+                ],
+              ),
+            );
+          },
         ),
-        Text(
-          s.juzPage(first.juz, page),
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: t.text),
-        ),
-      ],
-    );
-    final toggle = _ModeSwitch(
-      mode: mode,
-      onChanged: (m) {
-        ref.read(settingsProvider.notifier).update((x) => x.copyWith(mushafMode: m));
-        _pc?.dispose();
-        _pc = null;
-        setState(() => _jump++);
-      },
-    );
-    final bar = _BottomBar(
-      onPlay: () => showSoon(context),
-      bookmarked: ref.watch(settingsProvider).bookmarks.contains('${first.sura}:${first.ayah}'),
-      onBookmark: () {
-        ref.read(settingsProvider.notifier).toggleBookmark(first.sura, first.ayah);
-        toast(context, s.bookmarked);
-      },
-      onGoTo: () => _showGoTo(context, q),
-      inline: landscape,
-    );
-
-    final content = mode == MushafMode.large ? _largeText(q, page) : _pages(q, page, landscape);
-
-    if (landscape) {
-      return Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
-            child: Row(
-              children: [
-                const BackPill(),
-                const SizedBox(width: 10),
-                Expanded(child: toggle),
-                const SizedBox(width: 10),
-                title,
-                const SizedBox(width: 6),
-                bar,
-              ],
-            ),
-          ),
-          Divider(height: 1, color: t.line),
-          Expanded(child: content),
-        ],
       );
     }
-    return Column(
+
+    return Stack(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Row(
-            children: [
-              const BackPill(),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Align(alignment: AlignmentDirectional.centerEnd, child: title),
-              ),
-            ],
-          ),
+        Positioned.fill(child: SafeArea(bottom: false, child: content)),
+        _TopBar(
+          visible: _chrome,
+          q: q,
+          page: _page,
+          mode: mode,
+          onMode: () {
+            ref
+                .read(settingsProvider.notifier)
+                .update((x) => x.copyWith(mushafMode: mode == MushafMode.page ? MushafMode.large : MushafMode.page));
+            _clearSelection();
+            setState(() => _jump++);
+          },
+          onGoTo: () => _showGoTo(context, q),
         ),
-        Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: toggle),
-        Divider(height: 1, color: t.line),
-        Expanded(child: content),
-        Divider(height: 1, color: t.line),
-        bar,
+        _BottomBar(visible: _chrome && _selAyah == null),
+        if (_selAyah != null) _AyahToolbar(ayah: _selAyah!, at: _selAt, q: q, onClose: _clearSelection),
       ],
-    );
-  }
-
-  Widget _largeText(QuranData q, int page) {
-    final centerKey = ValueKey('center-$page-$_jump');
-    return _PageTracker(
-      key: ValueKey('tracker-$_jump'),
-      onPage: _setPage,
-      child: CustomScrollView(
-        center: centerKey,
-        slivers: [
-          SliverList.builder(
-            itemCount: page - 1,
-            itemBuilder: (_, i) => _LargePage(q: q, page: page - 1 - i, selected: _selected, onAyah: _onAyah),
-          ),
-          SliverList.builder(
-            key: centerKey,
-            itemCount: QuranData.pageCount - page + 1,
-            itemBuilder: (_, i) => _LargePage(q: q, page: page + i, selected: _selected, onAyah: _onAyah),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _pages(QuranData q, int page, bool landscape) {
-    _pc ??= PageController(initialPage: page - 1);
-    return Directionality(
-      // Mushaf pages always turn right-to-left.
-      textDirection: TextDirection.rtl,
-      child: PageView.builder(
-        controller: _pc,
-        itemCount: QuranData.pageCount,
-        onPageChanged: (i) => _setPage(i + 1),
-        itemBuilder: (_, i) => _MushafPage(q: q, page: i + 1, selected: _selected, onAyah: _onAyah, scroll: landscape),
-      ),
     );
   }
 
@@ -253,21 +260,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                           ),
                         ],
                       ),
-                      if (ref.read(settingsProvider).bookmarks.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: AlignmentDirectional.centerStart,
-                          child: LinkButton(
-                            label: s.bookmarks,
-                            icon: Icons.bookmark_rounded,
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              showBookmarks(context, ref, q, onOpen: (a) => _goTo(a.page));
-                            },
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Text(s.surahs, style: Theme.of(ctx).textTheme.titleLarge),
                     ],
                   ),
@@ -295,587 +288,289 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   }
 }
 
-/// "Large text | Mushaf page" switch; icon then label on one line.
-class _ModeSwitch extends StatelessWidget {
-  const _ModeSwitch({required this.mode, required this.onChanged});
-
-  final MushafMode mode;
-  final ValueChanged<MushafMode> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    final t = context.t;
-    Widget seg(MushafMode m, IconData icon, String label) {
-      final on = mode == m;
-      return Expanded(
-        child: Semantics(
-          selected: on,
-          button: true,
-          child: Material(
-            color: on ? t.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => onChanged(m),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: kMinTap),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, size: 24, color: on ? t.onPrimary : t.text),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: on ? t.onPrimary : t.text),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return MediaQuery.withClampedTextScaling(
-      maxScaleFactor: 1.3,
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(16)),
-        child: Row(
-          children: [
-            seg(MushafMode.large, Icons.format_size_rounded, s.segLarge),
-            seg(MushafMode.page, Icons.menu_book_rounded, s.segPage),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BottomBar extends StatelessWidget {
-  const _BottomBar({
-    required this.onPlay,
-    required this.onBookmark,
-    required this.onGoTo,
-    required this.bookmarked,
-    this.inline = false,
-  });
-
-  /// Sits in the landscape header row instead of along the bottom.
-  final bool inline;
-
-  final VoidCallback onPlay;
-  final VoidCallback onBookmark;
-  final VoidCallback onGoTo;
-  final bool bookmarked;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    final t = context.t;
-    Widget item(IconData icon, String label, VoidCallback onTap) => InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 72, minHeight: kMinTap),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: t.heading, size: 28),
-              Text(
-                label,
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: t.text),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    return MediaQuery.withClampedTextScaling(
-      maxScaleFactor: 1.3,
-      child: Container(
-        color: t.surface,
-        child: Row(
-          mainAxisSize: inline ? MainAxisSize.min : MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            item(Icons.play_arrow_rounded, s.play, onPlay),
-            item(bookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, s.bookmark, onBookmark),
-            item(Icons.list_alt_rounded, s.goTo, onGoTo),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Reports which large-text page is at the top of the screen.
-class _PageTracker extends StatefulWidget {
-  const _PageTracker({super.key, required this.child, required this.onPage});
-
-  final Widget child;
-  final ValueChanged<int> onPage;
-
-  static _PageTrackerState? of(BuildContext context) => context.findAncestorStateOfType<_PageTrackerState>();
-
-  @override
-  State<_PageTracker> createState() => _PageTrackerState();
-}
-
-class _PageTrackerState extends State<_PageTracker> {
-  final _pages = <int, BuildContext>{};
-
-  void register(int page, BuildContext c) => _pages[page] = c;
-  void unregister(int page) => _pages.remove(page);
-
-  void _check() {
-    final box = context.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final top = box.localToGlobal(Offset.zero).dy + 40;
-    for (final e in _pages.entries) {
-      final r = e.value.findRenderObject() as RenderBox?;
-      if (r == null || !r.attached) continue;
-      final y = r.localToGlobal(Offset.zero).dy;
-      if (y <= top && y + r.size.height > top) {
-        widget.onPage(e.key);
-        return;
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return NotificationListener<ScrollEndNotification>(
-      onNotification: (_) {
-        _check();
-        return false;
-      },
-      child: widget.child,
-    );
-  }
-}
-
-TextSpan _ayahSpans(
-  List<Ayah> ayahs,
-  TextStyle style, {
-  required String? selected,
-  required Color highlight,
-  required List<GestureRecognizer> recognizers,
-  required void Function(Ayah) onAyah,
-}) {
-  GestureRecognizer rec(Ayah a) {
-    final r = LongPressGestureRecognizer()..onLongPress = () => onAyah(a);
-    recognizers.add(r);
-    return r;
-  }
-
-  return TextSpan(
-    style: style,
-    children: [
-      for (final a in ayahs) ...[
-        TextSpan(
-          text: a.text,
-          style: selected == '${a.sura}:${a.ayah}' ? TextStyle(backgroundColor: highlight) : null,
-          recognizer: rec(a),
-        ),
-        const TextSpan(text: ' '),
-      ],
-    ],
-  );
-}
-
-/// Splits a page into blocks: surah headers and runs of ayahs.
-List<Object> _blocks(List<Ayah> ayahs) {
-  final out = <Object>[];
-  var run = <Ayah>[];
-  for (final a in ayahs) {
-    if (a.ayah == 1) {
-      if (run.isNotEmpty) out.add(run);
-      run = [];
-      out.add(a.sura);
-    }
-    run.add(a);
-  }
-  if (run.isNotEmpty) out.add(run);
-  return out;
-}
-
-class _SurahHeader extends StatelessWidget {
-  const _SurahHeader({required this.sura, required this.q, required this.fontSize});
-
-  final int sura;
-  final QuranData q;
-  final double fontSize;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.t;
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(top: 8, bottom: 4),
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          decoration: BoxDecoration(
-            border: Border.all(color: t.sage, width: 2),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            'سُورَةُ ${q.sura(sura).ar}',
-            textAlign: TextAlign.center,
-            textDirection: TextDirection.rtl,
-            style: TextStyle(fontFamily: SanadiFonts.quran, fontSize: fontSize * 0.95, color: t.heading, height: 1.6),
-          ),
-        ),
-        if (sura != 1 && sura != 9)
-          Text(
-            q.basmala,
-            textAlign: TextAlign.center,
-            textDirection: TextDirection.rtl,
-            style: TextStyle(fontFamily: SanadiFonts.quran, fontSize: fontSize * 0.9, color: t.text, height: 1.9),
-          ),
-      ],
-    );
-  }
-}
-
-class _LargePage extends StatefulWidget {
-  const _LargePage({required this.q, required this.page, required this.selected, required this.onAyah});
-
-  final QuranData q;
-  final int page;
-  final String? selected;
-  final void Function(Ayah) onAyah;
-
-  @override
-  State<_LargePage> createState() => _LargePageState();
-}
-
-class _LargePageState extends State<_LargePage> {
-  final _recognizers = <GestureRecognizer>[];
-  _PageTrackerState? _tracker;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _tracker = _PageTracker.of(context)?..register(widget.page, context);
-  }
-
-  @override
-  void dispose() {
-    _tracker?.unregister(widget.page);
-    for (final r in _recognizers) {
-      r.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    final t = context.t;
-    for (final r in _recognizers) {
-      r.dispose();
-    }
-    _recognizers.clear();
-    const size = 26.0;
-    final style = TextStyle(fontFamily: SanadiFonts.quran, fontSize: size, color: t.text, height: 2.1);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(child: Divider(color: t.sage, thickness: 1.5)),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                decoration: BoxDecoration(
-                  color: t.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: t.sage, width: 1.5),
-                ),
-                child: Text(
-                  s.page(widget.page),
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: t.text),
-                ),
-              ),
-              Expanded(child: Divider(color: t.sage, thickness: 1.5)),
-            ],
-          ),
-          for (final b in _blocks(widget.q.page(widget.page)))
-            if (b is int)
-              _SurahHeader(sura: b, q: widget.q, fontSize: size)
-            else
-              SizedBox(
-                width: double.infinity,
-                child: Text.rich(
-                  _ayahSpans(
-                    b as List<Ayah>,
-                    style,
-                    selected: widget.selected,
-                    highlight: t.tint,
-                    recognizers: _recognizers,
-                    onAyah: widget.onAyah,
-                  ),
-                  textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.justify,
-                ),
-              ),
-        ],
-      ),
-    );
-  }
-}
-
-/// One mushaf page, scaled to fill the screen in portrait.
-class _MushafPage extends StatefulWidget {
-  const _MushafPage({
+/// Dark translucent bar over the top of the page, like a reading app.
+class _TopBar extends ConsumerWidget {
+  const _TopBar({
+    required this.visible,
     required this.q,
     required this.page,
-    required this.selected,
-    required this.onAyah,
-    required this.scroll,
+    required this.mode,
+    required this.onMode,
+    required this.onGoTo,
   });
 
+  final bool visible;
   final QuranData q;
-  final int page;
-  final String? selected;
-  final void Function(Ayah) onAyah;
-  final bool scroll;
+  final ValueNotifier<int> page;
+  final MushafMode mode;
+  final VoidCallback onMode;
+  final VoidCallback onGoTo;
 
   @override
-  State<_MushafPage> createState() => _MushafPageState();
-}
-
-class _MushafPageState extends State<_MushafPage> {
-  final _recognizers = <GestureRecognizer>[];
-
-  @override
-  void dispose() {
-    for (final r in _recognizers) {
-      r.dispose();
-    }
-    super.dispose();
-  }
-
-  double _fit(List<Object> blocks, double width, double height) {
-    var lo = 12.0, hi = 34.0;
-    for (var k = 0; k < 12; k++) {
-      final mid = (lo + hi) / 2;
-      if (_measure(blocks, width, mid) <= height) {
-        lo = mid;
-      } else {
-        hi = mid;
-      }
-    }
-    return lo;
-  }
-
-  double _measure(List<Object> blocks, double width, double size) {
-    var h = 0.0;
-    for (final b in blocks) {
-      if (b is int) {
-        h += size * 0.95 * 1.6 + 12 + 6 + 4;
-        if (b != 1 && b != 9) h += size * 0.9 * 1.9;
-      } else {
-        final tp = TextPainter(
-          text: TextSpan(
-            text: (b as List<Ayah>).map((a) => a.text).join(' '),
-            style: TextStyle(fontFamily: SanadiFonts.quran, fontSize: size, height: 1.95),
-          ),
-          textDirection: TextDirection.rtl,
-          textAlign: TextAlign.justify,
-        )..layout(maxWidth: width);
-        h += tp.height;
-        tp.dispose();
-      }
-    }
-    return h;
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = S.of(context);
-    final t = context.t;
-    for (final r in _recognizers) {
-      r.dispose();
-    }
-    _recognizers.clear();
-    final ayahs = widget.q.page(widget.page);
-    final blocks = _blocks(ayahs);
-
-    return MediaQuery(
-      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
-      child: Container(
-        color: Theme.of(context).brightness == Brightness.dark ? t.bg : const Color(0xFFFBF8F1),
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-        child: Column(
-          children: [
-            Row(
+    const fg = Colors.white;
+    final marks = ref.watch(settingsProvider.select((x) => x.pageBookmarks));
+    Widget action(IconData icon, String label, VoidCallback onTap) => Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: 68,
+          height: kMinTap + 4,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  widget.q.sura(ayahs.first.sura).name(true),
-                  style: TextStyle(fontFamily: 'Tajawal', fontSize: 15, fontWeight: FontWeight.w700, color: t.muted),
-                ),
-                const Spacer(),
-                Text(
-                  S(ar: true, female: s.female).juz(ayahs.first.juz),
-                  style: TextStyle(fontFamily: 'Tajawal', fontSize: 15, fontWeight: FontWeight.w700, color: t.muted),
+                Icon(icon, color: fg, size: 26),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: fg),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: t.sage, width: 1.5),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: LayoutBuilder(
-                  builder: (context, c) {
-                    final size = widget.scroll ? 30.0 : _fit(blocks, c.maxWidth, c.maxHeight - 4);
-                    final style = TextStyle(fontFamily: SanadiFonts.quran, fontSize: size, color: t.text, height: 1.95);
-                    final column = Column(
-                      mainAxisAlignment: widget.scroll ? MainAxisAlignment.start : MainAxisAlignment.spaceBetween,
-                      children: [
-                        for (final b in blocks)
-                          if (b is int)
-                            _SurahHeader(sura: b, q: widget.q, fontSize: size)
-                          else
-                            SizedBox(
-                              width: double.infinity,
-                              child: Text.rich(
-                                _ayahSpans(
-                                  b as List<Ayah>,
-                                  style,
-                                  selected: widget.selected,
-                                  highlight: t.tint,
-                                  recognizers: _recognizers,
-                                  onAyah: widget.onAyah,
+          ),
+        ),
+      ),
+    );
+
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            color: const Color(0xD9101C19),
+            child: SafeArea(
+              bottom: false,
+              child: MediaQuery.withClampedTextScaling(
+                maxScaleFactor: 1.3,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: page,
+                    builder: (context, p, _) {
+                      final first = q.firstOn(p);
+                      final marked = marks.contains(p);
+                      return Row(
+                        children: [
+                          IconButton(
+                            tooltip: s.back,
+                            onPressed: () => context.pop(),
+                            icon: const Icon(Icons.arrow_back_rounded, color: fg, size: 28),
+                            style: IconButton.styleFrom(minimumSize: const Size(kMinTap, kMinTap)),
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  q.sura(first.sura).name(s.ar),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: fg),
                                 ),
-                                textAlign: TextAlign.justify,
-                              ),
+                                Text(
+                                  '${s.page(p)} · ${s.juz(first.juz)}',
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFFDDE8E1),
+                                  ),
+                                ),
+                              ],
                             ),
-                      ],
-                    );
-                    return widget.scroll ? SingleChildScrollView(child: column) : column;
-                  },
+                          ),
+                          action(marked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, s.bookmark, () {
+                            ref.read(settingsProvider.notifier).togglePageBookmark(p);
+                            if (!marked) toast(context, s.bookmarked);
+                          }),
+                          action(
+                            mode == MushafMode.page ? Icons.format_size_rounded : Icons.menu_book_rounded,
+                            mode == MushafMode.page ? s.segLarge : s.segPage,
+                            onMode,
+                          ),
+                          action(Icons.list_alt_rounded, s.goTo, onGoTo),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                s.n(widget.page),
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: t.muted),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// 40 · Ayah menu. The ayah stays highlighted behind the sheet.
-Future<void> showAyahMenu(BuildContext context, WidgetRef ref, Ayah a) {
-  final s = S.of(context);
-  final q = ref.read(quranProvider).value!;
-  final suraName = q.sura(a.sura).name(s.ar);
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    builder: (ctx) {
-      final t = ctx.t;
-      final tt = Theme.of(ctx).textTheme;
-      final marked = ref.read(settingsProvider).bookmarks.contains('${a.sura}:${a.ayah}');
-      Widget action(IconData icon, String label, VoidCallback onTap) => ListTile(
-        minTileHeight: kMinTap + 4,
-        leading: Icon(icon, color: t.primary, size: 28),
-        title: Text(label, style: tt.titleMedium),
-        onTap: onTap,
-      );
-      return SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.85),
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+/// Listening bar (recitation audio comes with the next update).
+class _BottomBar extends StatelessWidget {
+  const _BottomBar({required this.visible});
+
+  final bool visible;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    const fg = Colors.white;
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            color: const Color(0xD9101C19),
+            child: SafeArea(
+              top: false,
+              child: MediaQuery.withClampedTextScaling(
+                maxScaleFactor: 1.3,
+                child: InkWell(
+                  onTap: () => showSoon(context),
+                  child: SizedBox(
+                    height: 60,
+                    child: Row(
                       children: [
-                        Text(s.ayahTitle(suraName, a.ayah), style: tt.headlineSmall),
-                        Text(s.juzPage(a.juz, a.page), style: tt.bodySmall),
+                        const SizedBox(width: 12),
+                        const Icon(Icons.play_arrow_rounded, color: fg, size: 34),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            '${s.play} · ${s.reciterName}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: fg),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            s.comingSoonShort,
+                            style: const TextStyle(fontSize: 14, color: Color(0xFFDDE8E1)),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(Icons.close_rounded),
-                    label: Text(s.close, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(kMinTap, kMinTap),
-                      foregroundColor: t.text,
-                      side: BorderSide(color: t.text, width: 2),
-                      shape: const StadiumBorder(),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(16)),
-                child: Text(
-                  a.text,
-                  textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontFamily: SanadiFonts.quran, fontSize: 24, color: t.text, height: 2),
                 ),
               ),
-              const SizedBox(height: 8),
-              action(Icons.play_arrow_rounded, s.playFrom, () {
-                Navigator.pop(ctx);
-                showSoon(context);
-              }),
-              action(Icons.repeat_rounded, s.repeatAyah, () {
-                Navigator.pop(ctx);
-                showSoon(context);
-              }),
-              action(
-                marked ? Icons.bookmark_remove_rounded : Icons.bookmark_add_rounded,
-                marked ? s.removeBookmark : s.bookmarkAyah,
-                () {
-                  ref.read(settingsProvider.notifier).toggleBookmark(a.sura, a.ayah);
-                  Navigator.pop(ctx);
-                  if (!marked) toast(context, s.bookmarked);
-                },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 40 · Floating actions above the long-pressed ayah.
+class _AyahToolbar extends ConsumerWidget {
+  const _AyahToolbar({required this.ayah, required this.at, required this.q, required this.onClose});
+
+  final Ayah ayah;
+  final Offset at;
+  final QuranData q;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = S.of(context);
+    final size = MediaQuery.sizeOf(context);
+    final marked = ref.watch(settingsProvider.select((x) => x.bookmarks.contains(ayah.key)));
+    const barW = 340.0, barH = 120.0;
+    final left = (at.dx - barW / 2).clamp(8.0, size.width - barW - 8);
+    var top = at.dy - barH - 28;
+    if (top < MediaQuery.paddingOf(context).top + 8) top = at.dy + 36;
+
+    Widget item(IconData icon, String label, VoidCallback onTap) => Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 28),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
               ),
-              action(Icons.content_copy_rounded, s.copyAyah, () {
-                Clipboard.setData(
-                  ClipboardData(text: '${a.plain}\n[${q.sura(a.sura).name(s.ar)} ${a.sura}:${a.ayah}]'),
-                );
-                Navigator.pop(ctx);
-                toast(context, s.copied);
-              }),
             ],
           ),
         ),
-      );
-    },
-  );
+      ),
+    );
+
+    return Positioned(
+      left: left,
+      top: top,
+      width: barW,
+      child: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.2,
+        child: Material(
+          color: SanadiTokens.light.primary,
+          elevation: 6,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(6, 8, 6, 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  s.ayahTitle(q.sura(ayah.sura).name(s.ar), ayah.ayah),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFFDDE8E1)),
+                ),
+                Row(
+                  children: [
+                    item(marked ? Icons.bookmark_rounded : Icons.bookmark_add_rounded, s.bookmark, () {
+                      ref.read(settingsProvider.notifier).toggleBookmark(ayah.sura, ayah.ayah);
+                      if (!marked) toast(context, s.bookmarked);
+                      onClose();
+                    }),
+                    item(Icons.content_copy_rounded, s.copy, () {
+                      Clipboard.setData(
+                        ClipboardData(
+                          text: '${ayah.plain}\n[${q.sura(ayah.sura).name(s.ar)} ${ayah.sura}:${ayah.ayah}]',
+                        ),
+                      );
+                      toast(context, s.copied);
+                      onClose();
+                    }),
+                    item(Icons.play_arrow_rounded, s.play, () {
+                      showSoon(context);
+                      onClose();
+                    }),
+                    item(Icons.close_rounded, s.close, onClose),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

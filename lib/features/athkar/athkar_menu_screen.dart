@@ -32,7 +32,6 @@ class AthkarMenuScreen extends ConsumerWidget {
     final tt = Theme.of(context).textTheme;
     final settings = ref.watch(settingsProvider);
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    final initial = settings.name.isEmpty ? '' : settings.name.characters.first.toUpperCase();
 
     return Scaffold(
       body: SafeArea(
@@ -45,7 +44,7 @@ class AthkarMenuScreen extends ConsumerWidget {
               Row(
                 children: [
                   Expanded(child: Text(s.athkarTitle, style: tt.headlineMedium)),
-                  SettingsChip(initial: initial),
+                  const SettingsChip(),
                 ],
               ),
             if (standalone) ...[const SizedBox(height: 12), Text(s.athkarTitle, style: tt.headlineMedium)],

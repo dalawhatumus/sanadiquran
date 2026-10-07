@@ -6,6 +6,7 @@ import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
+import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 
 /// 4 · What would you like to do? (Step 1 of 4, neutral Arabic)
@@ -193,6 +194,14 @@ class _NameScreenState extends ConsumerState<NameScreen> {
         ),
         const SizedBox(height: 8),
         Text(s.nameHint, style: tt.bodySmall),
+        const SizedBox(height: 28),
+        Text(s.choosePictureOptional, style: tt.titleSmall),
+        const SizedBox(height: 12),
+        AvatarGrid(
+          selected: ref.watch(settingsProvider.select((x) => x.avatar)),
+          onPick: (id) =>
+              ref.read(settingsProvider.notifier).update((x) => x.copyWith(avatar: id, clearAvatar: id == null)),
+        ),
       ],
       bottom: [BigButton(label: s.next, trailingIcon: Icons.arrow_forward_rounded, onPressed: _next)],
     );

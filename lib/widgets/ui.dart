@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/settings.dart';
 import '../core/strings.dart';
 import '../core/theme.dart';
 
@@ -91,7 +93,16 @@ class BigButton extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (icon != null) ...[Icon(icon, size: 26, color: fgc), const SizedBox(width: 8)],
+                          if (iconWidget != null) ...[
+                            IconTheme(
+                              data: IconThemeData(color: fgc, size: 26),
+                              child: iconWidget!,
+                            ),
+                            const SizedBox(width: 8),
+                          ] else if (icon != null) ...[
+                            Icon(icon, size: 26, color: fgc),
+                            const SizedBox(width: 8),
+                          ],
                           Text(label, style: textStyle, maxLines: 1),
                           if (trailingIcon != null) ...[
                             const SizedBox(width: 8),
@@ -100,24 +111,36 @@ class BigButton extends StatelessWidget {
                         ],
                       ),
                     )
-                  : Wrap(
-                      alignment: WrapAlignment.center,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 10,
-                      runSpacing: 4,
-                      children: [
-                        if (busy)
-                          SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3, color: fgc))
-                        else if (iconWidget != null)
-                          IconTheme(
-                            data: IconThemeData(color: fgc, size: 28),
-                            child: iconWidget!,
-                          )
-                        else if (icon != null)
-                          Icon(icon, size: 28, color: fgc),
-                        Text(label, style: textStyle, textAlign: TextAlign.center),
-                        if (trailingIcon != null) Icon(trailingIcon, size: 26, color: fgc),
-                      ],
+                  : Center(
+                      // Icon and label sit on one centred row; a long label
+                      // wraps inside the row instead of pushing the icon
+                      // onto its own line.
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (busy)
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 3, color: fgc),
+                            )
+                          else if (iconWidget != null)
+                            IconTheme(
+                              data: IconThemeData(color: fgc, size: 28),
+                              child: iconWidget!,
+                            )
+                          else if (icon != null)
+                            Icon(icon, size: 28, color: fgc),
+                          if (busy || iconWidget != null || icon != null) const SizedBox(width: 10),
+                          Flexible(
+                            child: Text(label, style: textStyle, textAlign: TextAlign.center),
+                          ),
+                          if (trailingIcon != null) ...[
+                            const SizedBox(width: 10),
+                            Icon(trailingIcon, size: 26, color: fgc),
+                          ],
+                        ],
+                      ),
                     ),
             ),
           ),
@@ -210,27 +233,37 @@ class Illustration extends StatelessWidget {
   }
 }
 
-/// Initials in a circle.
+/// A profile picture: one of the Sanadi avatars, or initials in a circle.
 class Avatar extends StatelessWidget {
-  const Avatar(this.initials, {super.key, this.size = 56, this.ring = false});
+  const Avatar(this.initials, {super.key, this.size = 56, this.ring = false, this.image});
 
   final String initials;
   final double size;
   final bool ring;
 
+  /// Avatar id (e.g. "fs2"); null shows the initials.
+  final String? image;
+
   @override
   Widget build(BuildContext context) {
     final t = context.t;
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final border = ring ? Border.all(color: t.sage, width: 3) : null;
+    if (image != null) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(shape: BoxShape.circle, border: border),
+        child: ClipOval(
+          child: SvgPicture.asset('assets/avatars/$image.svg', width: size, height: size),
+        ),
+      );
+    }
     return Container(
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: dark ? t.heading : t.deep,
-        border: ring ? Border.all(color: t.sage, width: 3) : null,
-      ),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: dark ? t.heading : t.deep, border: border),
       child: Text(
         initials,
         style: TextStyle(
@@ -244,16 +277,16 @@ class Avatar extends StatelessWidget {
   }
 }
 
-/// "Settings" pill with the user's initial; opens settings.
-class SettingsChip extends StatelessWidget {
-  const SettingsChip({super.key, required this.initial});
-
-  final String initial;
+/// "Settings" pill with the user's picture; opens settings.
+class SettingsChip extends ConsumerWidget {
+  const SettingsChip({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = context.t;
     final s = S.of(context);
+    final (name, avatar) = ref.watch(settingsProvider.select((x) => (x.name, x.avatar)));
+    final initial = name.isEmpty ? '' : name.characters.first.toUpperCase();
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: 1.3,
       child: Material(
@@ -274,16 +307,7 @@ class SettingsChip extends StatelessWidget {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.text),
                   ),
                   const SizedBox(width: 8),
-                  Container(
-                    width: 42,
-                    height: 42,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(color: t.primary, shape: BoxShape.circle),
-                    child: Text(
-                      initial,
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: t.onPrimary, height: 1),
-                    ),
-                  ),
+                  Avatar(initial, size: 44, image: avatar),
                 ],
               ),
             ),
@@ -294,40 +318,129 @@ class SettingsChip extends StatelessWidget {
   }
 }
 
-/// Greeting on the start side, settings pill on the end side.
-class HomeHeader extends StatelessWidget {
-  const HomeHeader({super.key, required this.top, required this.title, required this.initial});
-
-  final String top;
-  final String title;
-  final String initial;
+/// Top of a home screen: the user's full name and the settings pill.
+class HomeHeader extends ConsumerWidget {
+  const HomeHeader({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tt = Theme.of(context).textTheme;
+    final name = ref.watch(settingsProvider.select((x) => x.name));
     final big = MediaQuery.textScalerOf(context).scale(10) > 15;
-    final greeting = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(top, style: tt.bodySmall!.copyWith(color: context.t.muted)),
-        Text(title, style: tt.titleLarge),
-      ],
-    );
+    final title = FullName(name, style: tt.headlineSmall!);
     if (big) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          greeting,
-          const SizedBox(height: 8),
-          SettingsChip(initial: initial),
-        ],
+        children: [title, const SizedBox(height: 8), const SettingsChip()],
       );
     }
     return Row(
       children: [
-        Expanded(child: greeting),
-        SettingsChip(initial: initial),
+        Expanded(child: title),
+        const SizedBox(width: 12),
+        const SettingsChip(),
       ],
+    );
+  }
+}
+
+/// Shows a name in full. If it doesn't fit on one line it scrolls gently
+/// sideways (marquee); with "remove animations" on, it wraps instead.
+class FullName extends StatelessWidget {
+  const FullName(this.text, {super.key, required this.style, this.textAlign = TextAlign.start});
+
+  final String text;
+  final TextStyle style;
+  final TextAlign textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) {
+        final scaler = MediaQuery.textScalerOf(context);
+        final dir = Directionality.of(context);
+        final tp = TextPainter(
+          text: TextSpan(text: text, style: style),
+          textDirection: dir,
+          textScaler: scaler,
+          maxLines: 1,
+        )..layout();
+        final w = tp.width;
+        final h = tp.height;
+        tp.dispose();
+        if (w <= c.maxWidth || MediaQuery.disableAnimationsOf(context)) {
+          return Text(text, style: style, textAlign: textAlign);
+        }
+        return Semantics(
+          label: text,
+          excludeSemantics: true,
+          child: SizedBox(
+            height: h,
+            child: _Marquee(text: text, style: style, textWidth: w),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _Marquee extends StatefulWidget {
+  const _Marquee({required this.text, required this.style, required this.textWidth});
+
+  final String text;
+  final TextStyle style;
+  final double textWidth;
+
+  @override
+  State<_Marquee> createState() => _MarqueeState();
+}
+
+class _MarqueeState extends State<_Marquee> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+  late final Animation<double> _t;
+
+  @override
+  void initState() {
+    super.initState();
+    // Wait, scroll to the end, wait, slide back; repeat.
+    final scrollMs = (widget.textWidth * 25).round().clamp(1500, 8000);
+    _c = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 2000 + scrollMs + 2000 + 600),
+    )..repeat();
+    _t = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(0), weight: 2000),
+      TweenSequenceItem(tween: Tween(begin: 0, end: 1), weight: scrollMs.toDouble()),
+      TweenSequenceItem(tween: ConstantTween(1), weight: 2000),
+      TweenSequenceItem(tween: Tween<double>(begin: 1, end: 0).chain(CurveTween(curve: Curves.easeOut)), weight: 600),
+    ]).animate(_c);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) {
+        final overflow = (widget.textWidth - c.maxWidth).clamp(0.0, double.infinity);
+        final rtl = Directionality.of(context) == TextDirection.rtl;
+        return ClipRect(
+          child: OverflowBox(
+            alignment: rtl ? Alignment.centerRight : Alignment.centerLeft,
+            maxWidth: double.infinity,
+            child: AnimatedBuilder(
+              animation: _t,
+              builder: (_, child) =>
+                  Transform.translate(offset: Offset((rtl ? 1 : -1) * overflow * _t.value, 0), child: child),
+              child: Text(widget.text, style: widget.style, maxLines: 1, softWrap: false),
+            ),
+          ),
+        );
+      },
     );
   }
 }

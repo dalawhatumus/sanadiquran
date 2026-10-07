@@ -16,8 +16,7 @@ class TeacherHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = S.of(context);
     final settings = ref.watch(settingsProvider);
-    final initial = settings.name.characters.first.toUpperCase();
-    final header = HomeHeader(top: s.salam, title: settings.firstName, initial: initial);
+    const header = HomeHeader();
     final body = switch (settings.teacherStatus) {
       TeacherStatus.pending || TeacherStatus.none => _pending(context, s),
       TeacherStatus.rejected => _rejected(context, ref, s),

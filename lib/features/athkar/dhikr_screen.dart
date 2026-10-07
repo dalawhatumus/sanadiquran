@@ -180,6 +180,10 @@ class _DhikrScreenState extends ConsumerState<DhikrScreen> {
         children: [
           arabic,
           const SizedBox(height: 12),
+          if ((s.ar ? _d.fadlAr : _d.fadlEn).isNotEmpty) ...[
+            _FadlNote(text: s.ar ? _d.fadlAr : _d.fadlEn, label: s.virtue),
+            const SizedBox(height: 12),
+          ],
           if (s.ar)
             Text(_d.sourceAr, style: tt.bodySmall, textAlign: TextAlign.start)
           else ...[
@@ -416,6 +420,46 @@ class _FadingScrollState extends State<_FadingScroll> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The reward or benefit of a dhikr, from the hadith.
+class _FadlNote extends StatelessWidget {
+  const _FadlNote({required this.text, required this.label});
+
+  final String text;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.t;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      decoration: BoxDecoration(
+        color: t.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: BorderDirectional(start: BorderSide(color: t.gold, width: 4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.workspace_premium_rounded, color: t.gold, size: 22),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.heading),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(text, style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
     );

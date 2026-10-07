@@ -6,6 +6,7 @@ import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
+import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 
 /// Settings (screens 51–64 are in a later design batch). For now: language,
@@ -33,16 +34,30 @@ class SettingsScreen extends ConsumerWidget {
         Text(s.settings, style: tt.headlineMedium),
         const SizedBox(height: 12),
         SCard(
+          onTap: () => showAvatarPicker(context, ref),
           child: Row(
             children: [
-              Avatar(settings.name.characters.first.toUpperCase(), size: 56),
+              Avatar(settings.name.characters.first.toUpperCase(), size: 72, image: settings.avatar),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(settings.name, style: tt.titleLarge),
+                    FullName(settings.name, style: tt.titleLarge!),
                     Text(teacher ? s.roleTeacher : s.roleStudent, style: tt.bodySmall),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.edit_rounded, size: 18, color: t.primary),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            s.changePicture,
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.primary),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -175,7 +190,7 @@ class SettingsScreen extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 20),
-        Text('${s.version} 0.2.0', style: tt.bodySmall, textAlign: TextAlign.center),
+        Text('${s.version} 0.3.0', style: tt.bodySmall, textAlign: TextAlign.center),
       ],
     );
   }
