@@ -25,13 +25,13 @@ class SettingsScreen extends ConsumerWidget {
 
     Widget section(String title) => Padding(
       padding: const EdgeInsets.only(top: 24, bottom: 10),
-      child: Text(title, style: tt.titleLarge),
+      child: WordSafeText(title, style: tt.titleLarge),
     );
 
     return StepScaffold(
       showBack: true,
       content: [
-        Text(s.settings, style: tt.headlineMedium),
+        WordSafeText(s.settings, style: tt.headlineMedium),
         const SizedBox(height: 12),
         SCard(
           onTap: () => showAvatarPicker(context, ref),
@@ -190,7 +190,7 @@ class SettingsScreen extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 20),
-        Text('${s.version} 0.3.0', style: tt.bodySmall, textAlign: TextAlign.center),
+        Text('${s.version} 0.3.1', style: tt.bodySmall, textAlign: TextAlign.center),
       ],
     );
   }

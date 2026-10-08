@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/settings.dart';
@@ -93,7 +94,7 @@ Future<void> showAvatarPicker(BuildContext context, WidgetRef ref) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(s.choosePicture, style: Theme.of(ctx).textTheme.headlineSmall),
+                WordSafeText(s.choosePicture, style: Theme.of(ctx).textTheme.headlineSmall),
                 const SizedBox(height: 16),
                 AvatarGrid(
                   selected: current,

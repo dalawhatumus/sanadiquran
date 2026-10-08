@@ -8,7 +8,7 @@ import '../core/strings.dart';
 import '../core/theme.dart';
 
 /// Custom Sanadi icons from the design system (filled, 24dp grid).
-enum SIcons { rehal, misbaha, students, prayerMat, moonPillow, bars3, bars1, bars0, language }
+enum SIcons { rehal, misbaha, students, prayerMat, moonPillow, waking, bars3, bars1, bars0, language }
 
 class SIcon extends StatelessWidget {
   const SIcon(this.icon, {super.key, this.size = 28, this.color});
@@ -111,41 +111,128 @@ class BigButton extends StatelessWidget {
                         ],
                       ),
                     )
-                  : Center(
-                      // Icon and label sit on one centred row; a long label
-                      // wraps inside the row instead of pushing the icon
-                      // onto its own line.
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (busy)
-                            SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 3, color: fgc),
-                            )
-                          else if (iconWidget != null)
-                            IconTheme(
-                              data: IconThemeData(color: fgc, size: 28),
-                              child: iconWidget!,
-                            )
-                          else if (icon != null)
-                            Icon(icon, size: 28, color: fgc),
-                          if (busy || iconWidget != null || icon != null) const SizedBox(width: 10),
-                          Flexible(
-                            child: Text(label, style: textStyle, textAlign: TextAlign.center),
+                  : LayoutBuilder(
+                      builder: (context, c) {
+                        final hasIcon = busy || iconWidget != null || icon != null;
+                        final iconsW = (hasIcon ? 38.0 : 0) + (trailingIcon != null ? 36.0 : 0);
+                        final room = c.maxWidth - iconsW;
+                        final longest = longestWordWidth(context, label, textStyle);
+                        // No word may break across lines. If the longest word
+                        // doesn't fit even slightly smaller, show only the icon.
+                        final iconOnly = hasIcon && longest * 0.85 > room;
+                        final leading = busy
+                            ? SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 3, color: fgc),
+                              )
+                            : iconWidget != null
+                            ? IconTheme(
+                                data: IconThemeData(color: fgc, size: 28),
+                                child: iconWidget!,
+                              )
+                            : icon != null
+                            ? Icon(icon, size: 28, color: fgc)
+                            : null;
+                        if (iconOnly) {
+                          return Center(
+                            child: Tooltip(message: label, child: leading ?? const SizedBox()),
+                          );
+                        }
+                        return Center(
+                          // Icon and label sit on one centred row; a long label
+                          // wraps between words, never inside one.
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ?leading,
+                              if (hasIcon) const SizedBox(width: 10),
+                              Flexible(
+                                child: WordSafeText(label, style: textStyle, textAlign: TextAlign.center),
+                              ),
+                              if (trailingIcon != null) ...[
+                                const SizedBox(width: 10),
+                                Icon(trailingIcon, size: 26, color: fgc),
+                              ],
+                            ],
                           ),
-                          if (trailingIcon != null) ...[
-                            const SizedBox(width: 10),
-                            Icon(trailingIcon, size: 26, color: fgc),
-                          ],
-                        ],
-                      ),
+                        );
+                      },
                     ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Surah names carry harakat; Noto Naskh stacks them cleanly where the UI
+/// font would let them collide with the letters. Applies in Arabic, or
+/// always when [arabic] is true.
+TextStyle nameFont(BuildContext context, TextStyle style, {bool arabic = false}) {
+  if (!arabic && !context.isAr) return style;
+  return style.copyWith(
+    fontFamily: SanadiFonts.naskh,
+    fontFamilyFallback: const ['Tajawal'],
+    height: (style.height ?? 1.3) + 0.3,
+  );
+}
+
+/// Width of the widest single word in [text], as it would be drawn.
+double longestWordWidth(BuildContext context, String text, TextStyle style) {
+  final scaler = MediaQuery.textScalerOf(context);
+  final dir = Directionality.of(context);
+  final base = DefaultTextStyle.of(context).style.merge(style);
+  var max = 0.0;
+  for (final word in text.split(RegExp(r'\s+'))) {
+    if (word.isEmpty) continue;
+    final tp = TextPainter(
+      text: TextSpan(text: word, style: base),
+      textDirection: dir,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    if (tp.width > max) max = tp.width;
+    tp.dispose();
+  }
+  return max;
+}
+
+/// Text that wraps only between words. If a single word is wider than the
+/// space, the text is drawn slightly smaller so the word stays whole.
+class WordSafeText extends StatelessWidget {
+  const WordSafeText(this.text, {super.key, this.style, this.textAlign, this.maxLines, this.overflow});
+
+  final String text;
+  final TextStyle? style;
+  final TextAlign? textAlign;
+  final int? maxLines;
+  final TextOverflow? overflow;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) {
+        final scaler = MediaQuery.textScalerOf(context);
+        TextScaler? fitted;
+        if (c.hasBoundedWidth && c.maxWidth > 0) {
+          final longest = longestWordWidth(context, text, style ?? const TextStyle());
+          if (longest > c.maxWidth) {
+            final size = (DefaultTextStyle.of(context).style.merge(style)).fontSize ?? 14;
+            final current = scaler.scale(size) / size;
+            fitted = TextScaler.linear(current * c.maxWidth / longest * 0.98);
+          }
+        }
+        return Text(
+          text,
+          style: style,
+          textAlign: textAlign,
+          maxLines: maxLines,
+          overflow: overflow,
+          textScaler: fitted,
+        );
+      },
     );
   }
 }
@@ -279,7 +366,10 @@ class Avatar extends StatelessWidget {
 
 /// "Settings" pill with the user's picture; opens settings.
 class SettingsChip extends ConsumerWidget {
-  const SettingsChip({super.key});
+  const SettingsChip({super.key, this.compact = false});
+
+  /// Just the picture, for crowded headers (still announced as "Settings").
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -287,6 +377,21 @@ class SettingsChip extends ConsumerWidget {
     final s = S.of(context);
     final (name, avatar) = ref.watch(settingsProvider.select((x) => (x.name, x.avatar)));
     final initial = name.isEmpty ? '' : name.characters.first.toUpperCase();
+    if (compact) {
+      return Semantics(
+        button: true,
+        label: s.settings,
+        excludeSemantics: true,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () => context.push('/settings'),
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Avatar(initial, size: 52, image: avatar),
+          ),
+        ),
+      );
+    }
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: 1.3,
       child: Material(
@@ -535,8 +640,11 @@ class ChoiceCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(title, style: tt.titleMedium!.copyWith(color: t.heading)),
-                        if (subtitle != null) ...[const SizedBox(height: 4), Text(subtitle!, style: tt.bodySmall)],
+                        WordSafeText(title, style: tt.titleMedium!.copyWith(color: t.heading)),
+                        if (subtitle != null) ...[
+                          const SizedBox(height: 4),
+                          WordSafeText(subtitle!, style: tt.bodySmall),
+                        ],
                       ],
                     ),
                   ),
@@ -581,7 +689,7 @@ class PickChip extends StatelessWidget {
                 children: [
                   if (selected) ...[Icon(Icons.check_rounded, size: 22, color: t.onPrimary), const SizedBox(width: 6)],
                   Flexible(
-                    child: Text(
+                    child: WordSafeText(
                       label,
                       style: TextStyle(
                         fontSize: 18,
@@ -688,7 +796,7 @@ class StepScaffold extends StatelessWidget {
                     Expanded(
                       child: step == null
                           ? const SizedBox()
-                          : Text(
+                          : WordSafeText(
                               step!,
                               textAlign: TextAlign.end,
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.muted),

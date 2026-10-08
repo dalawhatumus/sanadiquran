@@ -42,7 +42,7 @@ class ProgressScreen extends ConsumerWidget {
     return StepScaffold(
       showBack: true,
       content: [
-        Text(s.myProgress, style: tt.headlineMedium),
+        WordSafeText(s.myProgress, style: tt.headlineMedium),
         const SizedBox(height: 16),
         SCard(
           color: t.primary,
@@ -61,7 +61,7 @@ class ProgressScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Text(s.juzL, style: tt.titleLarge),
+        WordSafeText(s.juzL, style: tt.titleLarge),
         const SizedBox(height: 10),
         GridView.count(
           crossAxisCount: 5,
@@ -130,7 +130,7 @@ class ProgressScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(s.nextPortionL, style: tt.bodyMedium!.copyWith(color: t.muted)),
-                    Text(s.nextPortion, style: tt.titleLarge),
+                    WordSafeText(s.nextPortion, style: tt.titleLarge),
                   ],
                 ),
               ),
@@ -138,7 +138,7 @@ class ProgressScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Text(s.recentL, style: tt.titleLarge),
+        WordSafeText(s.recentL, style: tt.titleLarge),
         const SizedBox(height: 10),
         for (final (day, what, grade, notes) in s.recentSessions) ...[
           SCard(
@@ -150,7 +150,7 @@ class ProgressScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(day, style: tt.bodySmall),
-                      Text(what, style: tt.titleMedium!.copyWith(color: t.heading)),
+                      WordSafeText(what, style: tt.titleMedium!.copyWith(color: t.heading)),
                       const SizedBox(height: 4),
                       Wrap(
                         spacing: 8,
@@ -223,7 +223,7 @@ class TeacherNotesScreen extends ConsumerWidget {
     return StepScaffold(
       showBack: true,
       content: [
-        Text(s.tnTitle, style: tt.headlineSmall),
+        WordSafeText(s.tnTitle, style: tt.headlineSmall),
         Text(s.tnSub, style: tt.bodySmall),
         const SizedBox(height: 16),
         SCard(
@@ -234,7 +234,7 @@ class TeacherNotesScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(s.recitedL, style: tt.bodySmall),
-                    Text(s.recited, style: tt.titleLarge),
+                    WordSafeText(s.recited, style: tt.titleLarge),
                   ],
                 ),
               ),
@@ -243,7 +243,7 @@ class TeacherNotesScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 14),
-        Text(s.practiseL, style: tt.titleMedium),
+        WordSafeText(s.practiseL, style: tt.titleMedium),
         const SizedBox(height: 8),
         for (final a in practise) ...[
           SCard(
@@ -251,7 +251,10 @@ class TeacherNotesScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(s.ayahTitle(q!.sura(67).name(s.ar), a.ayah), style: tt.titleSmall!.copyWith(color: t.primary)),
+                Text(
+                  s.ayahTitle(q!.sura(67).name(s.ar), a.ayah),
+                  style: nameFont(context, tt.titleSmall!.copyWith(color: t.primary)),
+                ),
                 const SizedBox(height: 6),
                 // Full ayah from the verified text, never cut.
                 Text(
@@ -265,7 +268,7 @@ class TeacherNotesScreen extends ConsumerWidget {
           const SizedBox(height: 10),
         ],
         const SizedBox(height: 4),
-        Text(s.teacherNoteL, style: tt.titleMedium),
+        WordSafeText(s.teacherNoteL, style: tt.titleMedium),
         const SizedBox(height: 8),
         SCard(child: Text(s.noteText, style: tt.bodyMedium)),
         const SizedBox(height: 14),
@@ -274,7 +277,7 @@ class TeacherNotesScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(s.nextPortionL, style: tt.bodyMedium!.copyWith(color: t.muted)),
-              Text(s.nextPortion, style: tt.titleLarge),
+              WordSafeText(s.nextPortion, style: tt.titleLarge),
               const SizedBox(height: 12),
               BigButton(
                 label: s.openInQuran,

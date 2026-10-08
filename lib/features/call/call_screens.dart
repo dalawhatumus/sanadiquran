@@ -105,7 +105,7 @@ class _ConnectingScreenState extends State<ConnectingScreen> with SingleTickerPr
         const SizedBox(height: 36),
         Semantics(
           liveRegion: true,
-          child: Text(ringing ? s.calling : s.finding, style: tt.headlineSmall, textAlign: TextAlign.center),
+          child: WordSafeText(ringing ? s.calling : s.finding, style: tt.headlineSmall, textAlign: TextAlign.center),
         ),
         const SizedBox(height: 8),
         Text(ringing ? s.callingSub : s.findingSub, style: tt.bodyLarge, textAlign: TextAlign.center),
@@ -210,7 +210,7 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
                   children: [
                     iconWidget ?? Icon(icon, size: 32, color: t.text),
                     const SizedBox(height: 6),
-                    Text(
+                    WordSafeText(
                       label,
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.text, height: 1.15),
@@ -250,7 +250,7 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          Text(name, style: tt.headlineMedium, textAlign: TextAlign.center),
+          WordSafeText(name, style: tt.headlineMedium, textAlign: TextAlign.center),
           const SizedBox(height: 10),
           Center(
             child: Container(
@@ -351,7 +351,7 @@ class _StudentCallEndedScreenState extends State<StudentCallEndedScreen> {
       content: [
         const Center(child: Illustration(size: 112, child: Icon(Icons.check_rounded))),
         const SizedBox(height: 18),
-        Text(s.sEndTitle, style: tt.headlineMedium, textAlign: TextAlign.center),
+        WordSafeText(s.sEndTitle, style: tt.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 6),
         Text(s.sEndSub(minutes), style: tt.bodyLarge, textAlign: TextAlign.center),
         const SizedBox(height: 8),
@@ -401,7 +401,7 @@ class _StudentCallEndedScreenState extends State<StudentCallEndedScreen> {
                                 children: [
                                   Icon(faces[i], size: 34, color: _rating == i ? t.onPrimary : t.primary),
                                   const SizedBox(height: 4),
-                                  Text(
+                                  WordSafeText(
                                     s.faces[i],
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
@@ -476,7 +476,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
         content: [
           const Center(child: Illustration(size: 112, child: Icon(Icons.schedule_rounded))),
           const SizedBox(height: 18),
-          Text(s.missedTitle, style: tt.headlineSmall, textAlign: TextAlign.center),
+          WordSafeText(s.missedTitle, style: tt.headlineSmall, textAlign: TextAlign.center),
           const SizedBox(height: 8),
           Text(s.missedBody, style: tt.bodyLarge, textAlign: TextAlign.center),
         ],
@@ -523,13 +523,13 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
           children: [
             Icon(Icons.call_received_rounded, color: t.text),
             const SizedBox(width: 8),
-            Flexible(child: Text(s.incoming, style: tt.titleMedium)),
+            Flexible(child: WordSafeText(s.incoming, style: tt.titleMedium)),
           ],
         ),
         const SizedBox(height: 36),
         Center(child: Avatar(s.studentInitial, size: 120, image: sampleStudentAvatar(s.female))),
         const SizedBox(height: 18),
-        Text(s.studentName, style: tt.headlineMedium, textAlign: TextAlign.center),
+        WordSafeText(s.studentName, style: tt.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 10),
         Center(
           child: Container(
@@ -602,7 +602,7 @@ class TeacherCallEndedScreen extends StatelessWidget {
       content: [
         const Center(child: Illustration(size: 112, child: Icon(Icons.check_rounded))),
         const SizedBox(height: 18),
-        Text(s.tEndTitle, style: tt.headlineMedium, textAlign: TextAlign.center),
+        WordSafeText(s.tEndTitle, style: tt.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 6),
         Text(s.tEndSub(minutes), style: tt.bodyLarge, textAlign: TextAlign.center),
         const SizedBox(height: 8),
@@ -703,7 +703,7 @@ class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
     return StepScaffold(
       showBack: true,
       content: [
-        Text(s.notesTitle, style: tt.headlineSmall),
+        WordSafeText(s.notesTitle, style: tt.headlineSmall),
         const SizedBox(height: 6),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,7 +714,7 @@ class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
           ],
         ),
         const SizedBox(height: 18),
-        Text(s.portionL, style: tt.titleMedium),
+        WordSafeText(s.portionL, style: tt.titleMedium),
         const SizedBox(height: 8),
         SCard(
           child: Column(
@@ -729,7 +729,7 @@ class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
           ),
         ),
         const SizedBox(height: 18),
-        Text(s.gradeL, style: tt.titleMedium),
+        WordSafeText(s.gradeL, style: tt.titleMedium),
         const SizedBox(height: 8),
         Wrap(
           spacing: 10,
@@ -744,7 +744,7 @@ class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
           ],
         ),
         const SizedBox(height: 18),
-        Text(s.mistakesL, style: tt.titleMedium),
+        WordSafeText(s.mistakesL, style: tt.titleMedium),
         const SizedBox(height: 8),
         if (q != null)
           for (var a = _from; a <= _to; a++)
@@ -776,19 +776,19 @@ class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
               ),
             ),
         const SizedBox(height: 10),
-        Text(s.nextL, style: tt.titleMedium),
+        WordSafeText(s.nextL, style: tt.titleMedium),
         const SizedBox(height: 8),
         SCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(s.nextPortion, style: tt.titleLarge),
+              WordSafeText(s.nextPortion, style: tt.titleLarge),
               Text(s.suggested, style: tt.bodySmall),
             ],
           ),
         ),
         const SizedBox(height: 18),
-        Text(s.noteTo, style: tt.titleMedium),
+        WordSafeText(s.noteTo, style: tt.titleMedium),
         const SizedBox(height: 8),
         TextField(
           minLines: 3,

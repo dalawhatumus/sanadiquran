@@ -7,6 +7,7 @@ import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
+import '../quran/mushaf_page.dart';
 import '../quran/quran_data.dart';
 import 'athkar_data.dart';
 import 'athkar_menu_screen.dart';
@@ -103,7 +104,7 @@ class _DhikrScreenState extends ConsumerState<DhikrScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                      child: Text(title, style: tt.titleLarge!.copyWith(color: t.primary)),
+                      child: WordSafeText(title, style: tt.titleLarge!.copyWith(color: t.primary)),
                     ),
                     _text(context, s),
                   ],
@@ -144,13 +145,7 @@ class _DhikrScreenState extends ConsumerState<DhikrScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          if (showBasmala && quran != null)
-            Text(
-              quran.basmala,
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: SanadiFonts.quran, fontSize: 24, color: t.text, height: 2),
-            ),
+          if (showBasmala && quran != null) Basmala(color: t.text, text: quran.basmala, height: 56),
           Text(
             ayahs.map((a) => a.text).join(' '),
             textDirection: TextDirection.rtl,
@@ -322,7 +317,7 @@ class _DhikrScreenState extends ConsumerState<DhikrScreen> {
       content: [
         Center(child: Illustration(size: 128, child: AthkarMenuScreen.iconFor(set.id, t.primary))),
         const SizedBox(height: 24),
-        Text(s.setDoneTitle, style: tt.headlineMedium, textAlign: TextAlign.center),
+        WordSafeText(s.setDoneTitle, style: tt.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 8),
         Text(s.setDoneBody(s.ar ? set.ar : set.en), style: tt.bodyLarge, textAlign: TextAlign.center),
       ],

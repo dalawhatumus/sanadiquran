@@ -203,13 +203,7 @@ class _LargePageState extends State<_LargePage> {
                     ),
                   ),
                 ),
-                if (b != 1 && b != 9)
-                  Text(
-                    q.basmala,
-                    textAlign: TextAlign.center,
-                    textDirection: TextDirection.rtl,
-                    style: TextStyle(fontFamily: SanadiFonts.quran, fontSize: size * 0.9, color: t.text, height: 1.9),
-                  ),
+                if (b != 1 && b != 9) Basmala(color: t.text, text: q.basmala, height: size * 2.2),
               ] else
                 ValueListenableBuilder<String?>(
                   valueListenable: widget.selected,

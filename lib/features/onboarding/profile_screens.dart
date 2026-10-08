@@ -33,7 +33,7 @@ class _RoleScreenState extends ConsumerState<RoleScreen> {
     return StepScaffold(
       step: s.stepOf(1, 4),
       content: [
-        Text(s.roleTitle, style: tt.headlineMedium),
+        WordSafeText(s.roleTitle, style: tt.headlineMedium),
         const SizedBox(height: 24),
         ChoiceCard(
           leading: const TintBox(child: Icon(Icons.mic_rounded)),
@@ -94,7 +94,7 @@ class _GenderScreenState extends ConsumerState<GenderScreen> {
       onBack: () => context.canPop() ? context.pop() : context.go(Routes.role),
       step: s.stepOf(2, 4),
       content: [
-        Text(s.genderTitle, style: tt.headlineMedium),
+        WordSafeText(s.genderTitle, style: tt.headlineMedium),
         const SizedBox(height: 24),
         ChoiceCard(
           leading: const TintBox(child: Icon(Icons.man_rounded)),
@@ -174,7 +174,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
       onBack: () => context.canPop() ? context.pop() : context.go(Routes.gender),
       step: s.stepOf(3, 4),
       content: [
-        Text(s.nameTitle, style: tt.headlineMedium),
+        WordSafeText(s.nameTitle, style: tt.headlineMedium),
         const SizedBox(height: 8),
         Text(teacher ? s.nameStudentSub : s.nameSub, style: tt.bodyMedium),
         const SizedBox(height: 24),

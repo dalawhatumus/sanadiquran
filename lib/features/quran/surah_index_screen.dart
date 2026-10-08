@@ -32,9 +32,19 @@ class SurahIndexScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
                 child: Row(
                   children: [
-                    Expanded(child: Text(s.navQuran, style: tt.headlineMedium)),
+                    Expanded(
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: WordSafeText(s.navQuran, maxLines: 1, style: tt.headlineMedium),
+                        ),
+                      ),
+                    ),
                     if (teacher) ...[_AthkarPill(onTap: () => context.push(Routes.athkar)), const SizedBox(width: 8)],
-                    const SettingsChip(),
+                    // Teachers also have the athkar button here, so settings
+                    // shows just the picture and every word stays whole.
+                    SettingsChip(compact: teacher),
                   ],
                 ),
               ),
@@ -47,9 +57,16 @@ class SurahIndexScreen extends ConsumerWidget {
                   indicatorWeight: 3,
                   labelStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   tabs: [
-                    Tab(height: kMinTap, text: s.surahs),
-                    Tab(height: kMinTap, text: s.juzTab),
-                    Tab(height: kMinTap, text: s.bookmarks),
+                    Tab(height: kMinTap, child: WordSafeText(s.surahs, maxLines: 1)),
+                    Tab(height: kMinTap, child: WordSafeText(s.juzTab, maxLines: 1)),
+                    Tab(
+                      height: kMinTap,
+                      child: Semantics(
+                        label: s.bookmarks,
+                        excludeSemantics: true,
+                        child: const Icon(Icons.bookmarks_rounded, size: 28),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -148,7 +165,7 @@ class _ContinueCard extends ConsumerWidget {
                 ),
                 Text(
                   q.sura(first.sura).name(s.ar),
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: t.onPrimary),
+                  style: nameFont(context, TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: t.onPrimary)),
                 ),
                 Text(
                   s.juzPage(first.juz, page),
@@ -237,7 +254,7 @@ class SurahTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(sura.name(s.ar), style: tt.titleMedium!.copyWith(color: t.heading)),
+                    Text(sura.name(s.ar), style: nameFont(context, tt.titleMedium!.copyWith(color: t.heading))),
                     Text('${sura.madani ? s.madani : s.makki} · ${s.ayahsCount(sura.count)}', style: tt.bodySmall),
                   ],
                 ),
@@ -247,7 +264,11 @@ class SurahTile extends StatelessWidget {
                 Text(
                   sura.ar,
                   textDirection: TextDirection.rtl,
-                  style: TextStyle(fontFamily: 'Tajawal', fontSize: 20, fontWeight: FontWeight.w700, color: t.primary),
+                  style: nameFont(
+                    context,
+                    TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: t.primary),
+                    arabic: true,
+                  ),
                 ),
               ],
               const SizedBox(width: 12),
@@ -342,7 +363,7 @@ class _JuzList extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(s.juz(js.juz), style: tt.titleMedium!.copyWith(color: t.heading)),
-                        Text(s.ayahTitle(q.sura(js.sura).name(s.ar), js.ayah), style: tt.bodySmall),
+                        Text(s.ayahTitle(q.sura(js.sura).name(s.ar), js.ayah), style: nameFont(context, tt.bodySmall!)),
                       ],
                     ),
                   ),
@@ -396,7 +417,7 @@ class _BookmarkList extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: tt.titleMedium!.copyWith(color: t.heading)),
+                    Text(title, style: nameFont(context, tt.titleMedium!.copyWith(color: t.heading))),
                     Text(sub, style: tt.bodySmall),
                   ],
                 ),

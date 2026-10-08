@@ -43,14 +43,14 @@ class TeacherHomeScreen extends ConsumerWidget {
           children: [
             Icon(Icons.hourglass_top_rounded, color: t.primary, size: 40),
             const SizedBox(height: 10),
-            Text(s.reviewTitle, style: tt.titleLarge),
+            WordSafeText(s.reviewTitle, style: tt.titleLarge),
             const SizedBox(height: 6),
             Text(s.reviewBody, style: tt.bodyMedium),
           ],
         ),
       ),
       const SizedBox(height: 20),
-      Text(s.whileWait, style: tt.titleMedium),
+      WordSafeText(s.whileWait, style: tt.titleMedium),
       const SizedBox(height: 10),
       _LinkCard(
         icon: SIcon(SIcons.rehal, color: t.primary),
@@ -72,7 +72,7 @@ class TeacherHomeScreen extends ConsumerWidget {
     return [
       const Center(child: Illustration(size: 112, child: Icon(Icons.volunteer_activism_rounded))),
       const SizedBox(height: 16),
-      Text(s.rejectTitle, style: tt.headlineSmall, textAlign: TextAlign.center),
+      WordSafeText(s.rejectTitle, style: tt.headlineSmall, textAlign: TextAlign.center),
       const SizedBox(height: 6),
       Text(s.rejectThanks, style: tt.bodyMedium, textAlign: TextAlign.center),
       const SizedBox(height: 16),
@@ -220,11 +220,11 @@ class _Stat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          WordSafeText(
             value,
             style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, color: t.heading, height: 1.1),
           ),
-          Text(
+          WordSafeText(
             label,
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.text),
           ),
@@ -251,7 +251,7 @@ class _LinkCard extends StatelessWidget {
           TintBox(child: icon),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(label, style: Theme.of(context).textTheme.titleLarge!.copyWith(color: t.text)),
+            child: WordSafeText(label, style: Theme.of(context).textTheme.titleLarge!.copyWith(color: t.text)),
           ),
           Icon(context.isAr ? Icons.chevron_left_rounded : Icons.chevron_right_rounded, color: t.primary, size: 32),
         ],

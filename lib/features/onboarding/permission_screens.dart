@@ -77,7 +77,7 @@ class PermissionScreen extends ConsumerWidget {
       content: [
         Center(child: Illustration(size: 144, child: icon)),
         const SizedBox(height: 28),
-        Text(title, style: tt.headlineMedium, textAlign: TextAlign.center),
+        WordSafeText(title, style: tt.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 12),
         Text(body, style: tt.bodyLarge, textAlign: TextAlign.center),
       ],
@@ -123,7 +123,7 @@ class _PermissionDeniedScreenState extends ConsumerState<PermissionDeniedScreen>
       topTrailing: TextButton(
         onPressed: () => _afterPermission(context, ref, widget.kind),
         style: TextButton.styleFrom(minimumSize: const Size(kMinTap, kMinTap)),
-        child: Text(
+        child: WordSafeText(
           s.notNow,
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: t.text),
         ),
@@ -133,7 +133,7 @@ class _PermissionDeniedScreenState extends ConsumerState<PermissionDeniedScreen>
           child: Illustration(size: 128, child: Icon(mic ? Icons.mic_off_rounded : Icons.notifications_off_rounded)),
         ),
         const SizedBox(height: 20),
-        Text(mic ? s.micOffTitle : s.notifOffTitle, style: tt.headlineMedium, textAlign: TextAlign.center),
+        WordSafeText(mic ? s.micOffTitle : s.notifOffTitle, style: tt.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 10),
         Text(mic ? s.micOffBody : s.notifOffBody, style: tt.bodyLarge, textAlign: TextAlign.center),
         const SizedBox(height: 20),

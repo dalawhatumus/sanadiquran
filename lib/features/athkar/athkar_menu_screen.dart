@@ -22,7 +22,7 @@ class AthkarMenuScreen extends ConsumerWidget {
     'salah' => SIcon(SIcons.prayerMat, color: c),
     'tasbeeh' => SIcon(SIcons.misbaha, color: c),
     'sleep' => SIcon(SIcons.moonPillow, color: c),
-    _ => Icon(Icons.wb_twilight_rounded, color: c),
+    _ => SIcon(SIcons.waking, color: c),
   };
 
   @override
@@ -43,11 +43,11 @@ class AthkarMenuScreen extends ConsumerWidget {
             else
               Row(
                 children: [
-                  Expanded(child: Text(s.athkarTitle, style: tt.headlineMedium)),
+                  Expanded(child: WordSafeText(s.athkarTitle, style: tt.headlineMedium)),
                   const SettingsChip(),
                 ],
               ),
-            if (standalone) ...[const SizedBox(height: 12), Text(s.athkarTitle, style: tt.headlineMedium)],
+            if (standalone) ...[const SizedBox(height: 12), WordSafeText(s.athkarTitle, style: tt.headlineMedium)],
             const SizedBox(height: 16),
             if (settings.remindersOn)
               SCard(
@@ -118,7 +118,7 @@ class AthkarMenuScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_label(s, set), style: tt.titleLarge!.copyWith(color: t.text)),
+                          WordSafeText(_label(s, set), style: tt.titleLarge!.copyWith(color: t.text)),
                           if (settings.athkarDone[set.id] == today)
                             Row(
                               children: [

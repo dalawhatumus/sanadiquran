@@ -64,7 +64,7 @@ class StudentHomeScreen extends ConsumerWidget {
                       children: [
                         TintBox(child: SIcon(SIcons.rehal, color: t.primary)),
                         const SizedBox(width: 12),
-                        Expanded(child: Text(s.welcomeTitle, style: tt.titleLarge)),
+                        Expanded(child: WordSafeText(s.welcomeTitle, style: tt.titleLarge)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -86,7 +86,10 @@ class StudentHomeScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(s.nextPortionL, style: tt.bodyMedium!.copyWith(color: t.muted)),
-                              Text(settings.sessions > 1 ? s.nextPortion : s.firstPortion, style: tt.titleLarge),
+                              WordSafeText(
+                                settings.sessions > 1 ? s.nextPortion : s.firstPortion,
+                                style: tt.titleLarge,
+                              ),
                             ],
                           ),
                         ),
@@ -117,7 +120,7 @@ class StudentHomeScreen extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(s.teacherName, style: tt.titleLarge),
+                              WordSafeText(s.teacherName, style: tt.titleLarge),
                               Row(
                                 children: [
                                   Container(
@@ -169,7 +172,7 @@ class StudentHomeScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.myProgress, style: tt.titleMedium!.copyWith(color: t.heading)),
+                        WordSafeText(s.myProgress, style: tt.titleMedium!.copyWith(color: t.heading)),
                         if (!firstTime) Text(s.progressSum, style: tt.bodySmall),
                       ],
                     ),

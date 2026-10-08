@@ -66,7 +66,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
         const SizedBox(height: 24),
         Center(child: Logo(dark ? 'sanadi-horizontal-rtl-cream' : 'sanadi-horizontal-rtl-green', height: 84)),
         const SizedBox(height: 28),
-        Text(s.tagline, textAlign: TextAlign.center, style: tt.headlineSmall),
+        WordSafeText(s.tagline, textAlign: TextAlign.center, style: tt.headlineSmall),
         const SizedBox(height: 8),
         Text(s.taglineSub, textAlign: TextAlign.center, style: tt.bodyMedium),
         const SizedBox(height: 24),

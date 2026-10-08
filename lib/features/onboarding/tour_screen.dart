@@ -73,7 +73,7 @@ class _TourScreenState extends ConsumerState<TourScreen> {
                           const SizedBox(height: 24),
                           Illustration(size: 160, child: icon),
                           const SizedBox(height: 32),
-                          Text(title, style: tt.headlineMedium, textAlign: TextAlign.center),
+                          WordSafeText(title, style: tt.headlineMedium, textAlign: TextAlign.center),
                           const SizedBox(height: 12),
                           Text(body, style: tt.bodyLarge, textAlign: TextAlign.center),
                         ],

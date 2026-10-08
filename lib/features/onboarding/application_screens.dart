@@ -82,9 +82,9 @@ class _ApplicationScreenState extends ConsumerState<ApplicationScreen> {
   }
 
   List<Widget> _countryStep(S s, TextTheme tt) => [
-    Text(s.appCountryTitle, style: tt.headlineSmall),
+    WordSafeText(s.appCountryTitle, style: tt.headlineSmall),
     const SizedBox(height: 20),
-    Text(s.country, style: tt.titleMedium),
+    WordSafeText(s.country, style: tt.titleMedium),
     const SizedBox(height: 10),
     Wrap(
       spacing: 10,
@@ -95,7 +95,7 @@ class _ApplicationScreenState extends ConsumerState<ApplicationScreen> {
       ],
     ),
     const SizedBox(height: 24),
-    Text(s.languagesL, style: tt.titleMedium),
+    WordSafeText(s.languagesL, style: tt.titleMedium),
     Text(s.chooseAll, style: tt.bodySmall),
     const SizedBox(height: 10),
     Wrap(
@@ -115,7 +115,7 @@ class _ApplicationScreenState extends ConsumerState<ApplicationScreen> {
   List<Widget> _teachStep(S s, TextTheme tt) {
     const icons = [Icons.spellcheck_rounded, Icons.menu_book_rounded, Icons.record_voice_over_rounded];
     return [
-      Text(s.appTeachTitle, style: tt.headlineSmall),
+      WordSafeText(s.appTeachTitle, style: tt.headlineSmall),
       const SizedBox(height: 16),
       for (var i = 0; i < s.teachTypes.length; i++) ...[
         ChoiceCard(
@@ -129,7 +129,7 @@ class _ApplicationScreenState extends ConsumerState<ApplicationScreen> {
         const SizedBox(height: 12),
       ],
       const SizedBox(height: 12),
-      Text(s.freeTitle, style: tt.titleMedium),
+      WordSafeText(s.freeTitle, style: tt.titleMedium),
       Text(s.freeSub, style: tt.bodySmall),
       const SizedBox(height: 10),
       Wrap(
@@ -148,16 +148,16 @@ class _ApplicationScreenState extends ConsumerState<ApplicationScreen> {
   }
 
   List<Widget> _recitationStep(S s, TextTheme tt) => [
-    Text(s.recitationTitle, style: tt.headlineSmall),
+    WordSafeText(s.recitationTitle, style: tt.headlineSmall),
     const SizedBox(height: 16),
-    Text(s.howMuch, style: tt.titleMedium),
+    WordSafeText(s.howMuch, style: tt.titleMedium),
     const SizedBox(height: 10),
     for (var i = 0; i < s.amounts.length; i++) ...[
       ChoiceCard(title: s.amounts[i], selected: d.amount == i, onTap: () => setState(() => d.amount = i)),
       const SizedBox(height: 10),
     ],
     const SizedBox(height: 14),
-    Text(s.ijazahL, style: tt.titleMedium),
+    WordSafeText(s.ijazahL, style: tt.titleMedium),
     const SizedBox(height: 10),
     TextFormField(
       initialValue: d.ijazah,
@@ -174,7 +174,7 @@ class _ApplicationScreenState extends ConsumerState<ApplicationScreen> {
   List<Widget> _pledgeStep(S s, TextTheme tt) {
     final t = context.t;
     return [
-      Text(s.pledgeTitle, style: tt.headlineSmall),
+      WordSafeText(s.pledgeTitle, style: tt.headlineSmall),
       const SizedBox(height: 16),
       SCard(
         child: Column(
@@ -278,7 +278,7 @@ class _SampleRecorderState extends State<_SampleRecorder> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(s.sampleTitle, style: tt.headlineSmall),
+        WordSafeText(s.sampleTitle, style: tt.headlineSmall),
         const SizedBox(height: 8),
         Text(s.sampleSub, style: tt.bodyMedium),
         const SizedBox(height: 28),
@@ -315,7 +315,7 @@ class _SampleRecorderState extends State<_SampleRecorder> {
           const SizedBox(height: 6),
           Text(recording ? s.tapStop : s.sampleLen, textAlign: TextAlign.center, style: tt.bodySmall),
         ] else if (_state == _Rec.sending) ...[
-          Text(s.sendingSample, style: tt.titleMedium, textAlign: TextAlign.center),
+          WordSafeText(s.sendingSample, style: tt.titleMedium, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
@@ -366,7 +366,7 @@ class ApplicationSentScreen extends StatelessWidget {
       content: [
         const Center(child: Illustration(size: 144, child: Icon(Icons.volunteer_activism_rounded))),
         const SizedBox(height: 24),
-        Text(s.jazak, style: tt.headlineMedium, textAlign: TextAlign.center),
+        WordSafeText(s.jazak, style: tt.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 12),
         Text(s.appSentBody, style: tt.bodyLarge, textAlign: TextAlign.center),
       ],

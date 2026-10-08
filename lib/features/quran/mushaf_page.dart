@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/strings.dart';
 import '../../core/theme.dart';
+import '../../widgets/ui.dart';
 import 'quran_data.dart';
 
 /// Called when an ayah is long-pressed, with where the finger is.
@@ -146,7 +147,12 @@ class MushafPage extends StatelessWidget {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(sura.name(s.ar), style: meta, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              sura.name(s.ar),
+                              style: nameFont(context, meta),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           Text(s.juz(first.juz), style: meta),
                         ],
@@ -172,9 +178,7 @@ class MushafPage extends StatelessWidget {
       case HeaderLine(:final sura):
         return _SurahFrame(name: q.sura(sura).ar, size: size, color: t.primary, ink: ink);
       case BasmalaLine():
-        return Center(
-          child: Text(q.basmala, textDirection: TextDirection.rtl, style: quranStyle(size, ink)),
-        );
+        return Basmala(color: ink, text: q.basmala);
       case TextLine(:final segments):
         final words = <Widget>[];
         for (final seg in segments) {
@@ -279,20 +283,66 @@ class _SurahFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const SizedBox.expand(),
-          Positioned.fill(
-            child: SvgPicture.asset(
-              'assets/icons/surah_frame.svg',
-              fit: BoxFit.fill,
-              theme: SvgTheme(currentColor: color),
-              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      child: LayoutBuilder(
+        builder: (context, c) => Stack(
+          alignment: Alignment.center,
+          children: [
+            const SizedBox.expand(),
+            Positioned.fill(
+              child: SvgPicture.asset(
+                'assets/icons/surah_frame.svg',
+                fit: BoxFit.fill,
+                colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+              ),
+            ),
+            // The name sits inside the middle cartouche with a clear margin,
+            // shrinking if needed so it never touches the frame's lines.
+            SizedBox(
+              width: c.maxWidth * 0.34,
+              height: c.maxHeight * 0.5,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text('سُورَةُ $name', textDirection: TextDirection.rtl, style: quranStyle(size * 0.85, ink)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The basmala in calligraphy (Noto Naskh's ﷽ glyph), set apart from the
+/// ayah text. Screen readers hear the full words.
+class Basmala extends StatelessWidget {
+  const Basmala({super.key, required this.color, required this.text, this.height});
+
+  final Color color;
+  final String text;
+
+  /// Fixed height; by default it fills the space it is given.
+  final double? height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: text,
+      excludeSemantics: true,
+      child: SizedBox(
+        height: height,
+        width: double.infinity,
+        child: FractionallySizedBox(
+          // Centred and narrower than a line, like the printed basmala.
+          widthFactor: 0.75,
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: Text(
+              '\uFDFD',
+              textDirection: TextDirection.rtl,
+              style: TextStyle(fontFamily: SanadiFonts.naskh, fontSize: 100, height: 1.15, color: color),
             ),
           ),
-          Text('سُورَةُ $name', textDirection: TextDirection.rtl, style: quranStyle(size * 0.92, ink)),
-        ],
+        ),
       ),
     );
   }

@@ -239,7 +239,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(s.goToPage, style: Theme.of(ctx).textTheme.headlineSmall),
+                      WordSafeText(s.goToPage, style: Theme.of(ctx).textTheme.headlineSmall),
                       const SizedBox(height: 10),
                       Row(
                         children: [
@@ -261,7 +261,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      Text(s.surahs, style: Theme.of(ctx).textTheme.titleLarge),
+                      WordSafeText(s.surahs, style: Theme.of(ctx).textTheme.titleLarge),
                     ],
                   ),
                 ),
@@ -381,7 +381,10 @@ class _TopBar extends ConsumerWidget {
                                   q.sura(first.sura).name(s.ar),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: fg),
+                                  style: nameFont(
+                                    context,
+                                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: fg),
+                                  ),
                                 ),
                                 Text(
                                   '${s.page(p)} · ${s.juz(first.juz)}',
@@ -541,7 +544,10 @@ class _AyahToolbar extends ConsumerWidget {
               children: [
                 Text(
                   s.ayahTitle(q.sura(ayah.sura).name(s.ar), ayah.ayah),
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFFDDE8E1)),
+                  style: nameFont(
+                    context,
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFFDDE8E1)),
+                  ),
                 ),
                 Row(
                   children: [
