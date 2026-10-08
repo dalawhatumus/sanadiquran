@@ -190,7 +190,7 @@ class SettingsScreen extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 20),
-        Text('${s.version} 0.3.1', style: tt.bodySmall, textAlign: TextAlign.center),
+        Text('${s.version} 0.3.2', style: tt.bodySmall, textAlign: TextAlign.center),
       ],
     );
   }

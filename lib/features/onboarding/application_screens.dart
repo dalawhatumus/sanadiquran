@@ -74,7 +74,7 @@ class _ApplicationScreenState extends ConsumerState<ApplicationScreen> {
           BigButton(
             label: widget.step == 5 ? s.sendApp : s.next,
             icon: widget.step == 5 ? Icons.send_rounded : null,
-            trailingIcon: widget.step == 5 ? null : Icons.arrow_forward_rounded,
+            trailingIcon: widget.step == 5 ? null : Arrows.forward,
             onPressed: _canGo ? _next : null,
           ),
       ],

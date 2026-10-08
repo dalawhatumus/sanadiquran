@@ -253,7 +253,7 @@ class _LinkCard extends StatelessWidget {
           Expanded(
             child: WordSafeText(label, style: Theme.of(context).textTheme.titleLarge!.copyWith(color: t.text)),
           ),
-          Icon(context.isAr ? Icons.chevron_left_rounded : Icons.chevron_right_rounded, color: t.primary, size: 32),
+          Icon(Arrows.next, color: t.primary, size: 32),
         ],
       ),
     );

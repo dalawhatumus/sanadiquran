@@ -82,7 +82,7 @@ class PermissionScreen extends ConsumerWidget {
         Text(body, style: tt.bodyLarge, textAlign: TextAlign.center),
       ],
       bottom: [
-        BigButton(label: s.cont, trailingIcon: Icons.arrow_forward_rounded, onPressed: () => _request(context, ref)),
+        BigButton(label: s.cont, trailingIcon: Arrows.forward, onPressed: () => _request(context, ref)),
         BigButton(label: s.notNow, kind: ButtonKind.outline, onPressed: () => _afterPermission(context, ref, kind)),
       ],
     );

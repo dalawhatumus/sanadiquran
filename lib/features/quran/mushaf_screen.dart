@@ -79,6 +79,31 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     _page.value = p;
     ref.read(lastPageProvider.notifier).set(p);
     if (_selAyah != null) _clearSelection();
+    _warm(p);
+  }
+
+  /// Measures the pages around [p] after this frame, so the next swipe in
+  /// either direction finds them ready.
+  void _warm(int p) {
+    final q = ref.read(quranProvider).value;
+    if (q == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final d in const [1, -1, 2, -2]) {
+        warmMushafPage(q, p + d);
+      }
+    });
+  }
+
+  /// Turns one page forward (+1) or back (-1) with a short slide.
+  void _turn(int delta) {
+    final pc = _pc;
+    if (pc == null || !pc.hasClients) return;
+    final current = (pc.page ?? pc.initialPage.toDouble()).round();
+    final last = (_spreadMode ?? false) ? QuranData.pageCount ~/ 2 - 1 : QuranData.pageCount - 1;
+    final target = (current + delta).clamp(0, last);
+    if (target != current) {
+      pc.animateToPage(target, duration: const Duration(milliseconds: 260), curve: Curves.easeOutCubic);
+    }
   }
 
   void _goTo(int p) {
@@ -106,13 +131,22 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     if (_selAyah != null) setState(() => _selAyah = null);
   }
 
-  void _onTapPage() {
+  /// A tap near the left edge turns to the next page, near the right edge
+  /// to the previous one (pages turn right-to-left, like a printed mushaf);
+  /// anywhere else shows or hides the bars.
+  void _onTapPage([Offset? at]) {
     if (_selAyah != null) {
       _clearSelection();
-    } else {
-      _hide?.cancel();
-      setState(() => _chrome = !_chrome);
+      return;
     }
+    final mode = ref.read(settingsProvider).mushafMode;
+    if (at != null && mode == MushafMode.page) {
+      final w = MediaQuery.sizeOf(context).width;
+      if (at.dx < w * 0.18) return _turn(1);
+      if (at.dx > w * 0.82) return _turn(-1);
+    }
+    _hide?.cancel();
+    setState(() => _chrome = !_chrome);
   }
 
   @override
@@ -126,7 +160,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),
         data: (q) {
-          _start(q);
+          if (!_started) {
+            _start(q);
+            _warm(_page.value);
+          }
           return _body(context, q);
         },
       ),
@@ -153,7 +190,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         selected: _selected,
         onAyah: _onAyah,
         onPage: _onPage,
-        onTap: _onTapPage,
+        onTap: () => _onTapPage(),
       );
     } else {
       _pc ??= PageController(initialPage: spread ? (_page.value - 1) ~/ 2 : _page.value - 1);
@@ -162,6 +199,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         textDirection: TextDirection.rtl,
         child: PageView.builder(
           controller: _pc,
+          // Keep the pages either side built, so a swipe never waits.
+          allowImplicitScrolling: true,
+          physics: const EasyPagePhysics(),
           itemCount: spread ? QuranData.pageCount ~/ 2 : QuranData.pageCount,
           onPageChanged: (i) => _onPage(spread ? i * 2 + 1 : i + 1),
           itemBuilder: (_, i) {
@@ -206,7 +246,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
           },
           onGoTo: () => _showGoTo(context, q),
         ),
-        _BottomBar(visible: _chrome && _selAyah == null),
+        _BottomBar(
+          visible: _chrome && _selAyah == null,
+          page: _page,
+          showSlider: mode == MushafMode.page,
+          onSeek: _goTo,
+        ),
         if (_selAyah != null) _AyahToolbar(ayah: _selAyah!, at: _selAt, q: q, onClose: _clearSelection),
       ],
     );
@@ -369,7 +414,7 @@ class _TopBar extends ConsumerWidget {
                           IconButton(
                             tooltip: s.back,
                             onPressed: () => context.pop(),
-                            icon: const Icon(Icons.arrow_back_rounded, color: fg, size: 28),
+                            icon: const Icon(Arrows.back, color: fg, size: 28),
                             style: IconButton.styleFrom(minimumSize: const Size(kMinTap, kMinTap)),
                           ),
                           Expanded(
@@ -422,11 +467,15 @@ class _TopBar extends ConsumerWidget {
   }
 }
 
-/// Listening bar (recitation audio comes with the next update).
+/// Page slider (to jump far quickly) and the listening bar (recitation
+/// audio comes with a later update).
 class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.visible});
+  const _BottomBar({required this.visible, required this.page, required this.showSlider, required this.onSeek});
 
   final bool visible;
+  final ValueNotifier<int> page;
+  final bool showSlider;
+  final ValueChanged<int> onSeek;
 
   @override
   Widget build(BuildContext context) {
@@ -447,33 +496,39 @@ class _BottomBar extends StatelessWidget {
               top: false,
               child: MediaQuery.withClampedTextScaling(
                 maxScaleFactor: 1.3,
-                child: InkWell(
-                  onTap: () => showSoon(context),
-                  child: SizedBox(
-                    height: 60,
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 12),
-                        const Icon(Icons.play_arrow_rounded, color: fg, size: 34),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            '${s.play} · ${s.reciterName}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: fg),
-                          ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (showSlider) _PageSlider(page: page, onSeek: onSeek),
+                    InkWell(
+                      onTap: () => showSoon(context),
+                      child: SizedBox(
+                        height: 56,
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 12),
+                            const Icon(Icons.play_arrow_rounded, color: fg, size: 34),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                '${s.play} · ${s.reciterName}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: fg),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                s.comingSoonShort,
+                                style: const TextStyle(fontSize: 14, color: Color(0xFFDDE8E1)),
+                              ),
+                            ),
+                          ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            s.comingSoonShort,
-                            style: const TextStyle(fontSize: 14, color: Color(0xFFDDE8E1)),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -481,6 +536,107 @@ class _BottomBar extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Drag to any page; the page number shows while dragging, and the mushaf
+/// jumps there on release. Runs right-to-left, like the pages.
+class _PageSlider extends StatefulWidget {
+  const _PageSlider({required this.page, required this.onSeek});
+
+  final ValueNotifier<int> page;
+  final ValueChanged<int> onSeek;
+
+  @override
+  State<_PageSlider> createState() => _PageSliderState();
+}
+
+class _PageSliderState extends State<_PageSlider> {
+  double? _drag;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return ValueListenableBuilder<int>(
+      valueListenable: widget.page,
+      builder: (context, p, _) {
+        final value = _drag ?? p.toDouble();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(8, 4, 16, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 6,
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 13),
+                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 26),
+                      activeTrackColor: const Color(0xFF5CC18A),
+                      inactiveTrackColor: const Color(0x55FFFFFF),
+                      thumbColor: Colors.white,
+                    ),
+                    child: Slider(
+                      min: 1,
+                      max: QuranData.pageCount.toDouble(),
+                      value: value,
+                      semanticFormatterCallback: (v) => s.page(v.round()),
+                      onChanged: (v) => setState(() => _drag = v),
+                      onChangeEnd: (v) {
+                        setState(() => _drag = null);
+                        widget.onSeek(v.round());
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 64,
+                child: Text(
+                  s.n(value.round()),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Page turning that is easy on the hand: a short swipe in either direction
+/// turns the page (no need to drag past halfway), and pages settle quickly.
+class EasyPagePhysics extends PageScrollPhysics {
+  const EasyPagePhysics({super.parent});
+
+  @override
+  EasyPagePhysics applyTo(ScrollPhysics? ancestor) => EasyPagePhysics(parent: buildParent(ancestor));
+
+  @override
+  SpringDescription get spring => const SpringDescription(mass: 0.6, stiffness: 260, damping: 25);
+
+  @override
+  Simulation? createBallisticSimulation(ScrollMetrics position, double velocity) {
+    if ((velocity <= 0 && position.pixels <= position.minScrollExtent) ||
+        (velocity >= 0 && position.pixels >= position.maxScrollExtent)) {
+      return super.createBallisticSimulation(position, velocity);
+    }
+    final viewport = position.viewportDimension;
+    final page = position.pixels / viewport;
+    final tolerance = toleranceFor(position);
+    // Any deliberate movement turns the page in that direction.
+    final double target;
+    if (velocity.abs() > 30) {
+      target = velocity > 0 ? page.ceilToDouble() : page.floorToDouble();
+    } else {
+      target = page.roundToDouble();
+    }
+    final to = (target * viewport).clamp(position.minScrollExtent, position.maxScrollExtent);
+    if ((to - position.pixels).abs() < tolerance.distance) return null;
+    return ScrollSpringSimulation(spring, position.pixels, to, velocity, tolerance: tolerance);
   }
 }
 

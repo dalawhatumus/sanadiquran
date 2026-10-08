@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -47,6 +48,29 @@ double _lineWidth(TextLine line, TextStyle style) {
   return w + (n - 1) * _gap * _refSize;
 }
 
+/// Measures a page's lines ahead of time (call for the pages next to the
+/// one on screen, so turning to them is instant).
+void warmMushafPage(QuranData q, int page) {
+  if (page >= 1 && page <= QuranData.pageCount) _lineWidths(q, page);
+}
+
+/// Width of the font's space at [_refSize]; lines are drawn as one text run
+/// with word spacing adjusted so each gap is exactly [_gap] em.
+double? _spaceRef;
+double _spaceWidth(TextStyle style) => _spaceRef ??= () {
+  final tp = TextPainter(
+    text: TextSpan(text: '\u0628 \u0628', style: style),
+    textDirection: TextDirection.rtl,
+    textScaler: TextScaler.noScaling,
+  )..layout();
+  final both = tp.width;
+  tp.text = TextSpan(text: '\u0628\u0628', style: style);
+  tp.layout();
+  final w = both - tp.width;
+  tp.dispose();
+  return w;
+}();
+
 final _wordCache = <String, double>{};
 
 double _wordWidth(String word, TextStyle style) => _wordCache.putIfAbsent(word, () {
@@ -61,8 +85,9 @@ double _wordWidth(String word, TextStyle style) => _wordCache.putIfAbsent(word, 
 });
 
 /// One page of the Madani mushaf: the exact 15 lines, justified, with the
-/// surah frame, basmala, page header and page number.
-class MushafPage extends StatelessWidget {
+/// surah frame, basmala, page header and page number. Each line is drawn as
+/// a single text run, which keeps page turns smooth.
+class MushafPage extends StatefulWidget {
   const MushafPage({
     super.key,
     required this.q,
@@ -77,13 +102,36 @@ class MushafPage extends StatelessWidget {
   final int page;
   final ValueNotifier<String?> selected;
   final AyahPressed onAyah;
-  final VoidCallback onTap;
+
+  /// Called with where the page was tapped (global position).
+  final ValueChanged<Offset> onTap;
 
   /// Landscape on a phone: lines keep a readable size and the page scrolls.
   final bool scrollable;
 
   @override
+  State<MushafPage> createState() => _MushafPageState();
+}
+
+class _MushafPageState extends State<MushafPage> {
+  /// One long-press recogniser per ayah on the page, made once.
+  late final Map<String, LongPressGestureRecognizer> _press = {
+    for (final a in widget.q.page(widget.page))
+      a.key: LongPressGestureRecognizer()..onLongPressStart = (d) => widget.onAyah(a, d.globalPosition),
+  };
+
+  @override
+  void dispose() {
+    for (final r in _press.values) {
+      r.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final q = widget.q;
+    final page = widget.page;
     final t = context.t;
     final s = S.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
@@ -99,7 +147,7 @@ class MushafPage extends StatelessWidget {
       data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: onTap,
+        onTapUp: (d) => widget.onTap(d.globalPosition),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: paper,
@@ -127,15 +175,18 @@ class MushafPage extends StatelessWidget {
               final typical = full.isEmpty ? width : full[(full.length * 0.5).floor().clamp(0, full.length - 1)];
               var size = _refSize * width / typical;
               const header = 30.0, footer = 28.0;
-              final lineH = scrollable ? size * 2.05 : (c.maxHeight - header - footer) / 15;
-              if (!scrollable) size = math.min(size, lineH / 1.72);
+              final lineH = widget.scrollable ? size * 2.05 : (c.maxHeight - header - footer) / 15;
+              if (!widget.scrollable) size = math.min(size, lineH / 1.72);
 
-              final body = Column(
-                mainAxisAlignment: lines.length < 15 ? MainAxisAlignment.center : MainAxisAlignment.start,
-                children: [
-                  for (var i = 0; i < lines.length; i++)
-                    SizedBox(height: lineH, child: _line(lines[i], widths[i], size, width, ink, t)),
-                ],
+              final body = ValueListenableBuilder<String?>(
+                valueListenable: widget.selected,
+                builder: (context, sel, _) => Column(
+                  mainAxisAlignment: lines.length < 15 ? MainAxisAlignment.center : MainAxisAlignment.start,
+                  children: [
+                    for (var i = 0; i < lines.length; i++)
+                      SizedBox(height: lineH, child: _line(lines[i], widths[i], size, width, ink, t, sel)),
+                  ],
+                ),
               );
 
               return Padding(
@@ -158,7 +209,7 @@ class MushafPage extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Expanded(child: scrollable ? SingleChildScrollView(child: body) : body),
+                    Expanded(child: widget.scrollable ? SingleChildScrollView(child: body) : body),
                     SizedBox(
                       height: footer,
                       child: Center(child: Text(s.n(page), style: meta)),
@@ -173,101 +224,62 @@ class MushafPage extends StatelessWidget {
     );
   }
 
-  Widget _line(PageLine line, double natural, double size, double width, Color ink, SanadiTokens t) {
+  Widget _line(PageLine line, double natural, double size, double width, Color ink, SanadiTokens t, String? sel) {
     switch (line) {
       case HeaderLine(:final sura):
-        return _SurahFrame(name: q.sura(sura).ar, size: size, color: t.primary, ink: ink);
+        return _SurahFrame(name: widget.q.sura(sura).ar, size: size, color: t.primary, ink: ink);
       case BasmalaLine():
-        return Basmala(color: ink, text: q.basmala);
+        return Basmala(color: ink, text: widget.q.basmala);
       case TextLine(:final segments):
-        final words = <Widget>[];
-        for (final seg in segments) {
-          for (var w = seg.from; w <= seg.to; w++) {
-            words.add(
-              _Word(
-                text: seg.ayah.words[w - 1],
-                ayah: seg.ayah,
-                style: quranStyle(size, ink),
-                selected: selected,
-                onAyah: onAyah,
-                onTap: onTap,
-              ),
-            );
-          }
+        // The whole line is one text run; gaps between words are set to
+        // exactly [_gap] em through word spacing.
+        final style = quranStyle(size, ink);
+        final wordSpacing = size * _gap - _spaceWidth(quranStyle(_refSize, ink)) * size / _refSize;
+        final spans = <InlineSpan>[];
+        for (var i = 0; i < segments.length; i++) {
+          final seg = segments[i];
+          final a = seg.ayah;
+          final hl = sel == a.key ? TextStyle(backgroundColor: t.tint) : null;
+          if (spans.isNotEmpty) spans.add(const TextSpan(text: ' '));
+          spans.add(
+            TextSpan(text: a.words.sublist(seg.from - 1, seg.to).join(' '), style: hl, recognizer: _press[a.key]),
+          );
           if (seg.endsAyah) {
-            words.add(
-              _Word(
-                text: seg.ayah.number,
-                ayah: seg.ayah,
-                style: quranStyle(size, t.primary),
-                selected: selected,
-                onAyah: onAyah,
-                onTap: onTap,
+            spans.add(TextSpan(text: ' ', style: hl));
+            spans.add(
+              TextSpan(
+                text: a.number,
+                style: TextStyle(color: t.primary, backgroundColor: hl?.backgroundColor),
+                recognizer: _press[a.key],
               ),
             );
           }
         }
+        final text = Text.rich(
+          TextSpan(
+            style: style.copyWith(wordSpacing: wordSpacing),
+            children: spans,
+          ),
+          textDirection: TextDirection.rtl,
+          maxLines: 1,
+          softWrap: false,
+        );
         // Short lines (the first pages, or a surah's last line) are centred.
         // Full lines fill the width exactly: like kashida in the printed
         // mushaf, the line is stretched or squeezed slightly sideways.
         final scaled = natural * size / _refSize;
-        final centre = page <= 2 || scaled < width * 0.75;
-        final row = Row(mainAxisSize: MainAxisSize.min, spacing: size * _gap, children: words);
+        final centre = widget.page <= 2 || scaled < width * 0.75;
         if (centre) {
-          return Directionality(
-            textDirection: TextDirection.rtl,
-            child: Center(
-              child: FittedBox(fit: BoxFit.scaleDown, child: row),
-            ),
+          return Center(
+            child: FittedBox(fit: BoxFit.scaleDown, child: text),
           );
         }
         final stretch = (width / scaled).clamp(0.8, 1.3);
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: OverflowBox(
-            maxWidth: double.infinity,
-            child: Transform.scale(scaleX: stretch, scaleY: 1, child: row),
-          ),
+        return OverflowBox(
+          maxWidth: double.infinity,
+          child: Transform.scale(scaleX: stretch, scaleY: 1, child: text),
         );
     }
-  }
-}
-
-class _Word extends StatelessWidget {
-  const _Word({
-    required this.text,
-    required this.ayah,
-    required this.style,
-    required this.selected,
-    required this.onAyah,
-    required this.onTap,
-  });
-
-  final String text;
-  final Ayah ayah;
-  final TextStyle style;
-  final ValueNotifier<String?> selected;
-  final AyahPressed onAyah;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final tint = context.t.tint;
-    return GestureDetector(
-      onLongPressStart: (d) => onAyah(ayah, d.globalPosition),
-      onTap: onTap,
-      child: ValueListenableBuilder<String?>(
-        valueListenable: selected,
-        builder: (_, sel, child) => DecoratedBox(
-          decoration: BoxDecoration(
-            color: sel == ayah.key ? tint : Colors.transparent,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: child,
-        ),
-        child: Text(text, style: style, textDirection: TextDirection.rtl, maxLines: 1, softWrap: false),
-      ),
-    );
   }
 }
 

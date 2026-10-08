@@ -7,6 +7,16 @@ import '../core/settings.dart';
 import '../core/strings.dart';
 import '../core/theme.dart';
 
+/// Direction arrows that never flip with the language. App rule: an arrow
+/// pointing right always means "proceed", pointing left always "go back",
+/// in English and Arabic alike.
+abstract final class Arrows {
+  static const forward = IconData(0xf57a, fontFamily: 'MaterialIcons'); // →
+  static const back = IconData(0xf572, fontFamily: 'MaterialIcons'); // ←
+  static const next = IconData(0xf63b, fontFamily: 'MaterialIcons'); // ›
+  static const previous = IconData(0xf63a, fontFamily: 'MaterialIcons'); // ‹
+}
+
 /// Custom Sanadi icons from the design system (filled, 24dp grid).
 enum SIcons { rehal, misbaha, students, prayerMat, moonPillow, waking, bars3, bars1, bars0, language }
 
@@ -92,6 +102,7 @@ class BigButton extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
+                        textDirection: icon == Arrows.back || trailingIcon == Arrows.forward ? TextDirection.ltr : null,
                         children: [
                           if (iconWidget != null) ...[
                             IconTheme(
@@ -139,11 +150,15 @@ class BigButton extends StatelessWidget {
                             child: Tooltip(message: label, child: leading ?? const SizedBox()),
                           );
                         }
+                        // A back arrow sits on the left and a proceed arrow on the
+                        // right, whatever the language.
+                        final arrows = icon == Arrows.back || trailingIcon == Arrows.forward;
                         return Center(
                           // Icon and label sit on one centred row; a long label
                           // wraps between words, never inside one.
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
+                            textDirection: arrows ? TextDirection.ltr : null,
                             children: [
                               ?leading,
                               if (hasIcon) const SizedBox(width: 10),
@@ -574,8 +589,9 @@ class BackPill extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
+                textDirection: TextDirection.ltr,
                 children: [
-                  Icon(icon ?? Icons.arrow_back_rounded, size: 26, color: t.text),
+                  Icon(icon ?? Arrows.back, size: 26, color: t.text),
                   const SizedBox(width: 8),
                   Text(
                     S.of(context).back,

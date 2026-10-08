@@ -10,6 +10,16 @@ import 'package:sanadi/core/settings.dart';
 import 'package:sanadi/core/connectivity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Material arrows and chevrons that mirror in right-to-left languages.
+final _arrowCodes = {
+  Icons.arrow_back_rounded.codePoint,
+  Icons.arrow_forward_rounded.codePoint,
+  Icons.chevron_left_rounded.codePoint,
+  Icons.chevron_right_rounded.codePoint,
+  Icons.arrow_back.codePoint,
+  Icons.arrow_forward.codePoint,
+};
+
 final _letter = RegExp(r'\p{L}', unicode: true);
 
 /// Words that a text block splits across two lines (e.g. "Mess-age").
@@ -156,6 +166,11 @@ void main() {
             await tester.pump(const Duration(milliseconds: 400));
             await tester.pump(const Duration(milliseconds: 400));
             expect(tester.takeException(), isNull, reason: path);
+            // App rule: arrows never flip with the language (→ proceed, ← back).
+            final flipping = find.byWidgetPredicate(
+              (w) => w is Icon && (w.icon?.matchTextDirection ?? false) && _arrowCodes.contains(w.icon!.codePoint),
+            );
+            expect(flipping, findsNothing, reason: '$path: arrow that flips in Arabic');
             final broken = brokenWords(tester);
             expect(broken, isEmpty, reason: '$path: words split across lines');
           }

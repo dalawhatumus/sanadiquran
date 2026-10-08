@@ -92,11 +92,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
         ),
       ],
       bottom: [
-        BigButton(
-          label: S.continueBoth,
-          trailingIcon: Icons.arrow_forward_rounded,
-          onPressed: _code == null ? null : _continue,
-        ),
+        BigButton(label: S.continueBoth, trailingIcon: Arrows.forward, onPressed: _code == null ? null : _continue),
       ],
     );
   }

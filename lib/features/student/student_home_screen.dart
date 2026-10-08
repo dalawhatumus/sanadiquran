@@ -177,11 +177,7 @@ class StudentHomeScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  Icon(
-                    context.isAr ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
-                    color: t.primary,
-                    size: 32,
-                  ),
+                  Icon(Arrows.next, color: t.primary, size: 32),
                 ],
               ),
             ),

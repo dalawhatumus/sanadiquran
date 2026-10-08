@@ -108,7 +108,7 @@ class _TourScreenState extends ConsumerState<TourScreen> {
               child: BigButton(
                 label: last ? s.start : s.next,
                 icon: last ? Icons.check_rounded : null,
-                trailingIcon: last ? null : Icons.arrow_forward_rounded,
+                trailingIcon: last ? null : Arrows.forward,
                 onPressed: last
                     ? _finish
                     : () => _pc.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut),

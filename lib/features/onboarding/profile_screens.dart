@@ -54,7 +54,7 @@ class _RoleScreenState extends ConsumerState<RoleScreen> {
       bottom: [
         BigButton(
           label: s.next,
-          trailingIcon: Icons.arrow_forward_rounded,
+          trailingIcon: Arrows.forward,
           onPressed: _role == null
               ? null
               : () {
@@ -122,7 +122,7 @@ class _GenderScreenState extends ConsumerState<GenderScreen> {
       bottom: [
         BigButton(
           label: s.next,
-          trailingIcon: Icons.arrow_forward_rounded,
+          trailingIcon: Arrows.forward,
           onPressed: _gender == null
               ? null
               : () {
@@ -203,7 +203,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
               ref.read(settingsProvider.notifier).update((x) => x.copyWith(avatar: id, clearAvatar: id == null)),
         ),
       ],
-      bottom: [BigButton(label: s.next, trailingIcon: Icons.arrow_forward_rounded, onPressed: _next)],
+      bottom: [BigButton(label: s.next, trailingIcon: Arrows.forward, onPressed: _next)],
     );
   }
 }

@@ -212,14 +212,14 @@ class _DhikrScreenState extends ConsumerState<DhikrScreen> {
     final buttons = [
       BigButton(
         label: s.previous,
-        icon: Icons.arrow_back_rounded,
+        icon: Arrows.back,
         kind: ButtonKind.outline,
         compact: true,
         onPressed: _i == 0 ? null : () => _go(_i - 1),
       ),
       BigButton(
         label: s.next,
-        trailingIcon: Icons.arrow_forward_rounded,
+        trailingIcon: Arrows.forward,
         kind: ButtonKind.outline,
         compact: true,
         onPressed: () => _go(_i + 1),
@@ -296,7 +296,9 @@ class _DhikrScreenState extends ConsumerState<DhikrScreen> {
               ),
             ),
             SizedBox(height: big ? 10 : 14),
+            // Previous (←) on the left, Next (→) on the right, in every language.
             Row(
+              textDirection: TextDirection.ltr,
               children: [
                 Expanded(child: buttons[0]),
                 const SizedBox(width: 10),
