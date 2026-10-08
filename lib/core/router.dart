@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/admin/applications_screen.dart';
 import '../features/athkar/athkar_menu_screen.dart';
 import '../features/athkar/dhikr_screen.dart';
 import '../features/call/call_screens.dart';
@@ -58,6 +59,7 @@ abstract final class Routes {
   static const notesForm = '/call/notes';
   static const mushaf = '/mushaf';
   static const athkar = '/athkar';
+  static const admin = '/admin';
 
   static String homeFor(UserRole role) => role == UserRole.student ? studentHome : teacherHome;
   static String athkarFor(UserRole? role) => role == UserRole.teacher ? athkar : studentAthkar;
@@ -121,6 +123,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, st) => ApplicationScreen(step: int.tryParse(st.pathParameters['step']!) ?? 1),
       ),
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
+      GoRoute(path: Routes.admin, builder: (_, _) => const ApplicationsScreen()),
       GoRoute(path: Routes.progress, builder: (_, _) => const ProgressScreen()),
       GoRoute(path: Routes.teacherNotes, builder: (_, _) => const TeacherNotesScreen()),
       GoRoute(path: Routes.connecting, builder: (_, _) => const ConnectingScreen()),

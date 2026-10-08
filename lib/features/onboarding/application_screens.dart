@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../backend/backend.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -49,9 +50,33 @@ class _ApplicationScreenState extends ConsumerState<ApplicationScreen> {
     if (widget.step < 5) {
       context.push('${Routes.apply}/${widget.step + 1}');
     } else {
+      final st = ref.read(settingsProvider);
+      // Kept even without internet: it is sent as soon as the phone is online.
+      unawaited(
+        ref
+            .read(backendProvider)
+            .submitApplication(name: st.name, gender: st.gender, answers: _answers(st.female))
+            .catchError((Object e) => debugPrint('Application not sent: $e')),
+      );
       ref.read(settingsProvider.notifier).update((s) => s.copyWith(teacherStatus: TeacherStatus.pending));
       context.go(Routes.applySent);
     }
+  }
+
+  /// The answers in English, for the admin who reviews them.
+  Map<String, String> _answers(bool female) {
+    final en = S(ar: false, female: female);
+    String pick(List<String> all, Iterable<int> chosen) => [for (final i in chosen.toList()..sort()) all[i]].join(', ');
+    return {
+      'Country': d.country == null ? '' : en.countries[d.country!],
+      'Languages': pick(en.languages, d.languages),
+      'Can teach': pick([for (final x in en.teachTypes) x.$1], d.teach),
+      'Free times': pick(en.freeTimes, d.times),
+      'Memorised': d.amount == null ? '' : en.amounts[d.amount!],
+      'Ijazah / teachers': d.ijazah.trim(),
+      'Recording sample': d.sampleSent ? 'Recorded (audio upload comes in a later build)' : 'No',
+      'Pledge': d.pledged ? 'Agreed' : 'No',
+    };
   }
 
   @override

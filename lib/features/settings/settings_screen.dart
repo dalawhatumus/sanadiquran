@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../backend/backend.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -22,6 +23,18 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final n = ref.read(settingsProvider.notifier);
     final teacher = settings.role == UserRole.teacher;
+    final backend = ref.watch(backendProvider);
+    final admin = ref.watch(isAdminProvider).value ?? false;
+
+    // Turns off "available" and signs out of the server, then starts again.
+    Future<void> signOut() async {
+      if (teacher && settings.teacherStatus == TeacherStatus.approved) {
+        await backend.setAvailable(on: false, gender: settings.gender).catchError((_) {});
+      }
+      await backend.signOut().catchError((_) {});
+      n.reset();
+      if (context.mounted) context.go(Routes.language);
+    }
 
     Widget section(String title) => Padding(
       padding: const EdgeInsets.only(top: 24, bottom: 10),
@@ -64,6 +77,28 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
         ),
+        if (admin) ...[
+          const SizedBox(height: 12),
+          SCard(
+            onTap: () => context.push(Routes.admin),
+            child: Row(
+              children: [
+                TintBox(child: Icon(Icons.how_to_reg_rounded, color: t.primary)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      WordSafeText(s.adminTitle, style: tt.titleMedium!.copyWith(color: t.heading)),
+                      Text(s.adminSub, style: tt.bodySmall),
+                    ],
+                  ),
+                ),
+                Icon(Arrows.next, color: t.primary, size: 32),
+              ],
+            ),
+          ),
+        ],
         section(s.language),
         Row(
           children: [
@@ -113,13 +148,14 @@ class SettingsScreen extends ConsumerWidget {
               (x) => x.copyWith(
                 role: teacher ? UserRole.student : UserRole.teacher,
                 tourDone: true,
-                teacherStatus: teacher ? null : TeacherStatus.approved,
+                // Online, the server decides whether a teacher is approved.
+                teacherStatus: teacher || backend.live ? null : TeacherStatus.approved,
               ),
             );
             context.go(nextStep(ref.read(settingsProvider)));
           },
         ),
-        if (teacher) ...[
+        if (teacher && !backend.live) ...[
           const SizedBox(height: 10),
           BigButton(
             label: s.approveApp,
@@ -149,15 +185,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: 10),
-        BigButton(
-          label: s.resetApp,
-          icon: Icons.restart_alt_rounded,
-          kind: ButtonKind.tint,
-          onPressed: () {
-            n.reset();
-            context.go(Routes.language);
-          },
-        ),
+        BigButton(label: s.resetApp, icon: Icons.restart_alt_rounded, kind: ButtonKind.tint, onPressed: signOut),
         section(s.account),
         BigButton(
           label: s.signOut,
@@ -183,14 +211,13 @@ class SettingsScreen extends ConsumerWidget {
                 ],
               ),
             );
-            if (yes == true && context.mounted) {
-              n.reset();
-              context.go(Routes.language);
-            }
+            if (yes == true) await signOut();
           },
         ),
         const SizedBox(height: 20),
-        Text('${s.version} 0.3.2', style: tt.bodySmall, textAlign: TextAlign.center),
+        Text(backend.live ? s.serverLive : s.serverDemo, style: tt.bodySmall, textAlign: TextAlign.center),
+        const SizedBox(height: 4),
+        Text('${s.version} 0.4.0', style: tt.bodySmall, textAlign: TextAlign.center),
       ],
     );
   }

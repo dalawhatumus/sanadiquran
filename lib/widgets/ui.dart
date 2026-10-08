@@ -489,7 +489,7 @@ class FullName extends StatelessWidget {
         final h = tp.height;
         tp.dispose();
         if (w <= c.maxWidth || MediaQuery.disableAnimationsOf(context)) {
-          return Text(text, style: style, textAlign: textAlign);
+          return WordSafeText(text, style: style, textAlign: textAlign);
         }
         return Semantics(
           label: text,

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sanadi/app.dart';
+import 'package:sanadi/backend/backend.dart';
 import 'package:sanadi/core/router.dart';
 import 'package:sanadi/core/settings.dart';
 import 'package:sanadi/core/connectivity.dart';
@@ -122,6 +123,7 @@ void main() {
     '${Routes.apply}/4',
     '${Routes.apply}/5',
     Routes.applySent,
+    Routes.admin,
   ];
 
   for (final locale in ['en', 'ar']) {
@@ -150,6 +152,7 @@ void main() {
               overrides: [
                 sharedPreferencesProvider.overrideWithValue(prefs),
                 onlineCheckProvider.overrideWithValue(() async => true),
+                pendingApplicationsProvider.overrideWith((ref) => Stream.value([_sampleApplication])),
               ],
               child: const SanadiApp(),
             ),
@@ -182,3 +185,16 @@ void main() {
     }
   }
 }
+
+const _sampleApplication = TeacherApplication(
+  uid: 'u1',
+  name: 'Khadijah Abdulrahman Al-Hashimi',
+  gender: Gender.female,
+  answers: {
+    'Country': 'South Africa',
+    'Languages': 'Arabic, English, Urdu',
+    'Can teach': 'Tajweed, Memorisation, Recitation',
+    'Memorised': 'The whole Quran',
+    'Ijazah / teachers': 'Ijazah in Hafs from Shaykhah Maryam, Cape Town',
+  },
+);

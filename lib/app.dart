@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'backend/backend.dart';
 import 'core/router.dart';
 import 'core/settings.dart';
 import 'core/strings.dart';
@@ -13,6 +14,7 @@ class SanadiApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    ref.watch(backendSyncProvider);
     // Only what the app shell needs, so other settings changes don't
     // rebuild every screen.
     final settings = ref.watch(settingsProvider.select((s) => (s.locale, s.themeMode, s.gender)));

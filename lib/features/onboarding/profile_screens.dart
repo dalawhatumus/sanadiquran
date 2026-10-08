@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../backend/backend.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -144,7 +145,11 @@ class NameScreen extends ConsumerStatefulWidget {
 }
 
 class _NameScreenState extends ConsumerState<NameScreen> {
-  late final TextEditingController _c = TextEditingController(text: ref.read(settingsProvider).name);
+  late final TextEditingController _c = TextEditingController(
+    text: ref.read(settingsProvider).name.isNotEmpty
+        ? ref.read(settingsProvider).name
+        : ref.read(suggestedNameProvider),
+  );
   bool _error = false;
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../backend/backend.dart';
 import '../../core/connectivity.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
@@ -53,7 +54,13 @@ class StudentHomeScreen extends ConsumerWidget {
             ],
             _ReciteButton(onTap: startCall, offline: offline),
             const SizedBox(height: 16),
-            if (!offline) StatusLine(text: s.teachersAvailable(3)),
+            if (!offline)
+              Consumer(
+                builder: (context, ref, _) {
+                  final k = ref.watch(availableTeachersProvider(settings.gender)).value;
+                  return k == null ? const SizedBox(height: 27) : StatusLine(text: s.teachersAvailable(k), on: k > 0);
+                },
+              ),
             const SizedBox(height: 16),
             if (firstTime)
               SCard(

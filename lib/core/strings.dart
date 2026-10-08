@@ -323,8 +323,13 @@ class S {
   // ---- 17 Student home ----
   String get recite => t('Recite now', 'سمِّعي الآن', 'سمِّع الآن');
   String get reciteSub => t('Tap to call a teacher', 'اضغطي للاتصال بمعلّمة', 'اضغط للاتصال بمعلّم');
-  String teachersAvailable(int k) =>
-      t('$k teachers available now', '${n(k)} معلّمات متاحات الآن', '${n(k)} معلّمين متاحين الآن');
+  String teachersAvailable(int k) => switch (k) {
+    0 => t('No teachers available right now', 'لا توجد معلّمات متاحات الآن', 'لا يوجد معلّمون متاحون الآن'),
+    1 => t('1 teacher available now', 'معلّمة واحدة متاحة الآن', 'معلّم واحد متاح الآن'),
+    2 => t('2 teachers available now', 'معلّمتان متاحتان الآن', 'معلّمان متاحان الآن'),
+    <= 10 => t('$k teachers available now', '${n(k)} معلّمات متاحات الآن', '${n(k)} معلّمين متاحين الآن'),
+    _ => t('$k teachers available now', '${n(k)} معلّمةً متاحةً الآن', '${n(k)} معلّمًا متاحًا الآن'),
+  };
   String get nextPortionL => t('Your next portion', 'وِردكِ القادم', 'وِردك القادم');
   String get openInQuran => t('Open in Quran', 'افتحي في المصحف', 'افتح في المصحف');
   String get myTeacher => t('My teacher', 'معلّمتي', 'معلّمي');
@@ -605,6 +610,21 @@ class S {
   String get rejectApp => t('Reject my application', 'رفض طلبي');
   String get resetApp => t('Start again from the beginning', 'البدء من جديد');
   String get version => t('Version', 'الإصدار');
+  String get serverLive => t('Connected: your profile is saved online', 'متصل: ملفك محفوظ على الإنترنت');
+  String get serverDemo => t('Demo mode: nothing is saved online yet', 'وضع التجربة: لا يُحفظ شيء على الإنترنت بعد');
+
+  // ---- Admin: teacher applications ----
+  String get adminTitle => t('Teacher applications', 'طلبات المعلّمين');
+  String get adminSub => t('Review volunteers and approve them', 'مراجعة المتطوعين والموافقة عليهم');
+  String get adminEmpty => t('No applications are waiting', 'لا توجد طلبات بانتظار المراجعة');
+  String get sister => t('Sister', 'أخت');
+  String get brother => t('Brother', 'أخ');
+  String get approve => t('Approve', 'موافقة');
+  String get declineApp => t('Not approved', 'عدم الموافقة');
+  String get declineQ => t('Turn down this application?', 'رفض هذا الطلب؟');
+  String get declineReason => t('Reason (the applicant will see it)', 'السبب (سيظهر لصاحب الطلب)');
+  String get decisionFailed =>
+      t("Couldn't save. Check the internet and try again.", 'تعذّر الحفظ. تحقّق من الإنترنت وحاول مجددًا.');
 }
 
 class StringsScope extends InheritedWidget {

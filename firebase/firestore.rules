@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// Sanadi Firestore rules. Paste into Firebase console → Firestore → Rules.
+// Nothing is readable without signing in; people only see their own data,
+// except the "available" switch of approved teachers (to count them).
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(db)/documents/admins/$(request.auth.uid));
+    }
+    function isApproved(uid) {
+      let app = /databases/$(db)/documents/teacherApplications/$(uid);
+      return exists(app) && get(app).data.status == 'approved';
+    }
+    function text(v, max) { return v == null || (v is string && v.size() <= max); }
+
+    // Profile: name, role, gender, picture, language.
+    match /users/{uid} {
+      allow read: if isMe(uid) || isAdmin();
+      allow create, update: if isMe(uid)
+        && request.resource.data.keys().hasOnly(['name', 'role', 'gender', 'avatar', 'locale', 'updatedAt'])
+        && text(request.resource.data.get('name', null), 80)
+        && request.resource.data.get('role', null) in [null, 'student', 'teacher']
+        && request.resource.data.get('gender', null) in [null, 'male', 'female'];
+      allow delete: if isMe(uid);
+    }
+
+    // Teacher applications. The applicant can send (or resend after a
+    // "not approved"); only an admin can approve or turn down.
+    match /teacherApplications/{uid} {
+      allow read: if isMe(uid) || isAdmin();
+      allow create: if isMe(uid)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['name', 'gender', 'answers', 'order', 'status', 'submittedAt'])
+        && request.resource.data.answers.size() <= 20;
+      allow update: if (isMe(uid)
+          && resource.data.status in ['pending', 'rejected']
+          && request.resource.data.status == 'pending'
+          && request.resource.data.keys().hasOnly(['name', 'gender', 'answers', 'order', 'status', 'submittedAt'])
+          && request.resource.data.answers.size() <= 20)
+        || (isAdmin()
+          && request.resource.data.status in ['approved', 'rejected']
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'reason', 'decidedAt', 'decidedBy']));
+      allow delete: if false;
+    }
+
+    // "I'm available to teach". Only approved teachers can set it.
+    match /presence/{uid} {
+      allow read: if signedIn();
+      allow write: if isMe(uid) && isApproved(uid)
+        && request.resource.data.keys().hasOnly(['available', 'gender', 'updatedAt'])
+        && request.resource.data.available is bool;
+      allow delete: if isMe(uid);
+    }
+
+    // Who can review applications. Added by hand in the console.
+    match /admins/{uid} {
+      allow read: if isMe(uid);
+      allow write: if false;
+    }
+  }
+}

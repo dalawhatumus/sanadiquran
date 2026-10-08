@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../backend/backend.dart';
 import '../../core/connectivity.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
@@ -12,9 +13,9 @@ enum _State { idle, busy, failed, offline }
 
 /// 3 · Welcome and Google sign-in. No passwords.
 ///
-/// Test build: Google sign-in isn't connected yet (needs Firebase), so the
-/// button checks the internet and then continues. Without internet, the
-/// Quran and athkar can still be opened.
+/// Someone who used Sanadi before gets their profile back. In demo mode
+/// (no Firebase settings) the button checks the internet and continues.
+/// Without internet, the Quran and athkar can still be opened.
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
 
@@ -33,7 +34,23 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       setState(() => _state = _State.offline);
       return;
     }
-    ref.read(settingsProvider.notifier).update((s) => s.copyWith(signedIn: true));
+    final SignedInUser user;
+    try {
+      user = await ref.read(backendProvider).signIn();
+    } on SignInCancelled {
+      if (mounted) setState(() => _state = _State.idle);
+      return;
+    } catch (e) {
+      debugPrint('Sign-in failed: $e');
+      if (mounted) setState(() => _state = _State.failed);
+      return;
+    }
+    if (!mounted) return;
+    final profile = user.profile;
+    ref
+        .read(settingsProvider.notifier)
+        .update((s) => profile != null ? profile.applyTo(s) : s.copyWith(signedIn: true));
+    if (user.googleName != null) ref.read(suggestedNameProvider.notifier).set(user.googleName!);
     context.go(nextStep(ref.read(settingsProvider)));
   }
 

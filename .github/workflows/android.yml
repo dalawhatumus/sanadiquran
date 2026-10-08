@@ -40,10 +40,34 @@ jobs:
       - name: Test
         run: flutter test
 
-      # Signed with the debug key for now; a proper release key comes before
-      # the Play Store upload.
+      # The permanent upload key, from repository secrets. Without them the
+      # APK is signed with a temporary debug key (Google sign-in won't work).
+      - name: Prepare signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.SANADI_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/sanadi-upload.jks"
+            echo "SANADI_KEYSTORE=$RUNNER_TEMP/sanadi-upload.jks" >> "$GITHUB_ENV"
+            echo "Signing with the Sanadi upload key"
+          else
+            echo "::warning::SANADI_KEYSTORE_B64 secret not set: signing with a temporary debug key"
+          fi
+
+      # Firebase settings come from repository variables (they are not secret;
+      # every Android app ships them). Without them the app runs in demo mode.
       - name: Build APK
-        run: flutter build apk --release
+        env:
+          SANADI_KEYSTORE_PASSWORD: ${{ secrets.SANADI_KEYSTORE_PASSWORD }}
+          SANADI_KEY_ALIAS: sanadi
+        run: >-
+          flutter build apk --release
+          --dart-define=FIREBASE_API_KEY=${{ vars.FIREBASE_API_KEY }}
+          --dart-define=FIREBASE_APP_ID=${{ vars.FIREBASE_APP_ID }}
+          --dart-define=FIREBASE_SENDER_ID=${{ vars.FIREBASE_SENDER_ID }}
+          --dart-define=FIREBASE_PROJECT_ID=${{ vars.FIREBASE_PROJECT_ID }}
+          --dart-define=FIREBASE_STORAGE_BUCKET=${{ vars.FIREBASE_STORAGE_BUCKET }}
+          --dart-define=GOOGLE_WEB_CLIENT_ID=${{ vars.GOOGLE_WEB_CLIENT_ID }}
 
       - name: Name APK
         run: cp build/app/outputs/flutter-apk/app-release.apk "sanadi-build-${{ github.run_number }}.apk"
