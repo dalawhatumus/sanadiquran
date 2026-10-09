@@ -155,7 +155,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.athkar, builder: (_, _) => const AthkarMenuScreen(standalone: true)),
       GoRoute(
         path: '${Routes.athkar}/:set',
-        builder: (_, st) => DhikrScreen(setId: st.pathParameters['set']!),
+        builder: (_, st) => DhikrScreen(key: ValueKey(st.pathParameters['set']), setId: st.pathParameters['set']!),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => HomeShell(shell: shell, teacher: false),

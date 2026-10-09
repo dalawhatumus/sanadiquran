@@ -79,19 +79,6 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     _page.value = p;
     ref.read(lastPageProvider.notifier).set(p);
     if (_selAyah != null) _clearSelection();
-    _warm(p);
-  }
-
-  /// Measures the pages around [p] after this frame, so the next swipe in
-  /// either direction finds them ready.
-  void _warm(int p) {
-    final q = ref.read(quranProvider).value;
-    if (q == null) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      for (final d in const [1, -1, 2, -2]) {
-        warmMushafPage(q, p + d);
-      }
-    });
   }
 
   /// Turns one page forward (+1) or back (-1) with a short slide.
@@ -115,6 +102,14 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       _pc!.jumpToPage(spread ? (p - 1) ~/ 2 : p - 1);
     }
     setState(() => _jump++);
+  }
+
+  /// Forgets the page controller so the next one opens at the current page.
+  /// The old one is disposed after the frame, once nothing uses it.
+  void _dropController() {
+    final old = _pc;
+    _pc = null;
+    if (old != null) WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
   }
 
   void _onAyah(Ayah a, Offset at) {
@@ -160,10 +155,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),
         data: (q) {
-          if (!_started) {
-            _start(q);
-            _warm(_page.value);
-          }
+          if (!_started) _start(q);
           return _body(context, q);
         },
       ),
@@ -176,8 +168,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     final landscape = size.width > size.height;
     final spread = mode == MushafMode.page && landscape && size.width >= 840;
     if (_spreadMode != spread) {
-      _pc?.dispose();
-      _pc = null;
+      _dropController();
       _spreadMode = spread;
     }
 
@@ -201,6 +192,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
           controller: _pc,
           // Keep the pages either side built, so a swipe never waits.
           allowImplicitScrolling: true,
+          // PageView's own snapping would replace [EasyPagePhysics] (and
+          // ignore short swipes), so the physics does the snapping itself.
+          pageSnapping: false,
           physics: const EasyPagePhysics(),
           itemCount: spread ? QuranData.pageCount ~/ 2 : QuranData.pageCount,
           onPageChanged: (i) => _onPage(spread ? i * 2 + 1 : i + 1),
@@ -213,7 +207,22 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
               onTap: _onTapPage,
               scrollable: landscape && !spread,
             );
-            if (!spread) return RepaintBoundary(child: page(i + 1));
+            // A thin edge between pages, so two pages never look like one
+            // while they slide.
+            if (!spread) {
+              return RepaintBoundary(
+                child: DecoratedBox(
+                  position: DecorationPosition.foreground,
+                  decoration: const BoxDecoration(
+                    border: BorderDirectional(
+                      start: BorderSide(color: Color(0x33000000)),
+                      end: BorderSide(color: Color(0x33000000)),
+                    ),
+                  ),
+                  child: page(i + 1),
+                ),
+              );
+            }
             // Right-to-left row: the odd page sits on the right.
             return RepaintBoundary(
               child: Row(
@@ -242,94 +251,106 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                 .read(settingsProvider.notifier)
                 .update((x) => x.copyWith(mushafMode: mode == MushafMode.page ? MushafMode.large : MushafMode.page));
             _clearSelection();
+            // The pages reopen where Large text was left.
+            _dropController();
             setState(() => _jump++);
           },
           onGoTo: () => _showGoTo(context, q),
         ),
-        _BottomBar(
-          visible: _chrome && _selAyah == null,
-          page: _page,
-          showSlider: mode == MushafMode.page,
-          onSeek: _goTo,
-        ),
+        _BottomBar(visible: _chrome && _selAyah == null),
         if (_selAyah != null) _AyahToolbar(ayah: _selAyah!, at: _selAt, q: q, onClose: _clearSelection),
       ],
     );
   }
 
-  void _showGoTo(BuildContext context, QuranData q) {
-    final s = S.of(context);
-    final c = TextEditingController();
-    showModalBottomSheet<void>(
+  Future<void> _showGoTo(BuildContext context, QuranData q) async {
+    final page = await showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) {
-        void submit() {
-          final p = int.tryParse(c.text.trim());
-          if (p != null && p >= 1 && p <= QuranData.pageCount) {
-            Navigator.pop(ctx);
-            _goTo(p);
-          }
-        }
+      builder: (_) => _GoToSheet(q: q),
+    );
+    if (page != null && mounted) _goTo(page);
+  }
+}
 
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
-          child: SizedBox(
-            height: MediaQuery.sizeOf(ctx).height * 0.8,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+/// Go to a page number or a surah. Returns the chosen page.
+class _GoToSheet extends StatefulWidget {
+  const _GoToSheet({required this.q});
+
+  final QuranData q;
+
+  @override
+  State<_GoToSheet> createState() => _GoToSheetState();
+}
+
+class _GoToSheetState extends State<_GoToSheet> {
+  final _c = TextEditingController();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final p = int.tryParse(_c.text.trim());
+    if (p != null && p >= 1 && p <= QuranData.pageCount) Navigator.pop(context, p);
+  }
+
+  @override
+  Widget build(BuildContext ctx) {
+    final s = S.of(ctx);
+    final q = widget.q;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+      child: SizedBox(
+        height: MediaQuery.sizeOf(ctx).height * 0.8,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  WordSafeText(s.goToPage, style: Theme.of(ctx).textTheme.headlineSmall),
+                  const SizedBox(height: 10),
+                  Row(
                     children: [
-                      WordSafeText(s.goToPage, style: Theme.of(ctx).textTheme.headlineSmall),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: c,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                              onSubmitted: (_) => submit(),
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: ctx.t.text),
-                              decoration: InputDecoration(hintText: s.pageNumberHint),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          SizedBox(
-                            width: 110,
-                            child: BigButton(label: s.go, onPressed: submit),
-                          ),
-                        ],
+                      Expanded(
+                        child: TextField(
+                          controller: _c,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          onSubmitted: (_) => _submit(),
+                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: ctx.t.text),
+                          decoration: InputDecoration(hintText: s.pageNumberHint),
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      WordSafeText(s.surahs, style: Theme.of(ctx).textTheme.titleLarge),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        width: 110,
+                        child: BigButton(label: s.go, onPressed: _submit),
+                      ),
                     ],
                   ),
-                ),
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    itemCount: q.suras.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) => SurahTile(
-                      sura: q.suras[i],
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _goTo(q.suras[i].page);
-                      },
-                    ),
-                  ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  WordSafeText(s.surahs, style: Theme.of(ctx).textTheme.titleLarge),
+                ],
+              ),
             ),
-          ),
-        );
-      },
-    ).whenComplete(c.dispose);
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                itemCount: q.suras.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                itemBuilder: (_, i) => SurahTile(sura: q.suras[i], onTap: () => Navigator.pop(ctx, q.suras[i].page)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -397,7 +418,7 @@ class _TopBar extends ConsumerWidget {
           opacity: visible ? 1 : 0,
           duration: const Duration(milliseconds: 200),
           child: Container(
-            color: const Color(0xD9101C19),
+            color: const Color(0xFF101C19),
             child: SafeArea(
               bottom: false,
               child: MediaQuery.withClampedTextScaling(
@@ -467,15 +488,11 @@ class _TopBar extends ConsumerWidget {
   }
 }
 
-/// Page slider (to jump far quickly) and the listening bar (recitation
-/// audio comes with a later update).
+/// Listening bar (recitation audio comes with a later update).
 class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.visible, required this.page, required this.showSlider, required this.onSeek});
+  const _BottomBar({required this.visible});
 
   final bool visible;
-  final ValueNotifier<int> page;
-  final bool showSlider;
-  final ValueChanged<int> onSeek;
 
   @override
   Widget build(BuildContext context) {
@@ -491,118 +508,44 @@ class _BottomBar extends StatelessWidget {
           opacity: visible ? 1 : 0,
           duration: const Duration(milliseconds: 200),
           child: Container(
-            color: const Color(0xD9101C19),
+            color: const Color(0xFF101C19),
             child: SafeArea(
               top: false,
               child: MediaQuery.withClampedTextScaling(
                 maxScaleFactor: 1.3,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (showSlider) _PageSlider(page: page, onSeek: onSeek),
-                    InkWell(
-                      onTap: () => showSoon(context),
-                      child: SizedBox(
-                        height: 56,
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 12),
-                            const Icon(Icons.play_arrow_rounded, color: fg, size: 34),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                '${s.play} · ${s.reciterName}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: fg),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                s.comingSoonShort,
-                                style: const TextStyle(fontSize: 14, color: Color(0xFFDDE8E1)),
-                              ),
-                            ),
-                          ],
+                child: InkWell(
+                  onTap: () => showSoon(context),
+                  child: SizedBox(
+                    height: 60,
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 12),
+                        const Icon(Icons.play_arrow_rounded, color: fg, size: 34),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            '${s.play} · ${s.reciterName}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: fg),
+                          ),
                         ),
-                      ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            s.comingSoonShort,
+                            style: const TextStyle(fontSize: 14, color: Color(0xFFDDE8E1)),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Drag to any page; the page number shows while dragging, and the mushaf
-/// jumps there on release. Runs right-to-left, like the pages.
-class _PageSlider extends StatefulWidget {
-  const _PageSlider({required this.page, required this.onSeek});
-
-  final ValueNotifier<int> page;
-  final ValueChanged<int> onSeek;
-
-  @override
-  State<_PageSlider> createState() => _PageSliderState();
-}
-
-class _PageSliderState extends State<_PageSlider> {
-  double? _drag;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    return ValueListenableBuilder<int>(
-      valueListenable: widget.page,
-      builder: (context, p, _) {
-        final value = _drag ?? p.toDouble();
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(8, 4, 16, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 6,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 13),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 26),
-                      activeTrackColor: const Color(0xFF5CC18A),
-                      inactiveTrackColor: const Color(0x55FFFFFF),
-                      thumbColor: Colors.white,
-                    ),
-                    child: Slider(
-                      min: 1,
-                      max: QuranData.pageCount.toDouble(),
-                      value: value,
-                      semanticFormatterCallback: (v) => s.page(v.round()),
-                      onChanged: (v) => setState(() => _drag = v),
-                      onChangeEnd: (v) {
-                        setState(() => _drag = null);
-                        widget.onSeek(v.round());
-                      },
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 64,
-                child: Text(
-                  s.n(value.round()),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }
@@ -618,6 +561,11 @@ class EasyPagePhysics extends PageScrollPhysics {
   @override
   SpringDescription get spring => const SpringDescription(mass: 0.6, stiffness: 260, damping: 25);
 
+  /// Even a gentle flick counts (Flutter's default ignores flicks slower
+  /// than 50 pixels a second, which made short swipes snap back).
+  @override
+  double get minFlingVelocity => 5;
+
   @override
   Simulation? createBallisticSimulation(ScrollMetrics position, double velocity) {
     if ((velocity <= 0 && position.pixels <= position.minScrollExtent) ||
@@ -629,7 +577,7 @@ class EasyPagePhysics extends PageScrollPhysics {
     final tolerance = toleranceFor(position);
     // Any deliberate movement turns the page in that direction.
     final double target;
-    if (velocity.abs() > 30) {
+    if (velocity.abs() > 20) {
       target = velocity > 0 ? page.ceilToDouble() : page.floorToDouble();
     } else {
       target = page.roundToDouble();

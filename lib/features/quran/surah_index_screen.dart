@@ -233,6 +233,14 @@ class SurahTile extends StatelessWidget {
     final s = S.of(context);
     final t = context.t;
     final tt = Theme.of(context).textTheme;
+    // With large text there isn't room for three things side by side, so
+    // the Arabic name moves under the English one.
+    final big = MediaQuery.textScalerOf(context).scale(10) > 13;
+    final arabicName = Text(
+      sura.ar,
+      textDirection: TextDirection.rtl,
+      style: nameFont(context, TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: t.primary), arabic: true),
+    );
     return InkWell(
       onTap: onTap ?? () => context.push(Routes.mushafAt(sura: sura.number, ayah: 1)),
       child: ConstrainedBox(
@@ -243,10 +251,13 @@ class SurahTile extends StatelessWidget {
             children: [
               SizedBox(
                 width: 48,
-                child: Text(
-                  s.n(sura.number),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500, color: t.muted),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    s.n(sura.number),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500, color: t.muted),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -254,23 +265,24 @@ class SurahTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(sura.name(s.ar), style: nameFont(context, tt.titleMedium!.copyWith(color: t.heading))),
-                    Text('${sura.madani ? s.madani : s.makki} · ${s.ayahsCount(sura.count)}', style: tt.bodySmall),
+                    WordSafeText(sura.name(s.ar), style: nameFont(context, tt.titleMedium!.copyWith(color: t.heading))),
+                    if (!s.ar && big)
+                      WordSafeText(
+                        sura.ar,
+                        style: nameFont(
+                          context,
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: t.primary),
+                          arabic: true,
+                        ),
+                      ),
+                    WordSafeText(
+                      '${sura.madani ? s.madani : s.makki} · ${s.ayahsCount(sura.count)}',
+                      style: tt.bodySmall,
+                    ),
                   ],
                 ),
               ),
-              if (!s.ar) ...[
-                const SizedBox(width: 10),
-                Text(
-                  sura.ar,
-                  textDirection: TextDirection.rtl,
-                  style: nameFont(
-                    context,
-                    TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: t.primary),
-                    arabic: true,
-                  ),
-                ),
-              ],
+              if (!s.ar && !big) ...[const SizedBox(width: 10), arabicName],
               const SizedBox(width: 12),
               Text(
                 s.n(sura.page),

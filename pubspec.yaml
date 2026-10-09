@@ -1,7 +1,7 @@
 name: sanadi
 description: "Sanadi - Quran memorisation with volunteer teachers"
 publish_to: 'none'
-version: 0.4.0+6
+version: 0.4.1+7
 
 environment:
   sdk: ^3.13.5
@@ -36,6 +36,7 @@ flutter:
     - assets/logo/
     - assets/quran/hafs.json
     - assets/quran/layout.json
+    - assets/quran/line_widths.json
     - assets/avatars/
 
   fonts:

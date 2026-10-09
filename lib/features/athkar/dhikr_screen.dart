@@ -186,7 +186,7 @@ class _DhikrScreenState extends ConsumerState<DhikrScreen> {
             if (_d.translit.isNotEmpty) ...[
               Row(
                 children: [
-                  Expanded(child: Text(s.showTranslit, style: tt.titleSmall)),
+                  Expanded(child: WordSafeText(s.showTranslit, style: tt.titleSmall)),
                   Switch(value: _translit, onChanged: (v) => setState(() => _translit = v)),
                 ],
               ),
@@ -380,43 +380,59 @@ class _FadingScrollState extends State<_FadingScroll> {
         _update();
         return false;
       },
-      child: Stack(
+      // The "scroll for more" hint sits under the text, never on top of it.
+      // It always keeps its space, so the text doesn't jump when it fades.
+      child: Column(
         children: [
-          SingleChildScrollView(controller: _c, child: widget.child),
-          if (_more)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: IgnorePointer(
-                child: Container(
-                  height: 72,
-                  alignment: Alignment.bottomCenter,
-                  padding: const EdgeInsets.only(bottom: 6),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [t.bg.withValues(alpha: 0), t.bg],
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          S.of(context).scrollMore,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.muted),
+          Expanded(
+            child: Stack(
+              children: [
+                SingleChildScrollView(controller: _c, child: widget.child),
+                if (_more)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: IgnorePointer(
+                      child: Container(
+                        height: 28,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [t.bg.withValues(alpha: 0), t.bg],
+                          ),
                         ),
                       ),
-                      Icon(Icons.keyboard_arrow_down_rounded, color: t.muted),
-                    ],
+                    ),
                   ),
+              ],
+            ),
+          ),
+          ExcludeSemantics(
+            excluding: !_more,
+            child: AnimatedOpacity(
+              opacity: _more ? 1 : 0,
+              duration: const Duration(milliseconds: 150),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        S.of(context).scrollMore,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.muted),
+                      ),
+                    ),
+                    Icon(Icons.keyboard_arrow_down_rounded, color: t.muted),
+                  ],
                 ),
               ),
             ),
+          ),
         ],
       ),
     );

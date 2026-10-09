@@ -120,8 +120,16 @@ class Segment {
 }
 
 class TextLine extends PageLine {
-  const TextLine(this.segments);
+  TextLine(this.segments);
   final List<Segment> segments;
+
+  /// The line as one string: words and ayah numbers, single spaces between.
+  late final String text = [
+    for (final s in segments) ...[...s.ayah.words.sublist(s.from - 1, s.to), if (s.endsAyah) s.ayah.number],
+  ].join(' ');
+
+  /// Number of spaces in [text] (the gaps that justify the line).
+  late final int spaces = ' '.allMatches(text).length;
 }
 
 @immutable
@@ -198,6 +206,28 @@ class QuranData {
 
   int juzOfPage(int p) => firstOn(p).juz;
 
+  /// Width of every mushaf line in the KFGQPC font at [widthRefSize], with
+  /// ordinary spaces (0 for frames and basmalas). Measured ahead of time by
+  /// tools/quran/line_widths_test.dart so pages never measure text.
+  List<List<double>>? lineWidths;
+  double widthRefSize = 20;
+
+  /// Width of one space at [widthRefSize].
+  double spaceWidth = 0;
+
+  /// How many gaps on each line stretch with word spacing.
+  List<List<int>>? lineGaps;
+
+  void attachWidths(String json) {
+    final j = jsonDecode(json) as Map<String, dynamic>;
+    widthRefSize = (j['refSize'] as num).toDouble();
+    spaceWidth = (j['space'] as num).toDouble();
+    lineWidths = [
+      for (final p in (j['pages'] as List).cast<List>()) [for (final w in p.cast<num>()) w.toDouble()],
+    ];
+    lineGaps = [for (final p in (j['gaps'] as List).cast<List>()) p.cast<int>()];
+  }
+
   /// Basmala text, taken from al-Fatihah 1 (without its number).
   String get basmala => ayahs.first.plain;
 
@@ -241,5 +271,6 @@ class QuranData {
 final quranProvider = FutureProvider<QuranData>((ref) async {
   final hafs = await rootBundle.loadString('assets/quran/hafs.json');
   final layout = await rootBundle.loadString('assets/quran/layout.json');
-  return compute(QuranData.parse, (hafs, layout));
+  final widths = await rootBundle.loadString('assets/quran/line_widths.json');
+  return (await compute(QuranData.parse, (hafs, layout)))..attachWidths(widths);
 });
