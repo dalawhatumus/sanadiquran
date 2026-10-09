@@ -68,6 +68,9 @@ jobs:
           --dart-define=FIREBASE_PROJECT_ID=${{ vars.FIREBASE_PROJECT_ID }}
           --dart-define=FIREBASE_STORAGE_BUCKET=${{ vars.FIREBASE_STORAGE_BUCKET }}
           --dart-define=GOOGLE_WEB_CLIENT_ID=${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          --dart-define=TURN_URLS=${{ vars.TURN_URLS }}
+          --dart-define=TURN_USERNAME=${{ vars.TURN_USERNAME }}
+          --dart-define=TURN_CREDENTIAL=${{ secrets.TURN_CREDENTIAL }}
 
       - name: Name APK
         run: cp build/app/outputs/flutter-apk/app-release.apk "sanadi-build-${{ github.run_number }}.apk"

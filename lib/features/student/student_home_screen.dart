@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -297,7 +299,18 @@ class _MyTeacherCard extends ConsumerWidget {
             children: [
               if (available) ...[
                 Expanded(
-                  child: BigButton(label: s.call, icon: Icons.call_rounded, compact: true, onPressed: startCall),
+                  child: BigButton(
+                    label: s.call,
+                    icon: Icons.call_rounded,
+                    compact: true,
+                    onPressed: chat == null
+                        ? startCall
+                        : () async {
+                            if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
+                              unawaited(context.push('${Routes.connecting}?teacher=${chat!.otherUid}'));
+                            }
+                          },
+                  ),
                 ),
                 const SizedBox(width: 10),
               ],

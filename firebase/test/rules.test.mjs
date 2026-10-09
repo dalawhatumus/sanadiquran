@@ -178,3 +178,69 @@ test('reports: anyone signed in sends, only admins read', async () => {
   await assertFails(getDocs(collection(db('s1'), 'reports')));
   await assertSucceeds(getDocs(query(collection(db('admin1'), 'reports'), where('status', '==', 'open'))));
 });
+
+// ---- Calls ----
+
+async function startCall(uid = 's1', gender = 'female') {
+  const ref = doc(collection(db(uid), 'calls'));
+  await setDoc(ref, { studentId: uid, studentName: 'F', studentAvatar: null, gender, status: 'searching', teacherId: null, tried: [], createdAt: serverTimestamp() });
+  return ref.id;
+}
+
+test('calls: a student starts one, with their own gender', async () => {
+  await assertSucceeds(startCall('s1', 'female'));
+  await assertFails(startCall('s1', 'male'));
+  await assertFails(startCall('t1', 'female')); // teachers don't start calls
+});
+
+test('calls: ring only approved teachers of the same gender', async () => {
+  const id = await startCall();
+  const ring = (t) => updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: t, status: 'ringing', tried: arrayUnion(t), ringAt: serverTimestamp() });
+  await assertFails(ring('t2')); // male
+  await assertFails(ring('t3')); // not approved
+  await assertSucceeds(ring('t1'));
+  await assertFails(updateDoc(doc(db('s1'), `calls/${id}`), { status: 'active' })); // only the teacher accepts
+});
+
+test('calls: only the student and the teacher being rung can see it', async () => {
+  const id = await startCall();
+  await assertFails(getDoc(doc(db('t1'), `calls/${id}`)));
+  await updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: 't1', status: 'ringing' });
+  await assertSucceeds(getDoc(doc(db('t1'), `calls/${id}`)));
+  await assertSucceeds(getDocs(query(collection(db('t1'), 'calls'), where('teacherId', '==', 't1'), where('status', '==', 'ringing'))));
+  await assertFails(getDoc(doc(db('s2'), `calls/${id}`)));
+  await assertFails(getDoc(doc(db('t3'), `calls/${id}`)));
+});
+
+test('calls: answer, connect, hang up; then the chat opens', async () => {
+  const id = await startCall();
+  await updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: 't1', status: 'ringing' });
+  await assertSucceeds(updateDoc(doc(db('t1'), `calls/${id}`), { status: 'active', teacherName: 'A', teacherAvatar: null, acceptedAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(doc(db('s1'), `calls/${id}`), { offer: { type: 'offer', sdp: 'x' } }));
+  await assertSucceeds(updateDoc(doc(db('t1'), `calls/${id}`), { answer: { type: 'answer', sdp: 'y' } }));
+  await assertFails(updateDoc(doc(db('t1'), `calls/${id}`), { offer: { type: 'offer', sdp: 'z' } }));
+  await assertSucceeds(addDoc(collection(db('s1'), `calls/${id}/ice`), { from: 'student', senderId: 's1', c: {} }));
+  await assertFails(addDoc(collection(db('s1'), `calls/${id}/ice`), { from: 'teacher', senderId: 's1', c: {} }));
+  await assertSucceeds(addDoc(collection(db('t1'), `calls/${id}/ice`), { from: 'teacher', senderId: 't1', c: {} }));
+  await assertSucceeds(getDocs(query(collection(db('t1'), `calls/${id}/ice`), where('from', '==', 'student'))));
+  await assertFails(getDocs(collection(db('s2'), `calls/${id}/ice`)));
+  await assertSucceeds(updateDoc(doc(db('t1'), `calls/${id}`), { status: 'ended', endedAt: serverTimestamp() }));
+
+  const chat = { ...conv('s1', 't1'), fromCall: id, createdBy: 's1' };
+  await assertFails(setDoc(doc(db('t1'), 'conversations/s1_t1'), chat)); // the student opens it
+  await assertFails(setDoc(doc(db('s1'), 'conversations/s1_t3'), { ...conv('s1', 't3'), fromCall: id }));
+  await assertSucceeds(setDoc(doc(db('s1'), 'conversations/s1_t1'), chat));
+  await assertSucceeds(sendText('s1', 'JazakAllahu khayran'));
+});
+
+test('calls: a teacher declines; an old teacher can no longer change it', async () => {
+  const id = await startCall();
+  await updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: 't1', status: 'ringing' });
+  await assertSucceeds(updateDoc(doc(db('t1'), `calls/${id}`), { status: 'declined' }));
+  await assertFails(updateDoc(doc(db('t1'), `calls/${id}`), { status: 'active' }));
+});
+
+test('presence: busy flag', async () => {
+  await assertSucceeds(setDoc(doc(db('t1'), 'presence/t1'), { available: true, gender: 'female', updatedAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(doc(db('t1'), 'presence/t1'), { busy: true, updatedAt: serverTimestamp() }));
+});

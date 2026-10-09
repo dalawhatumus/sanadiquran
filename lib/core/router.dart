@@ -139,7 +139,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: Routes.progress, builder: (_, _) => const ProgressScreen()),
       GoRoute(path: Routes.teacherNotes, builder: (_, _) => const TeacherNotesScreen()),
-      GoRoute(path: Routes.connecting, builder: (_, _) => const ConnectingScreen()),
+      GoRoute(
+        path: Routes.connecting,
+        builder: (_, st) => ConnectingScreen(teacherId: st.uri.queryParameters['teacher']),
+      ),
       GoRoute(
         path: Routes.inCall,
         builder: (_, st) => InCallScreen(asTeacher: st.uri.queryParameters['teacher'] == '1'),
@@ -148,7 +151,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.studentEnded,
         builder: (_, st) => StudentCallEndedScreen(seconds: int.tryParse(st.uri.queryParameters['s'] ?? '') ?? 0),
       ),
-      GoRoute(path: Routes.incoming, builder: (_, _) => const IncomingCallScreen()),
+      GoRoute(
+        path: Routes.incoming,
+        builder: (_, st) => IncomingCallScreen(callId: st.uri.queryParameters['id']),
+      ),
       GoRoute(
         path: Routes.teacherEnded,
         builder: (_, st) => TeacherCallEndedScreen(seconds: int.tryParse(st.uri.queryParameters['s'] ?? '') ?? 0),

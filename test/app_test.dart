@@ -105,24 +105,6 @@ void main() {
     expect(find.text('اضغط للاتصال بمعلّم'), findsOneWidget);
   });
 
-  testWidgets('a practice call ends on the call-ended screen', (tester) async {
-    await pumpApp(tester, done());
-    await tester.tap(find.text('Recite now'));
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('Finding a teacher for you…'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pump(const Duration(seconds: 1));
-    expect(find.text('Ustadha Aisha'), findsOneWidget);
-
-    await tester.tap(find.text('End call'));
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('End this session?'), findsOneWidget);
-    await tester.tap(find.text('Yes, end call'));
-    await tester.pump(const Duration(milliseconds: 800));
-    expect(find.text('May Allah reward you'), findsOneWidget);
-    expect(find.text('Saved to your progress'), findsOneWidget);
-  });
-
   testWidgets('teacher application ends on the pending home', (tester) async {
     await pumpApp(tester, {
       'settings.v2':

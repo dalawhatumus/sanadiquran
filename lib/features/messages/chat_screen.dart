@@ -223,7 +223,7 @@ class _Header extends ConsumerWidget {
                   tooltip: s.call,
                   onPressed: () async {
                     if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
-                      unawaited(context.push(Routes.connecting));
+                      unawaited(context.push('${Routes.connecting}?teacher=${c.otherUid}'));
                     }
                   },
                   icon: const Icon(Icons.call_rounded, size: 28),

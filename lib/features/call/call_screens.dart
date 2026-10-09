@@ -4,51 +4,77 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 
+import '../../backend/backend.dart';
+import '../../backend/calls.dart';
 import '../../core/router.dart';
-import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 import '../quran/quran_data.dart';
-
-// Test build: calls are simulated. Real audio calls (WebRTC) come next.
+import 'call_controller.dart';
 
 String _clock(S s, int secs) =>
     s.n('${(secs ~/ 60).toString().padLeft(2, '0')}:${(secs % 60).toString().padLeft(2, '0')}');
 
-/// 19 · Connecting: finding a teacher, then calling them.
-class ConnectingScreen extends StatefulWidget {
-  const ConnectingScreen({super.key});
-
-  @override
-  State<ConnectingScreen> createState() => _ConnectingScreenState();
+/// The other person's name and picture during a call (sample ones in demo
+/// mode, where the call has no real person).
+(String, String, String?) _other(S s, CallState st) {
+  final teacher = st.asTeacher;
+  if (st.otherName.isEmpty) {
+    return teacher
+        ? (s.studentName, s.studentInitial, sampleStudentAvatar(s.female))
+        : (s.teacherName, s.teacherInitials, sampleTeacherAvatar(s.female));
+  }
+  final n = st.otherName.trim();
+  return (n, n.isEmpty ? '?' : n.characters.first.toUpperCase(), st.otherAvatar);
 }
 
-class _ConnectingScreenState extends State<ConnectingScreen> with SingleTickerProviderStateMixin {
+/// 19 · Connecting: finding a free teacher of the same gender, then ringing
+/// them; or "No teacher is free right now".
+class ConnectingScreen extends ConsumerStatefulWidget {
+  const ConnectingScreen({super.key, this.teacherId});
+
+  /// A particular teacher to try first ("Call" on My teacher).
+  final String? teacherId;
+
+  @override
+  ConsumerState<ConnectingScreen> createState() => _ConnectingScreenState();
+}
+
+class _ConnectingScreenState extends ConsumerState<ConnectingScreen> with SingleTickerProviderStateMixin {
   late final _pulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat();
-  int _stage = 0;
-  final _timers = <Timer>[];
+
+  CallController get _c => ref.read(callControllerProvider.notifier);
 
   @override
   void initState() {
     super.initState();
-    _timers.add(Timer(const Duration(milliseconds: 2200), () => setState(() => _stage = 1)));
-    _timers.add(
-      Timer(const Duration(milliseconds: 4400), () {
-        if (mounted) context.pushReplacement(Routes.inCall);
-      }),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _start());
+  }
+
+  void _start() {
+    if (!mounted) return;
+    _c.reset();
+    _c.startAsStudent(preferredTeacher: widget.teacherId);
   }
 
   @override
   void dispose() {
-    for (final tm in _timers) {
-      tm.cancel();
-    }
     _pulse.dispose();
     super.dispose();
+  }
+
+  Future<void> _cancel() async {
+    final st = ref.read(callControllerProvider);
+    if (st.searching) {
+      await _c.cancel();
+    } else {
+      _c.reset();
+    }
+    if (mounted && context.canPop()) context.pop();
   }
 
   @override
@@ -56,63 +82,96 @@ class _ConnectingScreenState extends State<ConnectingScreen> with SingleTickerPr
     final s = S.of(context);
     final t = context.t;
     final tt = Theme.of(context).textTheme;
-    final ringing = _stage == 1;
-    return StepScaffold(
-      center: true,
-      content: [
-        Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(20)),
-            child: Text(
-              s.sessionType,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.heading),
-            ),
-          ),
-        ),
-        const SizedBox(height: 40),
-        Center(
-          child: AnimatedBuilder(
-            animation: _pulse,
-            builder: (_, child) => Container(
-              width: 200,
-              height: 200,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: t.tint.withValues(alpha: 1 - _pulse.value * 0.7),
-              ),
-              child: child,
-            ),
+    final st = ref.watch(callControllerProvider);
+    ref.listen(callControllerProvider, (prev, next) {
+      if (next.inCall && !(prev?.inCall ?? false)) context.pushReplacement(Routes.inCall);
+    });
+
+    if (st.phase == CallPhase.unmatched || st.phase == CallPhase.failed || st.phase == CallPhase.noMic) {
+      final (icon, title, body) = switch (st.phase) {
+        CallPhase.unmatched => (Icons.hourglass_empty_rounded, s.noTeacherTitle, s.noTeacherBody),
+        CallPhase.noMic => (Icons.mic_off_rounded, s.callFailedTitle, s.micNeededCall),
+        _ => (Icons.wifi_off_rounded, s.callFailedTitle, s.callFailedBody),
+      };
+      return StepScaffold(
+        center: true,
+        content: [
+          Center(child: Illustration(size: 112, child: Icon(icon))),
+          const SizedBox(height: 18),
+          WordSafeText(title, style: tt.headlineSmall, textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          Text(body, style: tt.bodyLarge, textAlign: TextAlign.center),
+        ],
+        bottom: [
+          if (st.phase == CallPhase.noMic)
+            BigButton(label: s.openSettings, icon: Icons.settings_rounded, onPressed: openAppSettings)
+          else
+            BigButton(label: s.tryAgain, icon: Icons.refresh_rounded, onPressed: _start),
+          BigButton(label: s.back, icon: Arrows.back, kind: ButtonKind.outline, onPressed: _cancel),
+        ],
+      );
+    }
+
+    final ringing = st.phase == CallPhase.ringing;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _cancel();
+      },
+      child: StepScaffold(
+        center: true,
+        content: [
+          Center(
             child: Container(
-              width: 140,
-              height: 140,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: t.primary,
-                border: Border.all(color: t.sage, width: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(20)),
+              child: Text(
+                s.sessionType,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.heading),
               ),
-              child: ringing
-                  ? Text(
-                      s.teacherInitials,
-                      style: TextStyle(fontSize: 48, fontWeight: FontWeight.w700, color: t.onPrimary, height: 1),
-                    )
-                  : Icon(Icons.mic_rounded, size: 60, color: t.onPrimary),
             ),
           ),
-        ),
-        const SizedBox(height: 36),
-        Semantics(
-          liveRegion: true,
-          child: WordSafeText(ringing ? s.calling : s.finding, style: tt.headlineSmall, textAlign: TextAlign.center),
-        ),
-        const SizedBox(height: 8),
-        Text(ringing ? s.callingSub : s.findingSub, style: tt.bodyLarge, textAlign: TextAlign.center),
-      ],
-      bottom: [
-        BigButton(label: s.cancel, icon: Icons.close_rounded, kind: ButtonKind.outline, onPressed: () => context.pop()),
-      ],
+          const SizedBox(height: 40),
+          Center(
+            child: AnimatedBuilder(
+              animation: _pulse,
+              builder: (_, child) => Container(
+                width: 200,
+                height: 200,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: t.tint.withValues(alpha: 1 - _pulse.value * 0.7),
+                ),
+                child: child,
+              ),
+              child: Container(
+                width: 140,
+                height: 140,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: t.primary,
+                  border: Border.all(color: t.sage, width: 4),
+                ),
+                child: Icon(ringing ? Icons.call_rounded : Icons.mic_rounded, size: 60, color: t.onPrimary),
+              ),
+            ),
+          ),
+          const SizedBox(height: 36),
+          Semantics(
+            liveRegion: true,
+            child: WordSafeText(
+              ringing ? s.callingAny : s.finding,
+              style: tt.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(ringing ? s.callingSub : s.findingSub, style: tt.bodyLarge, textAlign: TextAlign.center),
+        ],
+        bottom: [BigButton(label: s.cancel, icon: Icons.close_rounded, kind: ButtonKind.outline, onPressed: _cancel)],
+      ),
     );
   }
 }
@@ -128,20 +187,17 @@ class InCallScreen extends ConsumerStatefulWidget {
 }
 
 class _InCallScreenState extends ConsumerState<InCallScreen> {
-  late final Timer _timer;
-  int _secs = 0;
-  bool _muted = false;
-  bool _speaker = true;
+  late final Timer _tick;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() => _secs++));
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _tick.cancel();
     super.dispose();
   }
 
@@ -175,9 +231,7 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
         ],
       ),
     );
-    if (yes != true || !mounted) return;
-    ref.read(settingsProvider.notifier).update((x) => x.copyWith(sessions: x.sessions + 1));
-    context.pushReplacement(widget.asTeacher ? '${Routes.teacherEnded}?s=$_secs' : '${Routes.studentEnded}?s=$_secs');
+    if (yes == true) await ref.read(callControllerProvider.notifier).hangUp();
   }
 
   @override
@@ -185,8 +239,27 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
     final s = S.of(context);
     final t = context.t;
     final tt = Theme.of(context).textTheme;
-    final name = widget.asTeacher ? s.studentName : s.teacherName;
-    final initials = widget.asTeacher ? s.studentInitial : s.teacherInitials;
+    final st = ref.watch(callControllerProvider);
+    final c = ref.read(callControllerProvider.notifier);
+    final live = ref.watch(backendProvider).live;
+    ref.listen(callControllerProvider, (prev, next) {
+      if (next.phase == CallPhase.ended) {
+        context.pushReplacement(
+          widget.asTeacher ? '${Routes.teacherEnded}?s=${next.seconds}' : '${Routes.studentEnded}?s=${next.seconds}',
+        );
+      } else if (next.phase == CallPhase.failed && (prev?.inCall ?? false)) {
+        toast(context, s.callFailedTitle);
+        c.reset();
+        context.go(widget.asTeacher ? Routes.teacherHome : Routes.studentHome);
+      }
+    });
+    final (name, initials, avatar) = _other(s, st);
+    final secs = st.connectedAt == null ? 0 : DateTime.now().difference(st.connectedAt!).inSeconds;
+    final (statusIcon, statusText, statusColor) = switch (st.phase) {
+      CallPhase.active => (SIcons.bars3, s.goodConn, t.primary),
+      CallPhase.reconnecting => (SIcons.bars1, s.reconnecting, t.warn),
+      _ => (SIcons.bars0, s.connectingCall, t.muted),
+    };
 
     Widget control(IconData icon, String label, bool active, VoidCallback onTap, {Widget? iconWidget}) => Expanded(
       child: Semantics(
@@ -232,7 +305,7 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
       child: StepScaffold(
         center: true,
         content: [
-          if (_muted) ...[
+          if (st.muted) ...[
             WarnBanner(icon: Icons.mic_off_rounded, text: widget.asTeacher ? s.mutedBannerTeacher : s.mutedBanner),
             const SizedBox(height: 20),
           ],
@@ -242,38 +315,34 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
-          Center(
-            child: Avatar(
-              initials,
-              size: 112,
-              image: widget.asTeacher ? sampleStudentAvatar(s.female) : sampleTeacherAvatar(s.female),
-            ),
-          ),
+          Center(child: Avatar(initials, size: 112, image: avatar)),
           const SizedBox(height: 14),
           WordSafeText(name, style: tt.headlineMedium, textAlign: TextAlign.center),
-          const SizedBox(height: 10),
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(20)),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.bookmark_rounded, size: 20, color: t.primary),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      s.firstPortion,
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: t.heading),
+          if (!live) ...[
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(20)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.bookmark_rounded, size: 20, color: t.primary),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        s.firstPortion,
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: t.heading),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 10),
           Text(
-            _clock(s, _secs),
+            _clock(s, secs),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 44,
@@ -282,39 +351,44 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SIcon(SIcons.bars3, size: 22, color: t.primary),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  s.goodConn,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: t.primary),
+          Semantics(
+            liveRegion: true,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SIcon(statusIcon, size: 22, color: statusColor),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    statusText,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: statusColor),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(s.testCall, style: tt.bodySmall, textAlign: TextAlign.center),
+          if (!live) ...[
+            const SizedBox(height: 16),
+            Text(s.testCall, style: tt.bodySmall, textAlign: TextAlign.center),
+          ],
         ],
         bottom: [
           Row(
             children: [
               control(
-                _muted ? Icons.mic_rounded : Icons.mic_off_rounded,
-                _muted ? s.unmute : s.mute,
-                _muted,
-                () => setState(() => _muted = !_muted),
+                st.muted ? Icons.mic_rounded : Icons.mic_off_rounded,
+                st.muted ? s.unmute : s.mute,
+                st.muted,
+                c.toggleMute,
               ),
               const SizedBox(width: 10),
-              control(Icons.volume_up_rounded, s.speaker, _speaker, () => setState(() => _speaker = !_speaker)),
+              control(Icons.volume_up_rounded, s.speaker, st.speaker, c.toggleSpeaker),
               const SizedBox(width: 10),
               control(
                 Icons.menu_book_rounded,
                 s.openQuran,
                 false,
-                () => context.push(Routes.mushafAt(sura: 67, ayah: 1)),
+                () => context.push(Routes.mushaf),
                 iconWidget: SIcon(SIcons.rehal, size: 32, color: t.text),
               ),
             ],
@@ -327,16 +401,16 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
 }
 
 /// 24 · Call ended (student), with an optional rating.
-class StudentCallEndedScreen extends StatefulWidget {
+class StudentCallEndedScreen extends ConsumerStatefulWidget {
   const StudentCallEndedScreen({super.key, required this.seconds});
 
   final int seconds;
 
   @override
-  State<StudentCallEndedScreen> createState() => _StudentCallEndedScreenState();
+  ConsumerState<StudentCallEndedScreen> createState() => _StudentCallEndedScreenState();
 }
 
-class _StudentCallEndedScreenState extends State<StudentCallEndedScreen> {
+class _StudentCallEndedScreenState extends ConsumerState<StudentCallEndedScreen> {
   int? _rating;
 
   @override
@@ -346,6 +420,7 @@ class _StudentCallEndedScreenState extends State<StudentCallEndedScreen> {
     final tt = Theme.of(context).textTheme;
     const faces = [Icons.sentiment_dissatisfied_rounded, Icons.sentiment_neutral_rounded, Icons.check_circle_rounded];
     final minutes = (widget.seconds / 60).ceil().clamp(1, 999);
+    final (name, _, _) = _other(s, ref.watch(callControllerProvider));
     return StepScaffold(
       center: true,
       content: [
@@ -353,7 +428,7 @@ class _StudentCallEndedScreenState extends State<StudentCallEndedScreen> {
         const SizedBox(height: 18),
         WordSafeText(s.sEndTitle, style: tt.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 6),
-        Text(s.sEndSub(minutes), style: tt.bodyLarge, textAlign: TextAlign.center),
+        Text(s.sEndSubName(minutes, name), style: tt.bodyLarge, textAlign: TextAlign.center),
         const SizedBox(height: 8),
         Center(
           child: Container(
@@ -425,43 +500,99 @@ class _StudentCallEndedScreenState extends State<StudentCallEndedScreen> {
         ),
       ],
       bottom: [
-        BigButton(label: s.done, icon: Icons.check_rounded, onPressed: () => context.go(Routes.studentHome)),
+        BigButton(
+          label: s.done,
+          icon: Icons.check_rounded,
+          onPressed: () {
+            ref.read(callControllerProvider.notifier).reset();
+            context.go(Routes.studentHome);
+          },
+        ),
         LinkButton(label: s.reportProblem, onPressed: () => showSoon(context)),
       ],
     );
   }
 }
 
-/// 31 · Incoming call (teacher). Tap buttons, never swipe; auto-declines at 30s.
-class IncomingCallScreen extends StatefulWidget {
-  const IncomingCallScreen({super.key});
+/// 31 · Incoming call (teacher). Tap buttons, never swipe; auto-declines at
+/// 30 seconds. With no [callId] (demo mode) it's a practice call.
+class IncomingCallScreen extends ConsumerStatefulWidget {
+  const IncomingCallScreen({super.key, this.callId});
+
+  final String? callId;
 
   @override
-  State<IncomingCallScreen> createState() => _IncomingCallScreenState();
+  ConsumerState<IncomingCallScreen> createState() => _IncomingCallScreenState();
 }
 
-class _IncomingCallScreenState extends State<IncomingCallScreen> {
+class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
   late final Timer _timer;
   int _left = 30;
   bool _missed = false;
+  bool _answering = false;
+  CallInfo? _call;
+  StreamSubscription<CallInfo?>? _sub;
 
   @override
   void initState() {
     super.initState();
     HapticFeedback.heavyImpact();
+    final id = widget.callId;
+    if (id != null) {
+      _sub = ref.read(backendProvider).watchCall(id).listen((c) {
+        if (!mounted || _answering) return;
+        setState(() => _call = c);
+        // The student hung up, or was put through to someone else.
+        if (c != null && c.status != CallStatus.ringing) _stop(missed: true);
+      });
+    }
     _timer = Timer.periodic(const Duration(seconds: 1), (tm) {
       setState(() => _left--);
       if (_left <= 0) {
-        tm.cancel();
-        setState(() => _missed = true);
+        final c = _call;
+        if (c != null) ref.read(callControllerProvider.notifier).decline(c);
+        _stop(missed: true);
       }
     });
+  }
+
+  void _stop({bool missed = false}) {
+    _timer.cancel();
+    _sub?.cancel();
+    if (mounted && missed) setState(() => _missed = true);
   }
 
   @override
   void dispose() {
     _timer.cancel();
+    _sub?.cancel();
     super.dispose();
+  }
+
+  CallInfo _demoCall(S s) => CallInfo(
+    id: 'demo-incoming',
+    studentId: 'demo-student',
+    studentName: s.studentName,
+    studentAvatar: sampleStudentAvatar(s.female),
+    status: CallStatus.ringing,
+  );
+
+  Future<void> _accept() async {
+    final s = S.of(context);
+    final call = widget.callId == null ? _demoCall(s) : _call;
+    if (call == null) return;
+    _answering = true;
+    _stop();
+    final c = ref.read(callControllerProvider.notifier)..reset();
+    unawaited(c.accept(call));
+    if (mounted) context.pushReplacement('${Routes.inCall}?teacher=1');
+  }
+
+  Future<void> _decline() async {
+    _stop();
+    final c = _call;
+    if (c != null) await ref.read(callControllerProvider.notifier).decline(c);
+    if (mounted && context.canPop()) context.pop();
   }
 
   @override
@@ -469,6 +600,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
     final s = S.of(context);
     final t = context.t;
     final tt = Theme.of(context).textTheme;
+    final demo = widget.callId == null;
+    final name = demo ? s.studentName : (_call?.studentName ?? '');
+    final avatar = demo ? sampleStudentAvatar(s.female) : _call?.studentAvatar;
+    final initial = name.trim().isEmpty ? '?' : name.trim().characters.first.toUpperCase();
 
     if (_missed) {
       return StepScaffold(
@@ -478,9 +613,11 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
           const SizedBox(height: 18),
           WordSafeText(s.missedTitle, style: tt.headlineSmall, textAlign: TextAlign.center),
           const SizedBox(height: 8),
-          Text(s.missedBody, style: tt.bodyLarge, textAlign: TextAlign.center),
+          Text(demo ? s.missedBody : s.missedBodyName(name), style: tt.bodyLarge, textAlign: TextAlign.center),
         ],
-        bottom: [BigButton(label: s.ok, onPressed: () => context.pop())],
+        bottom: [
+          BigButton(label: s.ok, onPressed: () => context.canPop() ? context.pop() : context.go(Routes.teacherHome)),
+        ],
       );
     }
 
@@ -515,88 +652,91 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
       ),
     );
 
-    return StepScaffold(
-      center: true,
-      content: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.call_received_rounded, color: t.text),
-            const SizedBox(width: 8),
-            Flexible(child: WordSafeText(s.incoming, style: tt.titleMedium)),
-          ],
-        ),
-        const SizedBox(height: 36),
-        Center(child: Avatar(s.studentInitial, size: 120, image: sampleStudentAvatar(s.female))),
-        const SizedBox(height: 18),
-        WordSafeText(s.studentName, style: tt.headlineMedium, textAlign: TextAlign.center),
-        const SizedBox(height: 10),
-        Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(20)),
-            child: Text(
-              s.sessionType,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.heading),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        SCard(
-          child: Row(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _decline();
+      },
+      child: StepScaffold(
+        center: true,
+        content: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.bookmark_rounded, color: t.primary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(s.lastPortionL, style: tt.bodySmall),
-                    Text(s.lastPortion, style: tt.titleSmall),
-                  ],
-                ),
-              ),
+              Icon(Icons.call_received_rounded, color: t.text),
+              const SizedBox(width: 8),
+              Flexible(child: WordSafeText(s.incoming, style: tt.titleMedium)),
             ],
           ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          '${s.answerWithin} · ${s.n(_left)}',
-          style: tt.bodyMedium!.copyWith(color: t.muted),
-          textAlign: TextAlign.center,
-        ),
-      ],
-      bottom: [
-        Row(
-          children: [
-            big(s.decline, Icons.call_end_rounded, t.warn, t.onWarn, () => context.pop()),
-            const SizedBox(width: 14),
-            big(
-              s.accept,
-              Icons.call_rounded,
-              t.primary,
-              t.onPrimary,
-              () => context.pushReplacement('${Routes.inCall}?teacher=1'),
+          const SizedBox(height: 36),
+          Center(child: Avatar(initial, size: 120, image: avatar)),
+          const SizedBox(height: 18),
+          WordSafeText(name, style: tt.headlineMedium, textAlign: TextAlign.center),
+          const SizedBox(height: 10),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(20)),
+              child: Text(
+                s.sessionType,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.heading),
+              ),
+            ),
+          ),
+          if (demo) ...[
+            const SizedBox(height: 16),
+            SCard(
+              child: Row(
+                children: [
+                  Icon(Icons.bookmark_rounded, color: t.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.lastPortionL, style: tt.bodySmall),
+                        Text(s.lastPortion, style: tt.titleSmall),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
-        ),
-      ],
+          const SizedBox(height: 12),
+          Text(
+            '${s.answerWithin} · ${s.n(_left.clamp(0, 30))}',
+            style: tt.bodyMedium!.copyWith(color: t.muted),
+            textAlign: TextAlign.center,
+          ),
+        ],
+        bottom: [
+          Row(
+            children: [
+              big(s.decline, Icons.call_end_rounded, t.warn, t.onWarn, _decline),
+              const SizedBox(width: 14),
+              big(s.accept, Icons.call_rounded, t.primary, t.onPrimary, _accept),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
 /// 34 · Call ended (teacher): Done, with optional notes.
-class TeacherCallEndedScreen extends StatelessWidget {
+class TeacherCallEndedScreen extends ConsumerWidget {
   const TeacherCallEndedScreen({super.key, required this.seconds});
 
   final int seconds;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = S.of(context);
     final t = context.t;
     final tt = Theme.of(context).textTheme;
     final minutes = (seconds / 60).ceil().clamp(1, 999);
+    final (name, _, _) = _other(s, ref.watch(callControllerProvider));
     return StepScaffold(
       center: true,
       content: [
@@ -604,7 +744,7 @@ class TeacherCallEndedScreen extends StatelessWidget {
         const SizedBox(height: 18),
         WordSafeText(s.tEndTitle, style: tt.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 6),
-        Text(s.tEndSub(minutes), style: tt.bodyLarge, textAlign: TextAlign.center),
+        Text(s.tEndSubName(minutes, name), style: tt.bodyLarge, textAlign: TextAlign.center),
         const SizedBox(height: 8),
         Center(
           child: Container(
@@ -620,7 +760,14 @@ class TeacherCallEndedScreen extends StatelessWidget {
         Text(s.jazakTeach, style: tt.bodyMedium, textAlign: TextAlign.center),
       ],
       bottom: [
-        BigButton(label: s.done, icon: Icons.check_rounded, onPressed: () => context.go(Routes.teacherHome)),
+        BigButton(
+          label: s.done,
+          icon: Icons.check_rounded,
+          onPressed: () {
+            ref.read(callControllerProvider.notifier).reset();
+            context.go(Routes.teacherHome);
+          },
+        ),
         BigButton(
           label: s.addNotes,
           icon: Icons.edit_note_rounded,

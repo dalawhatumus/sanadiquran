@@ -223,7 +223,7 @@ class SettingsScreen extends ConsumerWidget {
         const SizedBox(height: 20),
         Text(backend.live ? s.serverLive : s.serverDemo, style: tt.bodySmall, textAlign: TextAlign.center),
         const SizedBox(height: 4),
-        Text('${s.version} 0.5.1', style: tt.bodySmall, textAlign: TextAlign.center),
+        Text('${s.version} 0.6.0', style: tt.bodySmall, textAlign: TextAlign.center),
       ],
     );
   }

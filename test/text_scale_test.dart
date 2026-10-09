@@ -7,6 +7,7 @@ import 'package:sanadi/app.dart';
 import 'package:sanadi/backend/backend.dart';
 import 'package:sanadi/core/router.dart';
 import 'package:sanadi/core/settings.dart';
+import 'package:sanadi/features/call/call_controller.dart';
 import 'package:sanadi/core/connectivity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -117,6 +118,7 @@ void main() {
                 sharedPreferencesProvider.overrideWithValue(prefs),
                 onlineCheckProvider.overrideWithValue(() async => true),
                 pendingApplicationsProvider.overrideWith((ref) => Stream.value([_sampleApplication])),
+                micPermissionProvider.overrideWithValue(() async => true),
               ],
               child: const SanadiApp(),
             ),

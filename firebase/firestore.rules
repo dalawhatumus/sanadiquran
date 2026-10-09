@@ -51,7 +51,7 @@ service cloud.firestore {
     match /presence/{uid} {
       allow read: if signedIn();
       allow write: if isMe(uid) && isApproved(uid)
-        && request.resource.data.keys().hasOnly(['available', 'gender', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['available', 'gender', 'busy', 'updatedAt'])
         && request.resource.data.available is bool;
       allow delete: if isMe(uid);
     }
@@ -62,9 +62,21 @@ service cloud.firestore {
     function userDoc(uid) { return get(/databases/$(db)/documents/users/$(uid)).data; }
     function convDoc(cid) { return get(/databases/$(db)/documents/conversations/$(cid)).data; }
     function isMemberOf(cid) { return signedIn() && request.auth.uid in convDoc(cid).members; }
+    function callDoc(id) { return get(/databases/$(db)/documents/calls/$(id)).data; }
 
     match /conversations/{cid} {
       allow read: if isAdmin() || (signedIn() && request.auth.uid in resource.data.members);
+      // ...or the student, right after their first call with that teacher.
+      allow create: if signedIn()
+        && request.resource.data.members.size() == 2
+        && request.auth.uid == request.resource.data.members[0]
+        && cid == request.resource.data.members[0] + '_' + request.resource.data.members[1]
+        && request.resource.data.fromCall is string
+        && callDoc(request.resource.data.fromCall).studentId == request.resource.data.members[0]
+        && callDoc(request.resource.data.fromCall).teacherId == request.resource.data.members[1]
+        && callDoc(request.resource.data.fromCall).status in ['active', 'ended']
+        && request.resource.data.gender == callDoc(request.resource.data.fromCall).gender
+        && request.resource.data.blockedBy.size() == 0;
       allow create: if isAdmin()
         && request.resource.data.members.size() == 2
         && cid == request.resource.data.members[0] + '_' + request.resource.data.members[1]
@@ -113,6 +125,50 @@ service cloud.firestore {
           && request.resource.data.data.size() <= 900000;
         allow update: if false;
         allow delete: if isMemberOf(cid) && resource.data.senderId == request.auth.uid;
+      }
+    }
+
+    // Calls. The student's app finds a free teacher of the same gender and
+    // rings them; the teacher's app answers. Only those two can see a call.
+    match /calls/{id} {
+      function isStudent() { return signedIn() && request.auth.uid == resource.data.studentId; }
+      function isTeacher() { return signedIn() && request.auth.uid == resource.data.teacherId; }
+      function unchanged(keys) { return !request.resource.data.diff(resource.data).affectedKeys().hasAny(keys); }
+
+      allow read: if isStudent() || isTeacher();
+      allow create: if signedIn()
+        && request.resource.data.studentId == request.auth.uid
+        && userDoc(request.auth.uid).role == 'student'
+        && request.resource.data.gender == userDoc(request.auth.uid).gender
+        && request.resource.data.status == 'searching'
+        && request.resource.data.teacherId == null
+        && request.resource.data.keys().hasOnly(['studentId', 'studentName', 'studentAvatar', 'gender', 'status',
+             'teacherId', 'tried', 'createdAt']);
+      // The student rings teachers (approved, same gender), cancels, hangs
+      // up and sends the offer.
+      allow update: if isStudent()
+        && unchanged(['studentId', 'gender', 'teacherName', 'teacherAvatar', 'answer'])
+        && (request.resource.data.status in ['searching', 'ringing', 'ended', 'cancelled', 'unmatched']
+            || request.resource.data.status == resource.data.status)
+        && (request.resource.data.teacherId == resource.data.teacherId
+            || (isApproved(request.resource.data.teacherId)
+                && userDoc(request.resource.data.teacherId).gender == resource.data.gender));
+      // The teacher being rung answers or declines, then sends the answer
+      // and can hang up.
+      allow update: if isTeacher()
+        && unchanged(['studentId', 'studentName', 'studentAvatar', 'gender', 'teacherId', 'tried', 'offer'])
+        && request.resource.data.status in ['active', 'declined', 'ended']
+        && (resource.data.status in ['ringing', 'active']);
+      allow delete: if false;
+
+      // Network routes for the connection, from each side.
+      match /ice/{c} {
+        allow read: if signedIn() && request.auth.uid in [get(/databases/$(db)/documents/calls/$(id)).data.studentId,
+                                                          get(/databases/$(db)/documents/calls/$(id)).data.teacherId];
+        allow create: if signedIn() && request.resource.data.senderId == request.auth.uid
+          && ((request.resource.data.from == 'student' && request.auth.uid == callDoc(id).studentId)
+              || (request.resource.data.from == 'teacher' && request.auth.uid == callDoc(id).teacherId));
+        allow update, delete: if false;
       }
     }
 

@@ -7,6 +7,7 @@ import 'core/router.dart';
 import 'core/settings.dart';
 import 'core/strings.dart';
 import 'core/theme.dart';
+import 'features/call/incoming_watcher.dart';
 
 class SanadiApp extends ConsumerWidget {
   const SanadiApp({super.key});
@@ -40,7 +41,7 @@ class SanadiApp extends ConsumerWidget {
       themeMode: settings.$2,
       builder: (context, child) => StringsScope(
         s: S(ar: locale.languageCode == 'ar', female: settings.$3 == Gender.female),
-        child: child!,
+        child: IncomingCallWatcher(child: child!),
       ),
     );
   }

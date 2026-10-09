@@ -641,6 +641,43 @@ class S {
   String get pause => t('Pause', 'إيقاف مؤقت');
   String get moreOptions => t('More options', 'خيارات أخرى');
 
+  // ---- Real calls ----
+  String callingName(String name) => t('Calling $name…', 'نتصل بـ $name…');
+  String get callingAny => t('Calling a teacher…', 'نتصل بمعلّمة…', 'نتصل بمعلّم…');
+  String get connectingCall => t('Connecting…', 'جارٍ الاتصال…');
+  String get reconnecting => t('Reconnecting…', 'جارٍ إعادة الاتصال…');
+  String get noTeacherTitle =>
+      t('No teacher is free right now', 'لا توجد معلّمة متاحة الآن', 'لا يوجد معلّم متاح الآن');
+  String get noTeacherBody =>
+      t('Please try again in a little while.', 'حاولي مرة أخرى بعد قليل.', 'حاول مرة أخرى بعد قليل.');
+  String get callFailedTitle => t("The call couldn't connect", 'تعذّر الاتصال');
+  String get callFailedBody => t(
+    'Check the internet and try again.',
+    'تحقّقي من الإنترنت وحاولي مرة أخرى.',
+    'تحقّق من الإنترنت وحاول مرة أخرى.',
+  );
+  String get callDropped => t('The call was cut off.', 'انقطعت المكالمة.');
+  String sEndSubName(int min, String name) => t('$min minutes with $name', '${n(min)} دقيقة مع $name');
+  String tEndSubName(int min, String name) => t('$name · $min minutes', '$name · ${n(min)} دقيقة');
+  String missedBodyName(String name) => t(
+    g(
+      "$name was connected to another teacher, so she isn't left waiting.",
+      "$name was connected to another teacher, so he isn't left waiting.",
+    ),
+    'تم توصيل $name بمعلّمة أخرى حتى لا تنتظر.',
+    'تم توصيل $name بمعلّم آخر حتى لا ينتظر.',
+  );
+  String get keepOpen => t(
+    'Keep Sanadi open on your screen to receive calls.',
+    'أبقي سَنَدي مفتوحًا على الشاشة لتصلكِ المكالمات.',
+    'أبقِ سَنَدي مفتوحًا على الشاشة لتصلك المكالمات.',
+  );
+  String get micNeededCall => t(
+    'Sanadi needs the microphone for calls. Allow it in your phone settings.',
+    'يحتاج سَنَدي إلى الميكروفون للمكالمات. اسمحي به من إعدادات الهاتف.',
+    'يحتاج سَنَدي إلى الميكروفون للمكالمات. اسمح به من إعدادات الهاتف.',
+  );
+
   // ---- Admin: connect and reports ----
   String get connectTitle => t('Connect a student and teacher', 'ربط طالب بمعلّم');
   String get connectSub => t('Open a chat between them', 'فتح محادثة بينهما');

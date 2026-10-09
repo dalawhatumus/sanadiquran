@@ -48,6 +48,8 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName(if (hasUploadKey) "upload" else "debug")
+            // Keeps the WebRTC (calls) classes that are reached from native code.
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }

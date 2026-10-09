@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../backend/backend.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -107,6 +108,7 @@ class TeacherHomeScreen extends ConsumerWidget {
 
   List<Widget> _approved(BuildContext context, WidgetRef ref, S s, AppSettings settings) {
     final t = context.t;
+    final live = ref.watch(backendProvider).live;
     final tt = Theme.of(context).textTheme;
     final on = settings.available;
     void toggle() => ref.read(settingsProvider.notifier).update((x) => x.copyWith(available: !on));
@@ -155,6 +157,16 @@ class TeacherHomeScreen extends ConsumerWidget {
           ),
         ),
       ),
+      if (live && on) ...[
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Icon(Icons.info_rounded, color: t.muted, size: 22),
+            const SizedBox(width: 8),
+            Expanded(child: Text(s.keepOpen, style: tt.bodySmall)),
+          ],
+        ),
+      ],
       const SizedBox(height: 14),
       SCard(
         child: Column(
@@ -194,13 +206,15 @@ class TeacherHomeScreen extends ConsumerWidget {
           ],
         ),
       ),
-      const SizedBox(height: 20),
-      BigButton(
-        label: s.simulateCall,
-        icon: Icons.call_received_rounded,
-        kind: ButtonKind.tint,
-        onPressed: () => context.push(Routes.incoming),
-      ),
+      if (!live) ...[
+        const SizedBox(height: 20),
+        BigButton(
+          label: s.simulateCall,
+          icon: Icons.call_received_rounded,
+          kind: ButtonKind.tint,
+          onPressed: () => context.push(Routes.incoming),
+        ),
+      ],
     ];
   }
 }

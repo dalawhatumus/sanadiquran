@@ -24,3 +24,19 @@ abstract final class FirebaseConfig {
     storageBucket: storageBucket == '' ? null : storageBucket,
   );
 }
+
+/// An optional TURN relay, for networks that block direct calls. Set with
+/// --dart-define (CI reads them from repository Variables); without it calls
+/// use Google's public STUN server only.
+abstract final class TurnConfig {
+  static const _urls = String.fromEnvironment('TURN_URLS');
+  static const username = String.fromEnvironment('TURN_USERNAME');
+  static const credential = String.fromEnvironment('TURN_CREDENTIAL');
+
+  static bool get isSet => _urls.isNotEmpty && username.isNotEmpty && credential.isNotEmpty;
+
+  static List<String> get urls => [
+    for (final u in _urls.split(','))
+      if (u.trim().isNotEmpty) u.trim(),
+  ];
+}
