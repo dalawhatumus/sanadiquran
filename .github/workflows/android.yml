@@ -79,10 +79,11 @@ jobs:
           path: sanadi-build-${{ github.run_number }}.apk
           retention-days: 30
 
-      # Every successful push build becomes a release, so the newest APK is
-      # always one tap away at /releases/latest on a phone.
+      # Every successful build of main becomes a release, so the newest APK
+      # is always one tap away at /releases/latest on a phone. Other branches
+      # only keep the APK as a workflow artifact, so they never take "latest".
       - name: Publish release
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
