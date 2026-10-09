@@ -574,18 +574,94 @@ class S {
     'معاينة الصفحة: يأتي الترتيب المطابق للمصحف (١٥ سطرًا) مع تحديث بيانات المصحف.',
   );
 
-  // ---- Messages / students / settings (screens not designed yet) ----
-  String get messagesSoonTitle => t('Messages are coming soon', 'الرسائل قريبًا');
-  String get messagesSoonBody => t(
-    'You will be able to message your teacher here.',
-    'ستتمكّنين من مراسلة معلّمتكِ هنا.',
-    'ستتمكّن من مراسلة معلّمك هنا.',
+  // ---- 48–50 Messages, chat, report and block ----
+  String get noChatsTitle => t('No messages yet', 'لا توجد رسائل بعد');
+  String get noChatsBody => t(
+    'After your first lesson, you can message your teacher here.',
+    'بعد أول درس، يمكنكِ مراسلة معلّمتكِ هنا.',
+    'بعد أول درس، يمكنك مراسلة معلّمك هنا.',
   );
-  String get messagesSoonBodyTeacher => t(
-    'You will be able to message your students here.',
-    'ستتمكّنين من مراسلة طالباتكِ هنا.',
-    'ستتمكّن من مراسلة طلابك هنا.',
+  String get noChatsBodyTeacher => t(
+    'After your first lesson with a student, you can message them here.',
+    'بعد أول درس مع طالبة، يمكنكِ مراسلتها هنا.',
+    'بعد أول درس مع طالب، يمكنك مراسلته هنا.',
   );
+  String voiceNoteLen(int sec) => t('Voice note · ${_mmss(sec)}', 'رسالة صوتية · ${n(_mmss(sec))}');
+  String get voiceNote => t('Voice note', 'رسالة صوتية');
+  String get youPrefix => t('You: ', 'أنتِ: ', 'أنت: ');
+  String get yesterday => t('Yesterday', 'أمس');
+  String get typeMessage => t('Type a message…', 'اكتبي رسالة…', 'اكتب رسالة…');
+  String get send => t('Send', 'إرسال');
+  String get record => t('Record', 'تسجيل');
+  String get sending => t('Sending…', 'جارٍ الإرسال…');
+  String get notSent =>
+      t('Not sent. Tap to try again.', 'لم تُرسل. اضغطي للمحاولة مرة أخرى.', 'لم تُرسل. اضغط للمحاولة مرة أخرى.');
+  String get away => t('Away', 'غير متاحة', 'غير متاح');
+  String get delete => t('Delete', 'حذف');
+  String get deleteQ => t('Delete this message for both of you?', 'حذف هذه الرسالة لديكما معًا؟');
+  String get reportBlock => t('Report or block', 'إبلاغ أو حظر');
+  String reportName(String name) => t('Report $name', 'الإبلاغ عن $name');
+  String get whatHappened => t('What happened?', 'ماذا حدث؟');
+  List<String> get reportReasons => [
+    t('Inappropriate words', 'كلام غير لائق'),
+    t('Not respectful', 'عدم احترام'),
+    t('Asked for personal details', 'طلب معلومات شخصية'),
+    t('Something else', 'شيء آخر'),
+  ];
+  String get reportDetails => t('Tell us more (optional)', 'أخبرينا بالمزيد (اختياري)', 'أخبرنا بالمزيد (اختياري)');
+  String alsoBlock(String name) => t('Also block $name', 'حظر $name أيضًا');
+  String get sendReport => t('Send report', 'إرسال البلاغ');
+  String get reportThanks =>
+      t('Thank you. We will look into this.', 'جزاكِ الله خيرًا. سننظر في الأمر.', 'جزاك الله خيرًا. سننظر في الأمر.');
+  String blockName(String name) => t('Block $name', 'حظر $name');
+  String blockQ(String name) => t(
+    'Block $name? Neither of you will be able to send messages in this chat.',
+    'حظر $name؟ لن يتمكّن أيٌّ منكما من إرسال الرسائل في هذه المحادثة.',
+  );
+  String get block => t('Block', 'حظر');
+  String get unblock => t('Unblock', 'إلغاء الحظر');
+  String youBlocked(String name) => t('You blocked $name.', 'لقد حظرتِ $name.', 'لقد حظرت $name.');
+  String get cantReply => t(
+    "You can't send messages in this chat.",
+    'لا يمكنكِ إرسال رسائل في هذه المحادثة.',
+    'لا يمكنك إرسال رسائل في هذه المحادثة.',
+  );
+  String get micNeeded => t(
+    'Sanadi needs the microphone to record. Allow it in your phone settings.',
+    'يحتاج سَنَدي إلى الميكروفون للتسجيل. اسمحي به من إعدادات الهاتف.',
+    'يحتاج سَنَدي إلى الميكروفون للتسجيل. اسمح به من إعدادات الهاتف.',
+  );
+  String get cantPlay => t("Couldn't play this voice note.", 'تعذّر تشغيل هذه الرسالة الصوتية.');
+  String get chatOffline => t(
+    "You're offline. Messages will be sent when you're back online.",
+    'أنتِ غير متصلة. ستُرسل الرسائل عند عودة الاتصال.',
+    'أنت غير متصل. ستُرسل الرسائل عند عودة الاتصال.',
+  );
+  String get voiceMax => t('Voice notes can be up to 3 minutes.', 'الرسالة الصوتية حتى ٣ دقائق.');
+  String get pause => t('Pause', 'إيقاف مؤقت');
+  String get moreOptions => t('More options', 'خيارات أخرى');
+
+  // ---- Admin: connect and reports ----
+  String get connectTitle => t('Connect a student and teacher', 'ربط طالب بمعلّم');
+  String get connectSub => t('Open a chat between them', 'فتح محادثة بينهما');
+  String get connectHelp => t(
+    'Choose a student, then a teacher of the same gender.',
+    'اختاري طالبًا، ثم معلّمًا من الجنس نفسه.',
+    'اختر طالبًا، ثم معلّمًا من الجنس نفسه.',
+  );
+  String get studentL => t('Student', 'الطالب');
+  String get teacherL => t('Teacher', 'المعلّم');
+  String get connect => t('Connect', 'ربط');
+  String get connectedDone => t('Connected. They can now message each other.', 'تم الربط. يمكنهما الآن المراسلة.');
+  String get noOneYet => t('No one yet', 'لا أحد بعد');
+  String get reportsTitle => t('Reports', 'البلاغات');
+  String get reportsSub => t('Reports about users', 'بلاغات عن المستخدمين');
+  String get noReports => t('No open reports', 'لا توجد بلاغات مفتوحة');
+  String reportedBy(String a, String b) => t('$a reported $b', 'أبلغ $a عن $b');
+
+  static String _mmss(int sec) => '${sec ~/ 60}:${(sec % 60).toString().padLeft(2, '0')}';
+  String mmss(int sec) => n(_mmss(sec));
+
   String get studentsSoonTitle => t('Your students will appear here', 'ستظهر طالباتكِ هنا', 'سيظهر طلابك هنا');
   String get studentsSoonBody => t(
     'After your first sessions, you can see each student\'s progress here.',

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../backend/chat.dart';
 
 import '../../core/strings.dart';
 import '../../core/theme.dart';
@@ -8,15 +11,16 @@ import '../../widgets/ui.dart';
 /// Bottom tabs. Student: Home · Quran · Athkar · Messages.
 /// Teacher: Home · Students · Quran · Messages (athkar is reached from Quran).
 /// Labels stay on one line (capped at 130% text size, then shrunk to fit).
-class HomeShell extends StatelessWidget {
+class HomeShell extends ConsumerWidget {
   const HomeShell({super.key, required this.shell, required this.teacher});
 
   final StatefulNavigationShell shell;
   final bool teacher;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = S.of(context);
+    final unread = ref.watch(unreadTotalProvider);
     final home = (const Icon(Icons.home_rounded), s.navHome);
     final quran = (const SIcon(SIcons.rehal), s.navQuran);
     final messages = (const Icon(Icons.chat_bubble_rounded), s.navMessages);
@@ -28,6 +32,7 @@ class HomeShell extends StatelessWidget {
       body: shell,
       bottomNavigationBar: _TabBar(
         items: items,
+        badges: {items.length - 1: unread},
         selected: shell.currentIndex,
         onSelect: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
       ),
@@ -36,15 +41,19 @@ class HomeShell extends StatelessWidget {
 }
 
 class _TabBar extends StatelessWidget {
-  const _TabBar({required this.items, required this.selected, required this.onSelect});
+  const _TabBar({required this.items, required this.selected, required this.onSelect, this.badges = const {}});
 
   final List<(Widget, String)> items;
+
+  /// Unread counts shown on tabs, by tab index.
+  final Map<int, int> badges;
   final int selected;
   final ValueChanged<int> onSelect;
 
   @override
   Widget build(BuildContext context) {
     final t = context.t;
+    final s = S.of(context);
     final ar = context.isAr;
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: 1.3,
@@ -62,7 +71,7 @@ class _TabBar extends StatelessWidget {
                     child: Semantics(
                       selected: i == selected,
                       button: true,
-                      label: items[i].$2,
+                      label: (badges[i] ?? 0) > 0 ? '${items[i].$2}, ${s.n(badges[i]!)}' : items[i].$2,
                       excludeSemantics: true,
                       child: InkWell(
                         onTap: () => onSelect(i),
@@ -81,7 +90,19 @@ class _TabBar extends StatelessWidget {
                                 ),
                                 child: IconTheme(
                                   data: IconThemeData(size: 28, color: i == selected ? t.primary : t.muted),
-                                  child: Center(child: items[i].$1),
+                                  child: Center(
+                                    child: (badges[i] ?? 0) > 0
+                                        ? Badge(
+                                            label: Text(
+                                              s.n(badges[i]! > 99 ? 99 : badges[i]!),
+                                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                                            ),
+                                            backgroundColor: t.warn,
+                                            textColor: t.onWarn,
+                                            child: items[i].$1,
+                                          )
+                                        : items[i].$1,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 4),

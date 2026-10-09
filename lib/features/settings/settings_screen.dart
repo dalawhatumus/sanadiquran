@@ -78,26 +78,32 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         if (admin) ...[
-          const SizedBox(height: 12),
-          SCard(
-            onTap: () => context.push(Routes.admin),
-            child: Row(
-              children: [
-                TintBox(child: Icon(Icons.how_to_reg_rounded, color: t.primary)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      WordSafeText(s.adminTitle, style: tt.titleMedium!.copyWith(color: t.heading)),
-                      Text(s.adminSub, style: tt.bodySmall),
-                    ],
+          for (final (icon, title, sub, route) in [
+            (Icons.how_to_reg_rounded, s.adminTitle, s.adminSub, Routes.admin),
+            (Icons.link_rounded, s.connectTitle, s.connectSub, Routes.adminConnect),
+            (Icons.flag_rounded, s.reportsTitle, s.reportsSub, Routes.adminReports),
+          ]) ...[
+            const SizedBox(height: 12),
+            SCard(
+              onTap: () => context.push(route),
+              child: Row(
+                children: [
+                  TintBox(child: Icon(icon, color: t.primary)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        WordSafeText(title, style: tt.titleMedium!.copyWith(color: t.heading)),
+                        Text(sub, style: tt.bodySmall),
+                      ],
+                    ),
                   ),
-                ),
-                Icon(Arrows.next, color: t.primary, size: 32),
-              ],
+                  Icon(Arrows.next, color: t.primary, size: 32),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
         section(s.language),
         Row(
@@ -217,7 +223,7 @@ class SettingsScreen extends ConsumerWidget {
         const SizedBox(height: 20),
         Text(backend.live ? s.serverLive : s.serverDemo, style: tt.bodySmall, textAlign: TextAlign.center),
         const SizedBox(height: 4),
-        Text('${s.version} 0.4.1', style: tt.bodySmall, textAlign: TextAlign.center),
+        Text('${s.version} 0.5.0', style: tt.bodySmall, textAlign: TextAlign.center),
       ],
     );
   }

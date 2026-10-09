@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/admin/applications_screen.dart';
+import '../features/admin/connect_screen.dart';
 import '../features/athkar/athkar_menu_screen.dart';
 import '../features/athkar/dhikr_screen.dart';
 import '../features/call/call_screens.dart';
+import '../features/messages/chat_screen.dart';
 import '../features/messages/messages_screen.dart';
 import '../features/onboarding/application_screens.dart';
 import '../features/onboarding/language_screen.dart';
@@ -60,6 +62,10 @@ abstract final class Routes {
   static const mushaf = '/mushaf';
   static const athkar = '/athkar';
   static const admin = '/admin';
+  static const adminConnect = '/admin/connect';
+  static const adminReports = '/admin/reports';
+
+  static String chat(String conversationId) => '/chat/$conversationId';
 
   static String homeFor(UserRole role) => role == UserRole.student ? studentHome : teacherHome;
   static String athkarFor(UserRole? role) => role == UserRole.teacher ? athkar : studentAthkar;
@@ -124,6 +130,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: Routes.admin, builder: (_, _) => const ApplicationsScreen()),
+      GoRoute(path: Routes.adminConnect, builder: (_, _) => const ConnectScreen()),
+      GoRoute(path: Routes.adminReports, builder: (_, _) => const ReportsScreen()),
+      GoRoute(
+        path: '/chat/:id',
+        builder: (_, st) =>
+            ChatScreen(key: ValueKey(st.pathParameters['id']), conversationId: st.pathParameters['id']!),
+      ),
       GoRoute(path: Routes.progress, builder: (_, _) => const ProgressScreen()),
       GoRoute(path: Routes.teacherNotes, builder: (_, _) => const TeacherNotesScreen()),
       GoRoute(path: Routes.connecting, builder: (_, _) => const ConnectingScreen()),

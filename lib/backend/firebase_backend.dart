@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../core/settings.dart';
 import 'backend.dart';
 import 'config.dart';
+import 'firestore_chat.dart';
 
 /// The real server: Google sign-in through Firebase Auth, data in Firestore.
 ///
@@ -15,11 +16,17 @@ import 'config.dart';
 /// - presence/{uid}: an approved teacher's "available" switch and gender.
 ///   Any signed-in user can read it (to count available teachers).
 /// - admins/{uid}: who can review applications. Added by hand in the console.
-class FirebaseBackend implements Backend {
+class FirebaseBackend with FirestoreChat implements Backend {
   FirebaseBackend();
 
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseFirestore.instance;
+
+  @override
+  FirebaseAuth get auth => _auth;
+
+  @override
+  FirebaseFirestore get db => _db;
   bool _googleReady = false;
 
   @override
@@ -88,6 +95,19 @@ class FirebaseBackend implements Backend {
       'locale': s.locale?.languageCode,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+    // Keep the name and picture the other person sees in chats up to date.
+    final convs = await _db.collection('conversations').where('members', arrayContains: uid).get();
+    final batch = _db.batch();
+    var changed = false;
+    for (final c in convs.docs) {
+      final names = (c.data()['names'] as Map?) ?? const {};
+      final avatars = (c.data()['avatars'] as Map?) ?? const {};
+      if (names[uid] != s.name.trim() || avatars[uid] != s.avatar) {
+        batch.update(c.reference, {'names.$uid': s.name.trim(), 'avatars.$uid': s.avatar});
+        changed = true;
+      }
+    }
+    if (changed) await batch.commit();
   }
 
   @override

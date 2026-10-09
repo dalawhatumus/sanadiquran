@@ -50,6 +50,7 @@ void main() {
     Routes.studentQuran,
     Routes.studentAthkar,
     Routes.studentMessages,
+    '/chat/demo-chat',
     '${Routes.athkar}/morning',
     '${Routes.athkar}/tasbeeh',
     Routes.progress,
@@ -83,6 +84,10 @@ void main() {
     '${Routes.apply}/5',
     Routes.applySent,
     Routes.admin,
+    Routes.adminConnect,
+    Routes.adminReports,
+    Routes.teacherMessages,
+    '/chat/demo-chat',
   ];
 
   for (final locale in ['en', 'ar']) {

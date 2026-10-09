@@ -56,6 +56,78 @@ service cloud.firestore {
       allow delete: if isMe(uid);
     }
 
+    // Chat between a student and a teacher. Only an admin opens a
+    // conversation (later: the first lesson), and only between a student
+    // and a teacher of the same gender. Only the two members can read it.
+    function userDoc(uid) { return get(/databases/$(db)/documents/users/$(uid)).data; }
+    function convDoc(cid) { return get(/databases/$(db)/documents/conversations/$(cid)).data; }
+    function isMemberOf(cid) { return signedIn() && request.auth.uid in convDoc(cid).members; }
+
+    match /conversations/{cid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid in resource.data.members);
+      allow create: if isAdmin()
+        && request.resource.data.members.size() == 2
+        && cid == request.resource.data.members[0] + '_' + request.resource.data.members[1]
+        && userDoc(request.resource.data.members[0]).role == 'student'
+        && isApproved(request.resource.data.members[1])
+        && userDoc(request.resource.data.members[0]).gender == userDoc(request.resource.data.members[1]).gender;
+      // Members update the preview, unread counts, their own name and
+      // picture, and their own block; never who is in it.
+      allow update: if signedIn() && request.auth.uid in resource.data.members
+        && request.resource.data.members == resource.data.members
+        && request.resource.data.gender == resource.data.gender
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['lastText', 'lastVoiceSec', 'lastSender', 'lastAt', 'unread', 'names', 'avatars', 'blockedBy'])
+        && request.resource.data.blockedBy.removeAll([request.auth.uid])
+             == resource.data.blockedBy.removeAll([request.auth.uid]);
+      allow delete: if false;
+
+      function canSend() {
+        return isMemberOf(cid) && convDoc(cid).blockedBy.size() == 0
+          && request.resource.data.senderId == request.auth.uid;
+      }
+
+      match /messages/{mid} {
+        allow read: if isMemberOf(cid);
+        allow create: if canSend()
+          && request.resource.data.sentAt == request.time
+          && ((request.resource.data.type == 'text'
+                && request.resource.data.keys().hasOnly(['senderId', 'type', 'text', 'sentAt'])
+                && request.resource.data.text is string
+                && request.resource.data.text.size() > 0
+                && request.resource.data.text.size() <= 2000)
+            || (request.resource.data.type == 'voice'
+                && request.resource.data.keys().hasOnly(['senderId', 'type', 'durationSec', 'sentAt'])
+                && request.resource.data.durationSec is int
+                && request.resource.data.durationSec <= 185));
+        allow update: if false;
+        allow delete: if isMemberOf(cid) && resource.data.senderId == request.auth.uid;
+      }
+
+      // Voice note recordings (at most about 3 minutes of AAC).
+      match /audio/{mid} {
+        allow read: if isMemberOf(cid);
+        allow create: if canSend()
+          && request.resource.data.keys().hasOnly(['senderId', 'data', 'createdAt'])
+          && request.resource.data.data is bytes
+          && request.resource.data.data.size() <= 900000;
+        allow update: if false;
+        allow delete: if isMemberOf(cid) && resource.data.senderId == request.auth.uid;
+      }
+    }
+
+    // Reports about a user. Anyone signed in can send one; admins read them.
+    match /reports/{rid} {
+      allow create: if signedIn() && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['reporterId', 'reporterName', 'reportedId', 'reportedName',
+             'conversationId', 'reason', 'details', 'status', 'createdAt'])
+        && request.resource.data.status == 'open'
+        && text(request.resource.data.details, 1000);
+      allow read: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
     // Who can review applications. Added by hand in the console.
     match /admins/{uid} {
       allow read: if isMe(uid);

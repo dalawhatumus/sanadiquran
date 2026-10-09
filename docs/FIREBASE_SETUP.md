@@ -135,3 +135,19 @@ To add another admin later, repeat step 5 with their User UID.
 - **Approve / Not approved fails.** Check two things:
   - The rules from Part 4 were published.
   - Your `admins` document ID is exactly your User UID.
+
+---
+
+## When the rules change
+
+Some updates change [`firebase/firestore.rules`](../firebase/firestore.rules). The release notes say so. When they do:
+
+1. In Firebase, open **Firestore Database → Rules**.
+2. Replace everything with the new file's contents.
+3. Click **Publish**.
+
+The rules are tested against the Firestore emulator before every change:
+
+```
+cd firebase/test && npm install && npm test
+```
