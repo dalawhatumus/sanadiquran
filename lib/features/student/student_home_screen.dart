@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../backend/backend.dart';
+import '../../backend/chat.dart';
 import '../../core/connectivity.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
@@ -10,6 +11,7 @@ import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
+import '../messages/messages_screen.dart';
 
 /// 17 · Student home: one giant "Recite now" action.
 class StudentHomeScreen extends ConsumerWidget {
@@ -62,7 +64,8 @@ class StudentHomeScreen extends ConsumerWidget {
                 },
               ),
             const SizedBox(height: 16),
-            if (firstTime)
+            if (firstTime) ...[
+              _MyTeacherCard(startCall: startCall, after: true),
               SCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,8 +81,8 @@ class StudentHomeScreen extends ConsumerWidget {
                     Text(s.welcomeBody, style: tt.bodyMedium),
                   ],
                 ),
-              )
-            else ...[
+              ),
+            ] else ...[
               SCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -112,61 +115,7 @@ class StudentHomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
-              SCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(s.myTeacher, style: tt.bodyMedium!.copyWith(color: t.muted)),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Avatar(s.teacherInitials, size: 56, image: sampleTeacherAvatar(s.female)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              WordSafeText(s.teacherName, style: tt.titleLarge),
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(color: t.primary, shape: BoxShape.circle),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    s.availableL,
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.primary),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: BigButton(label: s.call, icon: Icons.call_rounded, onPressed: startCall),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: BigButton(
-                            label: s.message,
-                            icon: Icons.chat_bubble_rounded,
-                            kind: ButtonKind.outline,
-                            onPressed: () => context.go(Routes.studentMessages),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              _MyTeacherCard(startCall: startCall),
             ],
             const SizedBox(height: 14),
             SCard(
@@ -261,5 +210,112 @@ class _ReciteButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// "My teacher": once connected (online), the real teacher, with their
+/// availability and a Message button that opens the chat. In demo mode, a
+/// sample teacher.
+class _MyTeacherCard extends ConsumerWidget {
+  const _MyTeacherCard({required this.startCall, this.after = false});
+
+  final VoidCallback startCall;
+
+  /// Spacing goes after the card (first visit) rather than before it.
+  final bool after;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = S.of(context);
+    final t = context.t;
+    final tt = Theme.of(context).textTheme;
+    final live = ref.watch(backendProvider).live;
+    final firstVisit = ref.watch(settingsProvider.select((x) => x.sessions == 0));
+
+    final Conversation? chat;
+    if (live) {
+      chat = (ref.watch(conversationsProvider).value ?? const <Conversation>[])
+          .where((c) => c.otherRole == UserRole.teacher)
+          .firstOrNull;
+      if (chat == null) return const SizedBox.shrink();
+    } else {
+      // The sample teacher only shows after the first (practice) session.
+      if (firstVisit && after) return const SizedBox.shrink();
+      chat = null;
+    }
+    final available = chat == null ? true : (ref.watch(teacherAvailableProvider(chat.otherUid)).value ?? false);
+    final name = chat?.otherName ?? s.teacherName;
+
+    final card = SCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(s.myTeacher, style: tt.bodyMedium!.copyWith(color: t.muted)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              chat == null
+                  ? Avatar(s.teacherInitials, size: 56, image: sampleTeacherAvatar(s.female))
+                  : Avatar(initialOf(chat.otherName), size: 56, image: chat.otherAvatar),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FullName(name, style: tt.titleLarge!),
+                    Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: available ? t.primary : Colors.transparent,
+                            border: Border.all(color: available ? t.primary : t.muted, width: 2),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: WordSafeText(
+                            available ? s.availableL : s.away,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: available ? t.primary : t.muted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              if (available) ...[
+                Expanded(
+                  child: BigButton(label: s.call, icon: Icons.call_rounded, compact: true, onPressed: startCall),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: BigButton(
+                  label: s.message,
+                  icon: Icons.chat_bubble_rounded,
+                  kind: ButtonKind.outline,
+                  compact: true,
+                  onPressed: () =>
+                      chat == null ? context.go(Routes.studentMessages) : context.push(Routes.chat(chat.id)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    return Padding(padding: after ? const EdgeInsets.only(bottom: 14) : const EdgeInsets.only(top: 14), child: card);
   }
 }
