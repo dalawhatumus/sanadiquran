@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../core/settings.dart';
 import 'chat.dart';
+import 'user_stream.dart';
 
 /// Chat on Firestore.
 ///
@@ -25,8 +26,7 @@ mixin FirestoreChat implements ChatApi {
 
   CollectionReference<Map<String, dynamic>> get _convs => db.collection('conversations');
 
-  Stream<T> _signedIn<T>(Stream<T> Function(String uid) build, T signedOut) =>
-      auth.authStateChanges().asyncExpand((u) => u == null ? Stream.value(signedOut) : build(u.uid));
+  Stream<T> _signedIn<T>(Stream<T> Function(String uid) build, T signedOut) => perUser(auth, build, signedOut);
 
   static DateTime? _time(Object? v) => v is Timestamp ? v.toDate() : null;
 

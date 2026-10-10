@@ -18,7 +18,14 @@ class SanadiApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     ref.watch(backendSyncProvider);
     ref.watch(remindersSyncProvider);
-    Reminders.instance.onOpen = (route) => router.go(route);
+    // A tapped reminder opens its athkar over the home screen, so Back
+    // returns home as usual.
+    Reminders.instance.onOpen = (route) {
+      final home = nextStep(ref.read(settingsProvider));
+      if (home != Routes.studentHome && home != Routes.teacherHome) return;
+      router.go(home);
+      router.push(route);
+    };
     // Only what the app shell needs, so other settings changes don't
     // rebuild every screen.
     final settings = ref.watch(settingsProvider.select((s) => (s.locale, s.themeMode, s.gender)));

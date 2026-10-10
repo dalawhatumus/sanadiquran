@@ -206,7 +206,13 @@ class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
                         child: Text(
                           ayah.text,
                           textDirection: TextDirection.rtl,
-                          style: TextStyle(fontFamily: SanadiFonts.quran, fontSize: 22, color: t.text, height: 2),
+                          style: TextStyle(
+                            fontFamily: SanadiFonts.quran,
+                            letterSpacing: 0,
+                            fontSize: 22,
+                            color: t.text,
+                            height: 2,
+                          ),
                         ),
                       ),
                     ],

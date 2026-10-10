@@ -142,7 +142,13 @@ class _LargePageState extends State<_LargePage> {
     final t = context.t;
     final q = widget.q;
     const size = 27.0;
-    final style = TextStyle(fontFamily: SanadiFonts.quran, fontSize: size, color: t.text, height: 2.1);
+    final style = TextStyle(
+      fontFamily: SanadiFonts.quran,
+      letterSpacing: 0,
+      fontSize: size,
+      color: t.text,
+      height: 2.1,
+    );
 
     // Group the page into surah starts and runs of ayahs.
     final blocks = <Object>[];
@@ -197,6 +203,7 @@ class _LargePageState extends State<_LargePage> {
                     textDirection: TextDirection.rtl,
                     style: TextStyle(
                       fontFamily: SanadiFonts.quran,
+                      letterSpacing: 0,
                       fontSize: size * 0.95,
                       color: t.heading,
                       height: 1.6,

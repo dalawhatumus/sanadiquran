@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/reminders.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/theme.dart';
@@ -20,7 +21,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(milliseconds: 1300), () {
-      if (mounted) context.go(nextStep(ref.read(settingsProvider)));
+      if (!mounted) return;
+      final next = nextStep(ref.read(settingsProvider));
+      context.go(next);
+      // Started from an athkar reminder: open it over the home screen.
+      final reminder = Reminders.instance.takeLaunchRoute();
+      if (reminder != null && (next == Routes.studentHome || next == Routes.teacherHome)) {
+        GoRouter.of(context).push(reminder);
+      }
     });
   }
 

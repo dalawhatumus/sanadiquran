@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../core/settings.dart';
 import 'calls.dart';
+import 'user_stream.dart';
 
 /// Calls on Firestore.
 ///
@@ -94,15 +95,14 @@ mixin FirestoreCalls implements CallApi {
   Stream<CallInfo?> watchCall(String callId) => _calls.doc(callId).snapshots().map((d) => d.exists ? _info(d) : null);
 
   @override
-  Stream<List<CallInfo>> incomingCalls() => auth.authStateChanges().asyncExpand(
-    (u) => u == null
-        ? Stream.value(const <CallInfo>[])
-        : _calls
-              .where('teacherId', isEqualTo: u.uid)
-              .where('status', isEqualTo: CallStatus.ringing.name)
-              .snapshots()
-              .map((s) => [for (final d in s.docs) _info(d)])
-              .handleError((_) {}),
+  Stream<List<CallInfo>> incomingCalls() => perUser(
+    auth,
+    (uid) => _calls
+        .where('teacherId', isEqualTo: uid)
+        .where('status', isEqualTo: CallStatus.ringing.name)
+        .snapshots()
+        .map((s) => [for (final d in s.docs) _info(d)]),
+    const <CallInfo>[],
   );
 
   @override

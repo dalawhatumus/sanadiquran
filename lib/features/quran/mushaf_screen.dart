@@ -169,19 +169,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     if (_selAyah != null) setState(() => _selAyah = null);
   }
 
-  /// A tap near the left edge turns to the next page, near the right edge
-  /// to the previous one (pages turn right-to-left, like a printed mushaf);
-  /// anywhere else shows or hides the bars.
-  void _onTapPage([Offset? at]) {
+  /// A tap shows or hides the bars (or closes an ayah's menu). Pages turn
+  /// only with a swipe, so a tap never moves the page by accident.
+  void _onTapPage([Offset? _]) {
     if (_selAyah != null) {
       _clearSelection();
       return;
-    }
-    final mode = ref.read(settingsProvider).mushafMode;
-    if (at != null && mode == MushafMode.page) {
-      final w = MediaQuery.sizeOf(context).width;
-      if (at.dx < w * 0.18) return _turn(1);
-      if (at.dx > w * 0.82) return _turn(-1);
     }
     _hide?.cancel();
     setState(() => _chrome = !_chrome);
@@ -284,7 +277,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     return Stack(
       children: [
-        Positioned.fill(child: SafeArea(bottom: false, child: content)),
+        // Clear of the status bar and of the phone's own navigation buttons
+        // or gesture bar, so no line is ever hidden behind them.
+        Positioned.fill(child: SafeArea(child: content)),
         _TopBar(
           visible: _chrome,
           q: q,

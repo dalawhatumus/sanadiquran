@@ -14,7 +14,7 @@ import 'quran_data.dart';
 typedef AyahPressed = void Function(Ayah ayah, Offset globalPosition);
 
 TextStyle quranStyle(double size, Color color) =>
-    TextStyle(fontFamily: SanadiFonts.quran, fontSize: size, color: color, height: 1.0);
+    TextStyle(fontFamily: SanadiFonts.quran, letterSpacing: 0, fontSize: size, color: color, height: 1.0);
 
 /// Usual gap between words, as a share of the font size (as printed).
 const _gap = 0.22;
@@ -438,7 +438,13 @@ class Basmala extends StatelessWidget {
             child: Text(
               '\uFDFD',
               textDirection: TextDirection.rtl,
-              style: TextStyle(fontFamily: SanadiFonts.naskh, fontSize: 100, height: 1.15, color: color),
+              style: TextStyle(
+                fontFamily: SanadiFonts.naskh,
+                letterSpacing: 0,
+                fontSize: 100,
+                height: 1.15,
+                color: color,
+              ),
             ),
           ),
         ),

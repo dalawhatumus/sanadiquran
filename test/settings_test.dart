@@ -4,9 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sanadi/app.dart';
 import 'package:sanadi/core/connectivity.dart';
+import 'package:sanadi/core/reminders.dart';
 import 'package:sanadi/core/router.dart';
 import 'package:sanadi/core/settings.dart';
 import 'package:sanadi/core/strings.dart';
+import 'package:sanadi/features/athkar/dhikr_screen.dart';
 import 'package:sanadi/features/settings/more_screens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -99,6 +101,48 @@ void main() {
       expect(find.text(s.deleteAccount), findsNothing);
       expect(find.text(s.blockedTitle), findsNothing);
       expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final launched in [false, true]) {
+    testWidgets('a tapped athkar reminder opens over home, and Back returns (launched: $launched)', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2340);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+        disableAnimations: true,
+      );
+      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+      SharedPreferences.setMockInitialValues({
+        'settings.v2':
+            '{"locale":"en","signedIn":true,"role":"student","gender":"female","name":"Fatima",'
+            '"permissionsDone":true,"tourDone":true,"sessions":2}',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          onlineCheckProvider.overrideWithValue(() async => true),
+        ],
+      );
+      addTearDown(container.dispose);
+      if (launched) Reminders.instance.launchRouteForTest = '/athkar/morning';
+      await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const SanadiApp()));
+      await tester.pump(const Duration(milliseconds: 1400));
+      await tester.pumpAndSettle();
+      final router = GoRouter.of(tester.element(find.byType(Navigator).first));
+      if (!launched) {
+        expect(router.state.matchedLocation, Routes.studentHome);
+        Reminders.instance.onOpen!('/athkar/evening');
+        await tester.pumpAndSettle();
+      }
+      expect(find.byType(DhikrScreen), findsOneWidget);
+      expect(router.canPop(), isTrue);
+      router.pop();
+      await tester.pumpAndSettle();
+      expect(find.byType(DhikrScreen), findsNothing);
+      expect(router.state.matchedLocation, Routes.studentHome);
+      await tester.pump(const Duration(seconds: 5));
     });
   }
 }

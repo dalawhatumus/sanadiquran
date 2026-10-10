@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../core/settings.dart';
 import 'sessions.dart';
+import 'user_stream.dart';
 
 /// Lessons on Firestore: sessions/{callId}, readable by its student and
 /// teacher. Either of them saves it when the call ends; only the teacher
@@ -31,12 +32,11 @@ mixin FirestoreLessons implements LessonApi {
   }
 
   @override
-  Stream<List<Lesson>> lessons() => auth.authStateChanges().asyncExpand((u) {
-    if (u == null) return Stream.value(const <Lesson>[]);
+  Stream<List<Lesson>> lessons() => perUser(auth, (uid) {
     // A user is a student or a teacher; both queries are cheap, and the
     // one that doesn't apply is simply empty.
-    final asStudent = _sessions.where('studentId', isEqualTo: u.uid).snapshots();
-    final asTeacher = _sessions.where('teacherId', isEqualTo: u.uid).snapshots();
+    final asStudent = _sessions.where('studentId', isEqualTo: uid).snapshots();
+    final asTeacher = _sessions.where('teacherId', isEqualTo: uid).snapshots();
     var a = const <Lesson>[];
     var b = const <Lesson>[];
     List<Lesson> merged() => [...a, ...b]..sort((x, y) => y.at.compareTo(x.at));
@@ -44,17 +44,17 @@ mixin FirestoreLessons implements LessonApi {
       final s1 = asStudent.listen((s) {
         a = [for (final d in s.docs) _lesson(d)];
         out.add(merged());
-      }, onError: (_) {});
+      }, onError: out.addError);
       final s2 = asTeacher.listen((s) {
         b = [for (final d in s.docs) _lesson(d)];
         out.add(merged());
-      }, onError: (_) {});
+      }, onError: out.addError);
       out.onCancel = () {
         s1.cancel();
         s2.cancel();
       };
     });
-  });
+  }, const <Lesson>[]);
 
   @override
   Future<void> recordLesson({

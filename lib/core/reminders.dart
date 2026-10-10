@@ -55,8 +55,21 @@ class Reminders {
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
 
-  /// Where a tapped reminder should take the user.
+  /// Where a tapped reminder should take the user (while the app runs).
   void Function(String route)? onOpen;
+
+  /// The athkar to open when the app was started by tapping a reminder;
+  /// read (once) by the splash screen, which opens it over the home screen.
+  String? takeLaunchRoute() {
+    final r = _launchRoute;
+    _launchRoute = null;
+    return r;
+  }
+
+  String? _launchRoute;
+
+  @visibleForTesting
+  set launchRouteForTest(String? route) => _launchRoute = route;
 
   static const _morningId = 1;
   static const _eveningId = 2;
@@ -81,10 +94,7 @@ class Reminders {
       );
       final launch = await _plugin.getNotificationAppLaunchDetails();
       final route = launch?.notificationResponse?.payload;
-      if ((launch?.didNotificationLaunchApp ?? false) && route != null) {
-        // Opened from a reminder: go there once the app is up.
-        WidgetsBinding.instance.addPostFrameCallback((_) => onOpen?.call(route));
-      }
+      if ((launch?.didNotificationLaunchApp ?? false) && route != null) _launchRoute = route;
     } catch (e) {
       debugPrint('Reminders unavailable: $e');
     }

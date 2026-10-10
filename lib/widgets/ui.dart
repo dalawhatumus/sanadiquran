@@ -189,6 +189,7 @@ TextStyle nameFont(BuildContext context, TextStyle style, {bool arabic = false})
   if (!arabic && !context.isAr) return style;
   return style.copyWith(
     fontFamily: SanadiFonts.naskh,
+    letterSpacing: 0,
     fontFamilyFallback: const ['Tajawal'],
     height: (style.height ?? 1.3) + 0.3,
   );

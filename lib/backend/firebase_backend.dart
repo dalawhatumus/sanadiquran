@@ -11,6 +11,7 @@ import 'config.dart';
 import 'firestore_calls.dart';
 import 'firestore_chat.dart';
 import 'firestore_lessons.dart';
+import 'user_stream.dart';
 
 /// The real server: Google sign-in through Firebase Auth, data in Firestore.
 ///
@@ -43,7 +44,7 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons imple
 
   /// Runs [build] for the signed-in user, and again whenever that changes.
   Stream<T> _forUser<T>(Stream<T> Function(String uid) build, {required T signedOut}) =>
-      _auth.authStateChanges().asyncExpand((u) => u == null ? Stream.value(signedOut) : build(u.uid));
+      perUser(_auth, build, signedOut);
 
   @override
   Future<SignedInUser> signIn() async {

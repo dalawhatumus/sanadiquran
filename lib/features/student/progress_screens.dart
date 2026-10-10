@@ -292,7 +292,13 @@ class LessonNotesScreen extends ConsumerWidget {
                   Text(
                     a.text,
                     textDirection: TextDirection.rtl,
-                    style: TextStyle(fontFamily: SanadiFonts.quran, fontSize: 24, color: t.text, height: 2),
+                    style: TextStyle(
+                      fontFamily: SanadiFonts.quran,
+                      letterSpacing: 0,
+                      fontSize: 24,
+                      color: t.text,
+                      height: 2,
+                    ),
                   ),
                 ],
               ),

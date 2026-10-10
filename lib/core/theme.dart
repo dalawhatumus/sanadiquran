@@ -136,6 +136,9 @@ ThemeData buildTheme(Locale locale, Brightness brightness) {
     fontFamilyFallback: fallback,
     fontSize: size,
     fontWeight: w,
+    // No extra tracking: Material's default letter spacing pulls Arabic
+    // letters and their harakat apart (and hides some marks entirely).
+    letterSpacing: 0,
     color: c,
     height: ar ? h + 0.1 : h,
     // Spread extra line height evenly above and below, so text sits in the

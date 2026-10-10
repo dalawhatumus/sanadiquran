@@ -83,19 +83,42 @@ void main() {
       await tester.pumpAndSettle();
       expect(shownPage(), 78, reason: 'short swipe');
 
-      // Tapping near the left edge turns forward, near the right edge back.
+      // A tap never turns the page, even near the edges (only swipes do).
       await tester.tapAt(const Offset(20, 420));
       await tester.pumpAndSettle();
-      expect(shownPage(), 79);
+      expect(shownPage(), 78);
       await tester.tapAt(const Offset(340, 420));
       await tester.pumpAndSettle();
       expect(shownPage(), 78);
 
-      // Tapping the middle shows and hides the bars.
-      await tester.pump(const Duration(seconds: 5));
+      // The Quran text gets no extra letter spacing (it pulls the harakat
+      // off their letters and hides the small alif).
+      for (final rt in tester.widgetList<RichText>(
+        find.descendant(of: find.byType(MushafPage), matching: find.byType(RichText)),
+      )) {
+        void check(InlineSpan span, double inherited) {
+          final ls = span.style?.letterSpacing ?? inherited;
+          expect(ls, 0, reason: 'letter spacing on "${span.toPlainText()}"');
+          if (span is TextSpan) {
+            for (final c in span.children ?? const <InlineSpan>[]) {
+              check(c, ls);
+            }
+          }
+        }
+
+        check(rt.text, 0);
+      }
+
+      // Each tap shows or hides the bars.
+      final back = find.byIcon(Icons.bookmark_border_rounded);
+      final shown = back.hitTestable().evaluate().isNotEmpty;
       await tester.tapAt(const Offset(180, 420));
       await tester.pumpAndSettle();
-      final back = find.byIcon(Icons.bookmark_border_rounded);
+      expect(back.hitTestable().evaluate().isNotEmpty, !shown, reason: 'a tap toggles the bars');
+      if (shown) {
+        await tester.tapAt(const Offset(180, 420));
+        await tester.pumpAndSettle();
+      }
       expect(back.hitTestable(), findsOneWidget, reason: 'bars shown after tap');
 
       // Bookmark this page.

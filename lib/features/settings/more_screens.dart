@@ -168,7 +168,7 @@ class AboutScreen extends StatelessWidget {
 }
 
 /// The version shown in Settings and About (keep in step with pubspec).
-const appVersion = '0.8.0';
+const appVersion = '0.8.1';
 
 /// People this user blocked in messages, with Unblock.
 class BlockedScreen extends ConsumerWidget {

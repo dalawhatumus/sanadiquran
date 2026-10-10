@@ -150,7 +150,7 @@ class _DhikrScreenState extends ConsumerState<DhikrScreen> {
             ayahs.map((a) => a.text).join(' '),
             textDirection: TextDirection.rtl,
             textAlign: TextAlign.center,
-            style: TextStyle(fontFamily: SanadiFonts.quran, fontSize: 28, color: t.text, height: 2.1),
+            style: TextStyle(fontFamily: SanadiFonts.quran, letterSpacing: 0, fontSize: 28, color: t.text, height: 2.1),
           ),
         ],
       );
@@ -161,6 +161,7 @@ class _DhikrScreenState extends ConsumerState<DhikrScreen> {
         textAlign: TextAlign.center,
         style: TextStyle(
           fontFamily: SanadiFonts.naskh,
+          letterSpacing: 0,
           fontSize: 28,
           fontWeight: FontWeight.w500,
           color: t.text,
