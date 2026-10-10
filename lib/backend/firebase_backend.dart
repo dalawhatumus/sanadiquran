@@ -9,6 +9,7 @@ import 'backend.dart';
 import 'config.dart';
 import 'firestore_calls.dart';
 import 'firestore_chat.dart';
+import 'firestore_lessons.dart';
 
 /// The real server: Google sign-in through Firebase Auth, data in Firestore.
 ///
@@ -19,7 +20,7 @@ import 'firestore_chat.dart';
 /// - presence/{uid}: an approved teacher's "available" switch and gender.
 ///   Any signed-in user can read it (to count available teachers).
 /// - admins/{uid}: who can review applications. Added by hand in the console.
-class FirebaseBackend with FirestoreChat, FirestoreCalls implements Backend {
+class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons implements Backend {
   FirebaseBackend();
 
   final _auth = FirebaseAuth.instance;

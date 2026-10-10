@@ -13,7 +13,6 @@ import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
-import '../quran/quran_data.dart';
 import 'call_controller.dart';
 
 String _clock(S s, int secs) =>
@@ -468,7 +467,11 @@ class _StudentCallEndedScreenState extends ConsumerState<StudentCallEndedScreen>
                           borderRadius: BorderRadius.circular(16),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(16),
-                            onTap: () => setState(() => _rating = i),
+                            onTap: () {
+                              setState(() => _rating = i);
+                              final id = ref.read(callControllerProvider).callId;
+                              if (id != null) ref.read(backendProvider).rateLesson(id, i).catchError((_) {});
+                            },
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(minHeight: 88),
                               child: Column(
@@ -571,7 +574,7 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
 
   CallInfo _demoCall(S s) => CallInfo(
     id: 'demo-incoming',
-    studentId: 'demo-student',
+    studentId: 'demo',
     studentName: s.studentName,
     studentAvatar: sampleStudentAvatar(s.female),
     status: CallStatus.ringing,
@@ -772,181 +775,12 @@ class TeacherCallEndedScreen extends ConsumerWidget {
           label: s.addNotes,
           icon: Icons.edit_note_rounded,
           kind: ButtonKind.outline,
-          onPressed: () => context.push(Routes.notesForm),
+          onPressed: () {
+            final id = ref.read(callControllerProvider).callId;
+            context.push(id == null ? Routes.notesForm : Routes.notesFormFor(id));
+          },
         ),
         LinkButton(label: s.reportProblem, onPressed: () => showSoon(context)),
-      ],
-    );
-  }
-}
-
-/// 34 · Optional notes form. Everything is optional; Save is always on.
-class NotesFormScreen extends ConsumerStatefulWidget {
-  const NotesFormScreen({super.key});
-
-  @override
-  ConsumerState<NotesFormScreen> createState() => _NotesFormScreenState();
-}
-
-class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
-  int _from = 1;
-  int _to = 10;
-  int? _grade;
-  final _practise = <int>{};
-  bool _saving = false;
-
-  Future<void> _save() async {
-    setState(() => _saving = true);
-    await Future<void>.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    final s = S.of(context);
-    context.go(Routes.teacherHome);
-    toast(context, s.notesSaved);
-  }
-
-  Widget _stepper(String label, int value, ValueChanged<int> onChanged) {
-    final s = S.of(context);
-    final t = context.t;
-    Widget btn(IconData icon, int delta) => IconButton.filledTonal(
-      onPressed: () => onChanged((value + delta).clamp(1, 30)),
-      icon: Icon(icon, size: 28),
-      style: IconButton.styleFrom(
-        minimumSize: const Size(kMinTap, kMinTap),
-        backgroundColor: t.tint,
-        foregroundColor: t.primary,
-      ),
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            btn(Icons.remove_rounded, -1),
-            Expanded(
-              child: Text(
-                s.n(value),
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: t.heading),
-              ),
-            ),
-            btn(Icons.add_rounded, 1),
-          ],
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    final t = context.t;
-    final tt = Theme.of(context).textTheme;
-    final q = ref.watch(quranProvider).value;
-    final from = _stepper(s.fromAyah, _from, (v) => setState(() => _from = v.clamp(1, _to)));
-    final to = _stepper(s.toAyah, _to, (v) => setState(() => _to = v.clamp(_from, 30)));
-
-    return StepScaffold(
-      showBack: true,
-      content: [
-        WordSafeText(s.notesTitle, style: tt.headlineSmall),
-        const SizedBox(height: 6),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.info_rounded, color: t.primary),
-            const SizedBox(width: 8),
-            Expanded(child: Text(s.allOptional, style: tt.bodyMedium)),
-          ],
-        ),
-        const SizedBox(height: 18),
-        WordSafeText(s.portionL, style: tt.titleMedium),
-        const SizedBox(height: 8),
-        SCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(s.surahMulk, style: tt.titleSmall!.copyWith(color: t.heading)),
-              const SizedBox(height: 10),
-              from,
-              const SizedBox(height: 12),
-              to,
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        WordSafeText(s.gradeL, style: tt.titleMedium),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            for (var i = 0; i < 3; i++)
-              PickChip(
-                label: s.grades[i],
-                selected: _grade == i,
-                onTap: () => setState(() => _grade = _grade == i ? null : i),
-              ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        WordSafeText(s.mistakesL, style: tt.titleMedium),
-        const SizedBox(height: 8),
-        if (q != null)
-          for (var a = _from; a <= _to; a++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: SCard(
-                color: _practise.contains(a) ? t.tint : t.surface,
-                border: _practise.contains(a) ? t.primary : null,
-                onTap: () => setState(() => _practise.contains(a) ? _practise.remove(a) : _practise.add(a)),
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      _practise.contains(a) ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
-                      color: _practise.contains(a) ? t.primary : t.muted,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        q.ayah(67, a)!.text,
-                        textDirection: TextDirection.rtl,
-                        style: TextStyle(fontFamily: SanadiFonts.quran, fontSize: 22, color: t.text, height: 2),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        const SizedBox(height: 10),
-        WordSafeText(s.nextL, style: tt.titleMedium),
-        const SizedBox(height: 8),
-        SCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              WordSafeText(s.nextPortion, style: tt.titleLarge),
-              Text(s.suggested, style: tt.bodySmall),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        WordSafeText(s.noteTo, style: tt.titleMedium),
-        const SizedBox(height: 8),
-        TextField(
-          minLines: 3,
-          maxLines: 6,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: t.text),
-          decoration: InputDecoration(hintText: s.typeNote),
-        ),
-      ],
-      bottom: [
-        BigButton(label: s.saveNotes, icon: Icons.check_rounded, busy: _saving, onPressed: _save),
-        BigButton(label: s.cancel, kind: ButtonKind.outline, onPressed: () => context.pop()),
       ],
     );
   }

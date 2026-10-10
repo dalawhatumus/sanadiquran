@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../backend/backend.dart';
 import '../../backend/chat.dart';
+import '../../backend/sessions.dart';
 import '../../core/connectivity.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
@@ -13,7 +14,9 @@ import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
+import '../lessons/lessons_ui.dart';
 import '../messages/messages_screen.dart';
+import '../quran/quran_data.dart';
 
 /// 17 · Student home: one giant "Recite now" action.
 class StudentHomeScreen extends ConsumerWidget {
@@ -25,7 +28,12 @@ class StudentHomeScreen extends ConsumerWidget {
     final t = context.t;
     final tt = Theme.of(context).textTheme;
     final settings = ref.watch(settingsProvider);
-    final firstTime = settings.sessions == 0;
+    final live = ref.watch(backendProvider).live;
+    final lessons = ref.watch(lessonsProvider).value ?? const <Lesson>[];
+    final next = ref.watch(nextPortionProvider);
+    final q = ref.watch(quranProvider).value;
+    // Online, the lesson history decides; in demo mode, the practice calls.
+    final firstTime = live ? lessons.isEmpty : settings.sessions == 0;
     final offline = ref.watch(offlineProvider);
 
     // Calling needs internet; everything else on this screen works offline.
@@ -98,22 +106,24 @@ class StudentHomeScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(s.nextPortionL, style: tt.bodyMedium!.copyWith(color: t.muted)),
-                              WordSafeText(
-                                settings.sessions > 1 ? s.nextPortion : s.firstPortion,
-                                style: tt.titleLarge,
-                              ),
+                              if (next != null)
+                                WordSafeText(portionText(s, q, next), style: tt.titleLarge)
+                              else
+                                Text(s.noNextYet, style: tt.bodyMedium),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    BigButton(
-                      label: s.openInQuran,
-                      iconWidget: const SIcon(SIcons.rehal),
-                      kind: ButtonKind.outline,
-                      onPressed: () => context.push(Routes.mushafAt(sura: 67, ayah: settings.sessions > 1 ? 11 : 1)),
-                    ),
+                    if (next != null) ...[
+                      const SizedBox(height: 14),
+                      BigButton(
+                        label: s.openInQuran,
+                        iconWidget: const SIcon(SIcons.rehal),
+                        kind: ButtonKind.outline,
+                        onPressed: () => context.push(Routes.mushafAt(sura: next.sura, ayah: next.from)),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -131,7 +141,7 @@ class StudentHomeScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         WordSafeText(s.myProgress, style: tt.titleMedium!.copyWith(color: t.heading)),
-                        if (!firstTime) Text(s.progressSum, style: tt.bodySmall),
+                        if (lessons.isNotEmpty) Text(s.lessonsCount(lessons.length), style: tt.bodySmall),
                       ],
                     ),
                   ),

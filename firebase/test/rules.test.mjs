@@ -244,3 +244,44 @@ test('presence: busy flag', async () => {
   await assertSucceeds(setDoc(doc(db('t1'), 'presence/t1'), { available: true, gender: 'female', updatedAt: serverTimestamp() }));
   await assertSucceeds(updateDoc(doc(db('t1'), 'presence/t1'), { busy: true, updatedAt: serverTimestamp() }));
 });
+
+// ---- Lessons ----
+
+async function endedCall() {
+  const id = await startCall();
+  await updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: 't1', status: 'ringing' });
+  await updateDoc(doc(db('t1'), `calls/${id}`), { status: 'active' });
+  await updateDoc(doc(db('t1'), `calls/${id}`), { status: 'ended' });
+  return id;
+}
+
+const lesson = (over = {}) => ({
+  studentId: 's1', teacherId: 't1', studentName: 'F', teacherName: 'A', studentAvatar: null, teacherAvatar: null,
+  gender: 'female', startedAt: new Date(), durationSec: 600, createdAt: serverTimestamp(), ...over,
+});
+
+test('lessons: saved by either person for their own call only', async () => {
+  const id = await endedCall();
+  await assertFails(setDoc(doc(db('s2'), `sessions/${id}`), lesson({ studentId: 's2' })));
+  await assertFails(setDoc(doc(db('s1'), `sessions/${id}`), lesson({ teacherId: 't3' })));
+  await assertFails(setDoc(doc(db('s1'), `sessions/not-a-call`), lesson()));
+  await assertSucceeds(setDoc(doc(db('t1'), `sessions/${id}`), lesson()));
+  await assertSucceeds(getDoc(doc(db('s1'), `sessions/${id}`)));
+  await assertFails(getDoc(doc(db('s2'), `sessions/${id}`)));
+  await assertSucceeds(getDocs(query(collection(db('s1'), 'sessions'), where('studentId', '==', 's1'))));
+  await assertSucceeds(getDocs(query(collection(db('t1'), 'sessions'), where('teacherId', '==', 't1'))));
+});
+
+test('lessons: only the teacher writes notes, only the student rates', async () => {
+  const id = await endedCall();
+  await setDoc(doc(db('s1'), `sessions/${id}`), lesson());
+  const notes = { recited: { sura: 67, from: 1, to: 10 }, grade: 1, practise: [3, 7], next: { sura: 67, from: 11, to: 20 }, note: 'Well done', at: serverTimestamp() };
+  await assertFails(updateDoc(doc(db('s1'), `sessions/${id}`), { notes }));
+  await assertSucceeds(updateDoc(doc(db('t1'), `sessions/${id}`), { notes }));
+  await assertFails(updateDoc(doc(db('t1'), `sessions/${id}`), { notes: { ...notes, grade: 5 } }));
+  await assertFails(updateDoc(doc(db('t1'), `sessions/${id}`), { notes: { ...notes, recited: { sura: 200, from: 1, to: 2 } } }));
+  await assertFails(updateDoc(doc(db('t1'), `sessions/${id}`), { durationSec: 9999 }));
+  await assertSucceeds(updateDoc(doc(db('s1'), `sessions/${id}`), { rating: 2 }));
+  await assertFails(updateDoc(doc(db('t1'), `sessions/${id}`), { rating: 0 }));
+  await assertFails(updateDoc(doc(db('s1'), `sessions/${id}`), { rating: 7 }));
+});

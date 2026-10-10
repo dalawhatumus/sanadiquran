@@ -230,6 +230,16 @@ class CallController extends Notifier<CallState> {
       return;
     }
     final me = ref.read(settingsProvider);
+    _lastCall = CallInfo(
+      id: call.id,
+      studentId: call.studentId,
+      studentName: call.studentName,
+      studentAvatar: call.studentAvatar,
+      teacherId: call.teacherId ?? _b.myUid ?? 'demo-teacher',
+      teacherName: me.name.trim(),
+      teacherAvatar: me.avatar,
+      status: CallStatus.active,
+    );
     try {
       await _b.setBusy(true);
       await _b.acceptCall(call.id, name: me.name.trim(), avatar: me.avatar);
@@ -331,6 +341,23 @@ class CallController extends Notifier<CallState> {
     if (teacher) await _b.setBusy(false).catchError((_) {});
     if (at != null) {
       ref.read(settingsProvider.notifier).update((x) => x.copyWith(sessions: x.sessions + 1));
+      if (call != null && call.teacherId != null) {
+        // Saved to both people's history (whoever's phone gets there first).
+        await _b
+            .recordLesson(
+              callId: call.id,
+              studentId: call.studentId,
+              teacherId: call.teacherId!,
+              studentName: call.studentName,
+              teacherName: call.teacherName,
+              studentAvatar: call.studentAvatar,
+              teacherAvatar: call.teacherAvatar,
+              gender: ref.read(settingsProvider).gender ?? Gender.female,
+              startedAt: at,
+              durationSec: secs,
+            )
+            .catchError((Object e) => debugPrint('Lesson not saved: $e'));
+      }
       // A first lesson opens the chat between them.
       if (!teacher && call != null) await _b.openChatAfterCall(call).catchError((Object e) => debugPrint('$e'));
     }

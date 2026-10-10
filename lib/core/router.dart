@@ -7,6 +7,7 @@ import '../features/admin/connect_screen.dart';
 import '../features/athkar/athkar_menu_screen.dart';
 import '../features/athkar/dhikr_screen.dart';
 import '../features/call/call_screens.dart';
+import '../features/lessons/notes_form_screen.dart';
 import '../features/messages/chat_screen.dart';
 import '../features/messages/messages_screen.dart';
 import '../features/onboarding/application_screens.dart';
@@ -66,6 +67,9 @@ abstract final class Routes {
   static const adminReports = '/admin/reports';
 
   static String chat(String conversationId) => '/chat/$conversationId';
+  static String lessonNotes(String id) => '$teacherNotes?id=$id';
+  static String notesFormFor(String id) => '$notesForm?id=$id';
+  static String studentDetail(String uid) => '/student/$uid';
 
   static String homeFor(UserRole role) => role == UserRole.student ? studentHome : teacherHome;
   static String athkarFor(UserRole? role) => role == UserRole.teacher ? athkar : studentAthkar;
@@ -138,7 +142,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             ChatScreen(key: ValueKey(st.pathParameters['id']), conversationId: st.pathParameters['id']!),
       ),
       GoRoute(path: Routes.progress, builder: (_, _) => const ProgressScreen()),
-      GoRoute(path: Routes.teacherNotes, builder: (_, _) => const TeacherNotesScreen()),
+      GoRoute(
+        path: Routes.teacherNotes,
+        builder: (_, st) => LessonNotesScreen(lessonId: st.uri.queryParameters['id']),
+      ),
+      GoRoute(
+        path: '/student/:id',
+        builder: (_, st) => StudentDetailScreen(studentId: st.pathParameters['id']!),
+      ),
       GoRoute(
         path: Routes.connecting,
         builder: (_, st) => ConnectingScreen(teacherId: st.uri.queryParameters['teacher']),
@@ -159,7 +170,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.teacherEnded,
         builder: (_, st) => TeacherCallEndedScreen(seconds: int.tryParse(st.uri.queryParameters['s'] ?? '') ?? 0),
       ),
-      GoRoute(path: Routes.notesForm, builder: (_, _) => const NotesFormScreen()),
+      GoRoute(
+        path: Routes.notesForm,
+        builder: (_, st) => NotesFormScreen(lessonId: st.uri.queryParameters['id']),
+      ),
       GoRoute(
         path: Routes.mushaf,
         builder: (_, st) {

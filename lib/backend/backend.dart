@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/settings.dart';
 import 'calls.dart';
 import 'chat.dart';
+import 'sessions.dart';
 
 /// What the server knows about a user who just signed in.
 class SignedInUser {
@@ -69,7 +70,7 @@ class TeacherApplication {
 
 /// Everything that needs the internet. [DemoBackend] stands in until
 /// Firebase is configured, so the app can still be tried end to end.
-abstract class Backend implements ChatApi, CallApi {
+abstract class Backend implements ChatApi, CallApi, LessonApi {
   /// True when connected to the real server.
   bool get live;
 
@@ -109,7 +110,7 @@ final backendProvider = Provider<Backend>((ref) => DemoBackend());
 
 /// Works without a server: sign-in just continues, and the testing tools in
 /// Settings stand in for an admin.
-class DemoBackend with DemoChat, DemoCalls implements Backend {
+class DemoBackend with DemoChat, DemoCalls, DemoLessons implements Backend {
   @override
   bool get live => false;
 

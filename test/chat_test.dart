@@ -33,7 +33,9 @@ void main() {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
-      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+        disableAnimations: true,
+      );
       addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
       SharedPreferences.setMockInitialValues({
         'settings.v2':

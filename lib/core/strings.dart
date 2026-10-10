@@ -482,6 +482,8 @@ class S {
   String get jazakTeach =>
       t('JazakAllahu khairan for teaching.', 'جزاكِ الله خيرًا على التعليم.', 'جزاك الله خيرًا على التعليم.');
   String get notesTitle => t('Notes for $studentShort', 'ملاحظات ل$studentShort');
+  String notesForName(String name) => t('Notes for $name', 'ملاحظات لـ $name');
+  String noteToName(String name) => t('Note to $name', 'ملاحظة لـ $name');
   String get allOptional => t(
     'Everything here is optional. Fill in only what helps.',
     'كل ما هنا اختياري. املئي ما يفيد فقط.',
@@ -677,6 +679,49 @@ class S {
     'يحتاج سَنَدي إلى الميكروفون للمكالمات. اسمحي به من إعدادات الهاتف.',
     'يحتاج سَنَدي إلى الميكروفون للمكالمات. اسمح به من إعدادات الهاتف.',
   );
+
+  // ---- Lessons and progress ----
+  String notesFromName(String name) => t('Notes from $name', 'ملاحظات من $name');
+  String lessonWhen(String date, int min) => t('$date · $min min', '$date · ${n(min)} د');
+  String get noNotes => t('No notes', 'بلا ملاحظات');
+  String get addNotesShort => t('Add notes', 'إضافة ملاحظات');
+  String get editNotes => t('Edit notes', 'تعديل الملاحظات');
+  String lessonsCount(int k) => switch (k) {
+    1 => t('1 lesson', 'درس واحد'),
+    2 => t('2 lessons', 'درسان'),
+    <= 10 => t('$k lessons', '${n(k)} دروس'),
+    _ => t('$k lessons', '${n(k)} درسًا'),
+  };
+  String minutesCount(int k) => switch (k) {
+    1 => t('1 minute', 'دقيقة واحدة'),
+    2 => t('2 minutes', 'دقيقتان'),
+    <= 10 => t('$k minutes', '${n(k)} دقائق'),
+    _ => t('$k minutes', '${n(k)} دقيقة'),
+  };
+  String ayahsRecited(int k) => t('Ayahs recited: $k', 'الآيات المُسمَّعة: ${n(k)}');
+  String get chooseSurah => t('Choose surah', 'اختاري السورة', 'اختر السورة');
+  String get noNextYet => t(
+    'Your teacher will set your next portion after a lesson.',
+    'ستحدّد معلّمتكِ وِردكِ القادم بعد الدرس.',
+    'سيحدّد معلّمك وِردك القادم بعد الدرس.',
+  );
+  String lastLesson(String date) => t('Last lesson: $date', 'آخر درس: $date');
+  String get lessonsL => t('Lessons', 'الدروس');
+  String get notesNotSaved => t(
+    "Couldn't save the notes. Try again.",
+    'تعذّر حفظ الملاحظات. حاولي مرة أخرى.',
+    'تعذّر حفظ الملاحظات. حاول مرة أخرى.',
+  );
+  String get progressHeadline => t('Your lessons so far', 'دروسكِ حتى الآن', 'دروسك حتى الآن');
+  String get juzLegendTitle => t('Juz you have recited in', 'الأجزاء التي سمّعتِ منها', 'الأجزاء التي سمّعت منها');
+  List<String> get juzLegend => [
+    t('Recited well', 'سُمِّعت جيدًا'),
+    t('Needs more practice', 'بحاجة إلى تدريب'),
+    t('Not yet', 'لم تُسمَّع بعد'),
+  ];
+
+  /// "Al-Mulk 11–20" / "سورة المُلك ١١–٢٠" ([sura] is the surah's display name).
+  String portionName(String sura, int from, int to) => from == to ? '$sura ${n(from)}' : '$sura ${n(from)}–${n(to)}';
 
   // ---- Admin: connect and reports ----
   String get connectTitle => t('Connect a student and teacher', 'ربط طالب بمعلّم');

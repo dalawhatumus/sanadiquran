@@ -172,6 +172,42 @@ service cloud.firestore {
       }
     }
 
+    // Lessons (calls that connected): saved by either person when the call
+    // ends, matching the call. Only the teacher writes notes; only the
+    // student rates.
+    match /sessions/{id} {
+      function inLesson() {
+        return signedIn() && (request.auth.uid == resource.data.studentId || request.auth.uid == resource.data.teacherId);
+      }
+      function portion(p) {
+        return p == null || (p is map && p.keys().hasOnly(['sura', 'from', 'to'])
+          && p.sura is int && p.sura >= 1 && p.sura <= 114 && p.from is int && p.to is int && p.from <= p.to);
+      }
+
+      allow read: if inLesson();
+      allow create: if signedIn()
+        && request.auth.uid in [request.resource.data.studentId, request.resource.data.teacherId]
+        && callDoc(id).studentId == request.resource.data.studentId
+        && callDoc(id).teacherId == request.resource.data.teacherId
+        && callDoc(id).status in ['active', 'ended']
+        && request.resource.data.gender == callDoc(id).gender
+        && request.resource.data.durationSec is int
+        && request.resource.data.keys().hasOnly(['studentId', 'teacherId', 'studentName', 'teacherName',
+             'studentAvatar', 'teacherAvatar', 'gender', 'startedAt', 'durationSec', 'createdAt']);
+      allow update: if (signedIn() && request.auth.uid == resource.data.teacherId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notes'])
+          && request.resource.data.notes.keys().hasOnly(['recited', 'grade', 'practise', 'next', 'note', 'at'])
+          && portion(request.resource.data.notes.recited)
+          && portion(request.resource.data.notes.next)
+          && (request.resource.data.notes.grade == null || request.resource.data.notes.grade in [0, 1, 2])
+          && request.resource.data.notes.practise.size() <= 300
+          && text(request.resource.data.notes.note, 2000))
+        || (signedIn() && request.auth.uid == resource.data.studentId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating'])
+          && request.resource.data.rating in [0, 1, 2]);
+      allow delete: if false;
+    }
+
     // Reports about a user. Anyone signed in can send one; admins read them.
     match /reports/{rid} {
       allow create: if signedIn() && request.resource.data.reporterId == request.auth.uid

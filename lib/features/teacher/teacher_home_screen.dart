@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../backend/backend.dart';
+import '../../backend/sessions.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -109,6 +110,11 @@ class TeacherHomeScreen extends ConsumerWidget {
   List<Widget> _approved(BuildContext context, WidgetRef ref, S s, AppSettings settings) {
     final t = context.t;
     final live = ref.watch(backendProvider).live;
+    final now = DateTime.now();
+    final today = [
+      for (final l in ref.watch(lessonsProvider).value ?? const <Lesson>[])
+        if (DateUtils.isSameDay(l.at, now)) l,
+    ];
     final tt = Theme.of(context).textTheme;
     final on = settings.available;
     void toggle() => ref.read(settingsProvider.notifier).update((x) => x.copyWith(available: !on));
@@ -177,35 +183,38 @@ class TeacherHomeScreen extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: _Stat(value: s.n(settings.sessions + 3), label: s.sessionsL),
+                  child: _Stat(value: s.n(today.length), label: s.sessionsL),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: _Stat(value: s.n(48), label: s.minutesL),
+                  child: _Stat(value: s.n(today.fold<int>(0, (m, l) => m + l.minutes)), label: s.minutesL),
                 ),
               ],
             ),
           ],
         ),
       ),
-      const SizedBox(height: 14),
-      SCard(
-        child: Row(
-          children: [
-            TintBox(size: 52, circle: true, child: SIcon(SIcons.students, color: t.primary)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(s.waiting, style: tt.titleSmall),
-                  if (!on) Text(s.waitingOff, style: tt.bodySmall),
-                ],
+      // Sample only: "students waiting" needs notifications (a later update).
+      if (!live) ...[
+        const SizedBox(height: 14),
+        SCard(
+          child: Row(
+            children: [
+              TintBox(size: 52, circle: true, child: SIcon(SIcons.students, color: t.primary)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(s.waiting, style: tt.titleSmall),
+                    if (!on) Text(s.waitingOff, style: tt.bodySmall),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+      ],
       if (!live) ...[
         const SizedBox(height: 20),
         BigButton(
