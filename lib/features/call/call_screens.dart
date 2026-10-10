@@ -12,6 +12,7 @@ import '../../core/router.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/avatars.dart';
+import '../settings/more_screens.dart';
 import '../../widgets/ui.dart';
 import 'call_controller.dart';
 
@@ -511,7 +512,10 @@ class _StudentCallEndedScreenState extends ConsumerState<StudentCallEndedScreen>
             context.go(Routes.studentHome);
           },
         ),
-        LinkButton(label: s.reportProblem, onPressed: () => showSoon(context)),
+        LinkButton(
+          label: s.reportProblem,
+          onPressed: () => contactSanadi(context, subject: 'Sanadi call problem'),
+        ),
       ],
     );
   }
@@ -780,7 +784,10 @@ class TeacherCallEndedScreen extends ConsumerWidget {
             context.push(id == null ? Routes.notesForm : Routes.notesFormFor(id));
           },
         ),
-        LinkButton(label: s.reportProblem, onPressed: () => showSoon(context)),
+        LinkButton(
+          label: s.reportProblem,
+          onPressed: () => contactSanadi(context, subject: 'Sanadi call problem'),
+        ),
       ],
     );
   }

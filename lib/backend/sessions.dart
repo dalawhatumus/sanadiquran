@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -134,13 +135,40 @@ final lessonProvider = Provider.family<Lesson?, String>(
   (ref, id) => (ref.watch(lessonsProvider).value ?? const <Lesson>[]).where((l) => l.id == id).firstOrNull,
 );
 
-/// The student's next portion: from the newest lesson whose notes set one.
+/// A next portion the student chose herself (from the ayah menu), with when.
+class OwnNextPortion extends Notifier<(Portion, DateTime)?> {
+  static const _key = 'ownNextPortion';
+
+  @override
+  (Portion, DateTime)? build() {
+    final raw = ref.read(sharedPreferencesProvider).getString(_key);
+    if (raw == null) return null;
+    final m = jsonDecode(raw) as Map<String, dynamic>;
+    final p = Portion.fromMap(m);
+    final at = DateTime.tryParse('${m['at']}');
+    return p == null || at == null ? null : (p, at);
+  }
+
+  void set(Portion p) {
+    final at = DateTime.now();
+    state = (p, at);
+    ref.read(sharedPreferencesProvider).setString(_key, jsonEncode({...p.toMap(), 'at': at.toIso8601String()}));
+  }
+}
+
+final ownNextPortionProvider = NotifierProvider<OwnNextPortion, (Portion, DateTime)?>(OwnNextPortion.new);
+
+/// The student's next portion: her own choice, unless a lesson since then set
+/// one; otherwise from the newest lesson whose notes set one.
 final nextPortionProvider = Provider<Portion?>((ref) {
+  final own = ref.watch(ownNextPortionProvider);
   for (final l in ref.watch(lessonsProvider).value ?? const <Lesson>[]) {
     final next = l.notes?.next;
-    if (next != null) return next;
+    if (next == null) continue;
+    if (own != null && own.$2.isAfter(l.at)) return own.$1;
+    return next;
   }
-  return null;
+  return own?.$1;
 });
 
 /// Demo mode: two sample lessons (the newest with notes), so the progress

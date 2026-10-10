@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -57,7 +58,11 @@ class TeacherApplication {
     required this.gender,
     required this.answers,
     this.submitted,
+    this.sampleSec = 0,
   });
+
+  /// Length of the recorded sample (0 if none was sent).
+  final int sampleSec;
 
   final String uid;
   final String name;
@@ -84,7 +89,27 @@ abstract class Backend implements ChatApi, CallApi, LessonApi {
   Future<void> saveProfile(AppSettings s);
 
   /// Sends a teacher application for review.
-  Future<void> submitApplication({required String name, required Gender? gender, required Map<String, String> answers});
+  Future<void> submitApplication({
+    required String name,
+    required Gender? gender,
+    required Map<String, String> answers,
+    Uint8List? sample,
+    int sampleSec = 0,
+  });
+
+  /// Why an application was turned down (empty if no reason was given).
+  Stream<String> applicationReason();
+
+  /// The recitation sample sent with an application (admins).
+  Future<Uint8List?> applicationSample(String uid);
+
+  /// Marks a report as dealt with (admins).
+  Future<void> resolveReport(String id);
+
+  /// Deletes this user's account and personal data, then signs out.
+  /// Throws [SignInCancelled] if a fresh Google sign-in was needed and
+  /// the user closed it.
+  Future<void> deleteAccount();
 
   /// Where this user's teacher application stands, live.
   Stream<TeacherStatus> teacherStatus();
@@ -128,7 +153,21 @@ class DemoBackend with DemoChat, DemoCalls, DemoLessons implements Backend {
     required String name,
     required Gender? gender,
     required Map<String, String> answers,
+    Uint8List? sample,
+    int sampleSec = 0,
   }) async {}
+
+  @override
+  Stream<String> applicationReason() => Stream.value('');
+
+  @override
+  Future<Uint8List?> applicationSample(String uid) async => null;
+
+  @override
+  Future<void> resolveReport(String id) async {}
+
+  @override
+  Future<void> deleteAccount() async {}
 
   @override
   Stream<TeacherStatus> teacherStatus() => const Stream.empty();
@@ -164,6 +203,8 @@ final availableTeachersProvider = StreamProvider.family<int, Gender?>(
 );
 
 final isAdminProvider = StreamProvider<bool>((ref) => ref.watch(backendProvider).isAdmin());
+
+final applicationReasonProvider = StreamProvider<String>((ref) => ref.watch(backendProvider).applicationReason());
 
 final pendingApplicationsProvider = StreamProvider<List<TeacherApplication>>(
   (ref) => ref.watch(backendProvider).pendingApplications(),

@@ -180,6 +180,12 @@ class QuranData {
     return i == null ? null : ayahs[i];
   }
 
+  /// The ayah after [a] in the mushaf, or null after the last.
+  Ayah? after(Ayah a) {
+    final i = _index[a.key];
+    return i == null || i + 1 >= ayahs.length ? null : ayahs[i + 1];
+  }
+
   List<Ayah> range(int sura, int from, int to) => [for (var a = from; a <= to; a++) ?ayah(sura, a)];
 
   Sura sura(int n) => suras[n - 1];

@@ -33,18 +33,31 @@ service cloud.firestore {
       allow read: if isMe(uid) || isAdmin();
       allow create: if isMe(uid)
         && request.resource.data.status == 'pending'
-        && request.resource.data.keys().hasOnly(['name', 'gender', 'answers', 'order', 'status', 'submittedAt'])
+        && request.resource.data.keys().hasOnly(['name', 'gender', 'answers', 'order', 'sampleSec', 'status', 'submittedAt'])
         && request.resource.data.answers.size() <= 20;
       allow update: if (isMe(uid)
           && resource.data.status in ['pending', 'rejected']
           && request.resource.data.status == 'pending'
-          && request.resource.data.keys().hasOnly(['name', 'gender', 'answers', 'order', 'status', 'submittedAt'])
+          && request.resource.data.keys().hasOnly(['name', 'gender', 'answers', 'order', 'sampleSec', 'status', 'submittedAt'])
           && request.resource.data.answers.size() <= 20)
         || (isAdmin()
           && request.resource.data.status in ['approved', 'rejected']
           && request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(['status', 'reason', 'decidedAt', 'decidedBy']));
-      allow delete: if false;
+      // Deleting the account removes the application too.
+      allow delete: if isMe(uid);
+    }
+
+    // An applicant's recitation sample (at most about 2 minutes of AAC),
+    // kept apart so the list of applications stays light.
+    match /applicationSamples/{uid} {
+      allow read: if isMe(uid) || isAdmin();
+      allow create, update: if isMe(uid)
+        && request.resource.data.keys().hasOnly(['data', 'durationSec', 'createdAt'])
+        && request.resource.data.data is bytes
+        && request.resource.data.data.size() <= 900000
+        && request.resource.data.durationSec is int;
+      allow delete: if isMe(uid);
     }
 
     // "I'm available to teach". Only approved teachers can set it.

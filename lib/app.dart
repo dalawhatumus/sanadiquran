@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'backend/backend.dart';
+import 'core/reminders.dart';
 import 'core/router.dart';
 import 'core/settings.dart';
 import 'core/strings.dart';
@@ -16,6 +17,8 @@ class SanadiApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     ref.watch(backendSyncProvider);
+    ref.watch(remindersSyncProvider);
+    Reminders.instance.onOpen = (route) => router.go(route);
     // Only what the app shell needs, so other settings changes don't
     // rebuild every screen.
     final settings = ref.watch(settingsProvider.select((s) => (s.locale, s.themeMode, s.gender)));

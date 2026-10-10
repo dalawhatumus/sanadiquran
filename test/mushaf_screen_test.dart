@@ -8,9 +8,12 @@ import 'package:go_router/go_router.dart';
 import 'package:sanadi/app.dart';
 import 'package:sanadi/core/connectivity.dart';
 import 'package:sanadi/core/router.dart';
+import 'package:sanadi/backend/sessions.dart';
 import 'package:sanadi/core/settings.dart';
+import 'package:sanadi/core/strings.dart';
 import 'package:sanadi/features/quran/mushaf_page.dart';
 import 'package:sanadi/features/quran/quran_data.dart';
+import 'package:sanadi/features/quran/recitation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Uses every control of the mushaf screen the way a reader would.
@@ -123,6 +126,17 @@ void main() {
       expect(copied, isNotNull);
       expect(copied!.contains('['), isTrue);
 
+      // A student can set the ayah as her next portion.
+      await tester.longPressAt(const Offset(180, 500));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.flag_rounded));
+      await tester.pumpAndSettle();
+      final own = container.read(ownNextPortionProvider);
+      expect(own, isNotNull);
+      expect(own!.$1.sura, 18, reason: 'page 300 is in Al-Kahf');
+      await tester.pump(const Duration(seconds: 6)); // let the toast go
+      await tester.pumpAndSettle();
+
       // Switch to Large text and back: the same place stays open.
       await tester.tapAt(const Offset(180, 420));
       await tester.pumpAndSettle();
@@ -130,6 +144,18 @@ void main() {
         await tester.tapAt(const Offset(180, 420));
         await tester.pumpAndSettle();
       }
+
+      // Recitation settings: repeat each ayah three times.
+      await tester.tap(find.byIcon(Icons.tune_rounded).hitTestable().first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(S(ar: locale == 'ar', female: true).repeatTimes(3)));
+      await tester.pumpAndSettle();
+      expect(container.read(recitationProvider).repeat, 3);
+      expect(prefs.getInt('recitation.repeat'), 3);
+      await tester.tapAt(const Offset(180, 40));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
       await tester.tap(find.byIcon(Icons.format_size_rounded));
       await tester.pumpAndSettle();
       expect(container.read(settingsProvider).mushafMode, MushafMode.large);

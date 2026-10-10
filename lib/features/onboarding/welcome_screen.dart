@@ -129,7 +129,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           alignment: WrapAlignment.center,
           spacing: 8,
           children: [
-            LinkButton(label: s.privacy, onPressed: () => showSoon(context)),
+            LinkButton(label: s.privacy, onPressed: () => context.push(Routes.privacy)),
             LinkButton(label: s.terms, onPressed: () => showSoon(context)),
           ],
         ),

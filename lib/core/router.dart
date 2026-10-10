@@ -19,6 +19,7 @@ import '../features/onboarding/tour_screen.dart';
 import '../features/onboarding/welcome_screen.dart';
 import '../features/quran/mushaf_screen.dart';
 import '../features/quran/surah_index_screen.dart';
+import '../features/settings/more_screens.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/home_shell.dart';
 import '../features/student/progress_screens.dart';
@@ -65,6 +66,9 @@ abstract final class Routes {
   static const admin = '/admin';
   static const adminConnect = '/admin/connect';
   static const adminReports = '/admin/reports';
+  static const privacy = '/privacy';
+  static const about = '/about';
+  static const blocked = '/blocked';
 
   static String chat(String conversationId) => '/chat/$conversationId';
   static String lessonNotes(String id) => '$teacherNotes?id=$id';
@@ -133,6 +137,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, st) => ApplicationScreen(step: int.tryParse(st.pathParameters['step']!) ?? 1),
       ),
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
+      GoRoute(path: Routes.privacy, builder: (_, _) => const PrivacyScreen()),
+      GoRoute(path: Routes.about, builder: (_, _) => const AboutScreen()),
+      GoRoute(path: Routes.blocked, builder: (_, _) => const BlockedScreen()),
       GoRoute(path: Routes.admin, builder: (_, _) => const ApplicationsScreen()),
       GoRoute(path: Routes.adminConnect, builder: (_, _) => const ConnectScreen()),
       GoRoute(path: Routes.adminReports, builder: (_, _) => const ReportsScreen()),

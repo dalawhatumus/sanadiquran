@@ -9,9 +9,11 @@ import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
+import '../athkar/athkar_menu_screen.dart';
+import 'more_screens.dart';
 
-/// Settings (screens 51–64 are in a later design batch). For now: language,
-/// appearance, sign out, and testing tools for this test build.
+/// Settings: profile, language, appearance, reminders, help and privacy,
+/// account (sign out, delete), and testing tools for test builds.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -40,6 +42,71 @@ class SettingsScreen extends ConsumerWidget {
       padding: const EdgeInsets.only(top: 24, bottom: 10),
       child: WordSafeText(title, style: tt.titleLarge),
     );
+
+    Widget linkCard(IconData icon, String title, String sub, VoidCallback onTap, {Color? color}) => Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: SCard(
+        onTap: onTap,
+        child: Row(
+          children: [
+            TintBox(child: Icon(icon, color: color ?? t.primary)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  WordSafeText(title, style: tt.titleMedium!.copyWith(color: color ?? t.heading)),
+                  Text(sub, style: tt.bodySmall),
+                ],
+              ),
+            ),
+            Icon(Arrows.next, color: color ?? t.primary, size: 32),
+          ],
+        ),
+      ),
+    );
+
+    Future<void> changeName() async {
+      final name = await askName(context, settings.name);
+      if (name != null && name != settings.name) n.update((x) => x.copyWith(name: name));
+    }
+
+    Future<void> deleteAccount() async {
+      final yes = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(s.deleteAccountQ),
+          content: Text(s.deleteAccountBody, style: const TextStyle(fontSize: 18)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(s.cancel, style: const TextStyle(fontSize: 18)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(
+                s.deleteForever,
+                style: TextStyle(fontSize: 18, color: t.warn, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      );
+      if (yes != true) return;
+      try {
+        await backend.deleteAccount();
+      } on SignInCancelled {
+        return;
+      } catch (_) {
+        if (context.mounted) toast(context, s.decisionFailed);
+        return;
+      }
+      n.reset();
+      if (context.mounted) {
+        toast(context, s.accountDeleted);
+        context.go(Routes.language);
+      }
+    }
 
     return StepScaffold(
       showBack: true,
@@ -77,33 +144,15 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: 10),
+        BigButton(label: s.changeName, icon: Icons.badge_rounded, kind: ButtonKind.tint, onPressed: changeName),
         if (admin) ...[
           for (final (icon, title, sub, route) in [
             (Icons.how_to_reg_rounded, s.adminTitle, s.adminSub, Routes.admin),
             (Icons.link_rounded, s.connectTitle, s.connectSub, Routes.adminConnect),
             (Icons.flag_rounded, s.reportsTitle, s.reportsSub, Routes.adminReports),
-          ]) ...[
-            const SizedBox(height: 12),
-            SCard(
-              onTap: () => context.push(route),
-              child: Row(
-                children: [
-                  TintBox(child: Icon(icon, color: t.primary)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        WordSafeText(title, style: tt.titleMedium!.copyWith(color: t.heading)),
-                        Text(sub, style: tt.bodySmall),
-                      ],
-                    ),
-                  ),
-                  Icon(Arrows.next, color: t.primary, size: 32),
-                ],
-              ),
-            ),
-          ],
+          ])
+            linkCard(icon, title, sub, () => context.push(route)),
         ],
         section(s.language),
         Row(
@@ -142,6 +191,18 @@ class SettingsScreen extends ConsumerWidget {
               ),
           ],
         ),
+        linkCard(
+          Icons.notifications_rounded,
+          s.remindersL,
+          settings.remindersOn ? s.remindersOnSub : s.remindersOffSub,
+          () => showReminderSheet(context),
+        ),
+        section(s.helpSection),
+        linkCard(Icons.mail_rounded, s.contactUs, s.contactSub, () => contactSanadi(context)),
+        linkCard(Icons.shield_rounded, s.privacyTitle, s.privacySub, () => context.push(Routes.privacy)),
+        linkCard(Icons.info_rounded, s.aboutTitle, s.aboutSub, () => context.push(Routes.about)),
+        if (backend.live)
+          linkCard(Icons.block_rounded, s.blockedTitle, s.blockedSub, () => context.push(Routes.blocked)),
         section(s.testing),
         Text(s.testingNote, style: tt.bodySmall),
         const SizedBox(height: 12),
@@ -220,10 +281,19 @@ class SettingsScreen extends ConsumerWidget {
             if (yes == true) await signOut();
           },
         ),
+        if (backend.live) ...[
+          const SizedBox(height: 12),
+          BigButton(
+            label: s.deleteAccount,
+            icon: Icons.delete_forever_rounded,
+            kind: ButtonKind.outline,
+            onPressed: deleteAccount,
+          ),
+        ],
         const SizedBox(height: 20),
         Text(backend.live ? s.serverLive : s.serverDemo, style: tt.bodySmall, textAlign: TextAlign.center),
         const SizedBox(height: 4),
-        Text('${s.version} 0.7.0', style: tt.bodySmall, textAlign: TextAlign.center),
+        Text('${s.version} $appVersion', style: tt.bodySmall, textAlign: TextAlign.center),
       ],
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -119,14 +120,24 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons imple
     required String name,
     required Gender? gender,
     required Map<String, String> answers,
+    Uint8List? sample,
+    int sampleSec = 0,
   }) async {
     final uid = _uid;
     if (uid == null) return;
+    // The recording is kept apart, so the list of applications stays light.
+    if (sample != null) {
+      await _doc(
+        'applicationSamples',
+        uid,
+      ).set({'data': Blob(sample), 'durationSec': sampleSec, 'createdAt': FieldValue.serverTimestamp()});
+    }
     await _doc('teacherApplications', uid).set({
       'name': name.trim(),
       'gender': gender?.name,
       'answers': answers,
       'order': answers.keys.toList(),
+      'sampleSec': sample == null ? 0 : sampleSec,
       'status': TeacherStatus.pending.name,
       'submittedAt': FieldValue.serverTimestamp(),
     });
@@ -137,6 +148,43 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons imple
     (uid) => _doc('teacherApplications', uid).snapshots().map((d) => _status(d.data())),
     signedOut: TeacherStatus.none,
   );
+
+  @override
+  Stream<String> applicationReason() => _forUser(
+    (uid) => _doc('teacherApplications', uid).snapshots().map((d) => (d.data()?['reason'] as String?) ?? ''),
+    signedOut: '',
+  ).handleError((_) {});
+
+  @override
+  Future<Uint8List?> applicationSample(String uid) async {
+    final d = await _doc('applicationSamples', uid).get();
+    final b = d.data()?['data'];
+    return b is Blob ? b.bytes : null;
+  }
+
+  @override
+  Future<void> resolveReport(String id) =>
+      _db.collection('reports').doc(id).update({'status': 'resolved', 'resolvedBy': _uid});
+
+  @override
+  Future<void> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final uid = user.uid;
+    // Personal data first (the rules allow it only while signed in).
+    for (final c in ['presence', 'applicationSamples', 'teacherApplications', 'users']) {
+      await _doc(c, uid).delete().catchError((Object e) => debugPrint('Delete $c: $e'));
+    }
+    try {
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      if (e.code != 'requires-recent-login') rethrow;
+      // Google asks to confirm the account once more before deleting it.
+      await signIn();
+      await _auth.currentUser?.delete();
+    }
+    await signOut();
+  }
 
   @override
   Future<void> setAvailable({required bool on, required Gender? gender}) async {
@@ -199,6 +247,7 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons imple
                 gender: Gender.values.where((g) => g.name == d.data()['gender']).firstOrNull,
                 answers: _ordered(d.data()),
                 submitted: (d.data()['submittedAt'] as Timestamp?)?.toDate(),
+                sampleSec: (d.data()['sampleSec'] as num?)?.toInt() ?? 0,
               ),
           ];
           list.sort((a, b) => (a.submitted ?? DateTime(2100)).compareTo(b.submitted ?? DateTime(2100)));

@@ -173,6 +173,20 @@ class ReportsScreen extends ConsumerWidget {
                     const SizedBox(height: 6),
                     Text(s.n(MaterialLocalizations.of(context).formatMediumDate(r.at!)), style: tt.bodySmall),
                   ],
+                  const SizedBox(height: 10),
+                  BigButton(
+                    label: s.markResolved,
+                    icon: Icons.check_rounded,
+                    kind: ButtonKind.outline,
+                    compact: true,
+                    onPressed: () async {
+                      try {
+                        await ref.read(backendProvider).resolveReport(r.id);
+                      } catch (_) {
+                        if (context.mounted) toast(context, s.decisionFailed);
+                      }
+                    },
+                  ),
                 ],
               ),
             ),

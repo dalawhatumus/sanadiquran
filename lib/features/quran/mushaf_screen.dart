@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../backend/sessions.dart';
+import '../../core/connectivity.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
@@ -12,6 +14,7 @@ import '../../widgets/ui.dart';
 import 'large_text_view.dart';
 import 'mushaf_page.dart';
 import 'quran_data.dart';
+import 'recitation.dart';
 import 'surah_index_screen.dart';
 
 /// 39 · The mushaf. Mushaf page mode shows the exact Madani 15-line pages
@@ -55,6 +58,14 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         toast(context, S.of(context).tapToShowBars);
       }
     });
+  }
+
+  @override
+  void deactivate() {
+    // Leaving the mushaf stops the recitation.
+    final r = ref.read(recitationProvider);
+    if (r.active) ref.read(recitationProvider.notifier).stop();
+    super.deactivate();
   }
 
   @override
@@ -112,6 +123,38 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     if (old != null) WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
   }
 
+  /// Recites from [from], or from the selected ayah, or from the top of
+  /// the page on screen.
+  Future<void> _play(QuranData q, {Ayah? from}) async {
+    final s = S.of(context);
+    final start = from ?? _selAyah ?? q.firstOn(_page.value);
+    _clearSelection();
+    if (!await ref.read(onlineCheckProvider)()) {
+      if (mounted) toast(context, s.recitationFailed);
+      return;
+    }
+    await ref.read(recitationProvider.notifier).playFrom(start);
+  }
+
+  /// Follows the recitation: highlights the ayah and turns to its page.
+  void _follow(QuranData q, Ayah? a) {
+    if (a == null) {
+      if (_selAyah == null) _selected.value = null;
+      return;
+    }
+    _selected.value = a.key;
+    final p = q.pageOf(a);
+    if (p == _page.value) return;
+    final spread = _spreadMode ?? false;
+    final mode = ref.read(settingsProvider).mushafMode;
+    if (mode == MushafMode.page && !spread && p == _page.value + 1) {
+      _turn(1);
+    } else if (!(spread && (p - 1) ~/ 2 == (_page.value - 1) ~/ 2)) {
+      _goTo(p);
+      _selected.value = a.key;
+    }
+  }
+
   void _onAyah(Ayah a, Offset at) {
     HapticFeedback.selectionClick();
     _selected.value = a.key;
@@ -156,6 +199,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         error: (e, _) => Center(child: Text('$e')),
         data: (q) {
           if (!_started) _start(q);
+          ref.listen(recitationProvider.select((r) => r.ayah), (_, a) => _follow(q, a));
           return _body(context, q);
         },
       ),
@@ -257,8 +301,15 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
           },
           onGoTo: () => _showGoTo(context, q),
         ),
-        _BottomBar(visible: _chrome && _selAyah == null),
-        if (_selAyah != null) _AyahToolbar(ayah: _selAyah!, at: _selAt, q: q, onClose: _clearSelection),
+        _BottomBar(visible: _chrome && _selAyah == null, onPlay: () => _play(q)),
+        if (_selAyah != null)
+          _AyahToolbar(
+            ayah: _selAyah!,
+            at: _selAt,
+            q: q,
+            onClose: _clearSelection,
+            onPlay: (a) => _play(q, from: a),
+          ),
       ],
     );
   }
@@ -488,24 +539,38 @@ class _TopBar extends ConsumerWidget {
   }
 }
 
-/// Listening bar (recitation audio comes with a later update).
-class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.visible});
+/// Listening bar: play from this page (or the chosen ayah), pause, stop,
+/// and the recitation settings. Stays on screen while reciting.
+class _BottomBar extends ConsumerWidget {
+  const _BottomBar({required this.visible, required this.onPlay});
 
   final bool visible;
+  final VoidCallback onPlay;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = S.of(context);
     const fg = Colors.white;
+    const sub = Color(0xFFDDE8E1);
+    final r = ref.watch(recitationProvider);
+    final c = ref.read(recitationProvider.notifier);
+    final q = ref.watch(quranProvider).value;
+    final show = visible || r.active;
+    Widget iconBtn(IconData icon, String tip, VoidCallback onTap) => IconButton(
+      tooltip: tip,
+      onPressed: onTap,
+      icon: Icon(icon, color: fg, size: 32),
+      style: IconButton.styleFrom(minimumSize: const Size(kMinTap, kMinTap)),
+    );
+    final a = r.ayah;
     return Positioned(
       left: 0,
       right: 0,
       bottom: 0,
       child: IgnorePointer(
-        ignoring: !visible,
+        ignoring: !show,
         child: AnimatedOpacity(
-          opacity: visible ? 1 : 0,
+          opacity: show ? 1 : 0,
           duration: const Duration(milliseconds: 200),
           child: Container(
             color: const Color(0xFF101C19),
@@ -513,33 +578,76 @@ class _BottomBar extends StatelessWidget {
               top: false,
               child: MediaQuery.withClampedTextScaling(
                 maxScaleFactor: 1.3,
-                child: InkWell(
-                  onTap: () => showSoon(context),
-                  child: SizedBox(
-                    height: 60,
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 12),
-                        const Icon(Icons.play_arrow_rounded, color: fg, size: 34),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            '${s.play} · ${s.reciterName}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: fg),
+                child: SizedBox(
+                  height: 64,
+                  child: a == null
+                      ? InkWell(
+                          onTap: onPlay,
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 12),
+                              const Icon(Icons.play_arrow_rounded, color: fg, size: 34),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  '${s.play} · ${r.reciter.name(s.ar)}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: fg),
+                                ),
+                              ),
+                              iconBtn(Icons.tune_rounded, s.recitationSettings, () => _showSettings(context)),
+                              const SizedBox(width: 4),
+                            ],
                           ),
+                        )
+                      : Row(
+                          children: [
+                            const SizedBox(width: 4),
+                            r.loading
+                                ? const Padding(
+                                    padding: EdgeInsets.all(12),
+                                    child: SizedBox(
+                                      width: 26,
+                                      height: 26,
+                                      child: CircularProgressIndicator(strokeWidth: 3, color: fg),
+                                    ),
+                                  )
+                                : iconBtn(
+                                    r.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                    r.playing ? s.pause : s.play,
+                                    c.toggle,
+                                  ),
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    q == null ? '' : s.ayahTitle(q.sura(a.sura).name(s.ar), a.ayah),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: nameFont(
+                                      context,
+                                      const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: fg),
+                                    ),
+                                  ),
+                                  Text(
+                                    r.failed
+                                        ? s.recitationFailed
+                                        : '${r.reciter.name(s.ar)} · ${s.repeatTimes(r.repeat)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: sub),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            iconBtn(Icons.tune_rounded, s.recitationSettings, () => _showSettings(context)),
+                            iconBtn(Icons.stop_rounded, s.stop, c.stop),
+                            const SizedBox(width: 4),
+                          ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            s.comingSoonShort,
-                            style: const TextStyle(fontSize: 14, color: Color(0xFFDDE8E1)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             ),
@@ -548,6 +656,63 @@ class _BottomBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Reciter, repeat and speed.
+void _showSettings(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (ctx) => Consumer(
+      builder: (ctx, ref, _) {
+        final s = S.of(ctx);
+        final tt = Theme.of(ctx).textTheme;
+        final r = ref.watch(recitationProvider);
+        final c = ref.read(recitationProvider.notifier);
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.85),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                WordSafeText(s.recitationSettings, style: tt.headlineSmall),
+                const SizedBox(height: 14),
+                WordSafeText(s.repeatL, style: tt.titleMedium),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (final n in repeatChoices)
+                      PickChip(label: s.repeatTimes(n), selected: r.repeat == n, onTap: () => c.setRepeat(n)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                WordSafeText(s.speedL, style: tt.titleMedium),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (final v in speedChoices)
+                      PickChip(label: s.n('×$v'), selected: r.speed == v, onTap: () => c.setSpeed(v)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                WordSafeText(s.reciterL, style: tt.titleMedium),
+                const SizedBox(height: 8),
+                for (final rc in reciters) ...[
+                  ChoiceCard(title: rc.name(s.ar), selected: r.reciterId == rc.id, onTap: () => c.setReciter(rc.id)),
+                  const SizedBox(height: 8),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
 }
 
 /// Page turning that is easy on the hand: a short swipe in either direction
@@ -590,9 +755,16 @@ class EasyPagePhysics extends PageScrollPhysics {
 
 /// 40 · Floating actions above the long-pressed ayah.
 class _AyahToolbar extends ConsumerWidget {
-  const _AyahToolbar({required this.ayah, required this.at, required this.q, required this.onClose});
+  const _AyahToolbar({
+    required this.ayah,
+    required this.at,
+    required this.q,
+    required this.onClose,
+    required this.onPlay,
+  });
 
   final Ayah ayah;
+  final ValueChanged<Ayah> onPlay;
   final Offset at;
   final QuranData q;
   final VoidCallback onClose;
@@ -602,7 +774,9 @@ class _AyahToolbar extends ConsumerWidget {
     final s = S.of(context);
     final size = MediaQuery.sizeOf(context);
     final marked = ref.watch(settingsProvider.select((x) => x.bookmarks.contains(ayah.key)));
-    const barW = 340.0, barH = 120.0;
+    final student = ref.watch(settingsProvider.select((x) => x.role == UserRole.student));
+    final barW = (size.width - 16).clamp(0.0, 360.0);
+    const barH = 120.0;
     final left = (at.dx - barW / 2).clamp(8.0, size.width - barW - 8);
     var top = at.dy - barH - 28;
     if (top < MediaQuery.paddingOf(context).top + 8) top = at.dy + 36;
@@ -618,12 +792,16 @@ class _AyahToolbar extends ConsumerWidget {
             children: [
               Icon(icon, color: Colors.white, size: 28),
               const SizedBox(height: 2),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                  ),
+                ),
               ),
             ],
           ),
@@ -670,9 +848,17 @@ class _AyahToolbar extends ConsumerWidget {
                       onClose();
                     }),
                     item(Icons.play_arrow_rounded, s.play, () {
-                      showSoon(context);
+                      onPlay(ayah);
                       onClose();
                     }),
+                    if (student)
+                      item(Icons.flag_rounded, s.setNextShort, () {
+                        final count = q.sura(ayah.sura).count;
+                        final to = ayah.ayah + 9 > count ? count : ayah.ayah + 9;
+                        ref.read(ownNextPortionProvider.notifier).set(Portion(ayah.sura, ayah.ayah, to));
+                        toast(context, s.nextPortionSet);
+                        onClose();
+                      }),
                     item(Icons.close_rounded, s.close, onClose),
                   ],
                 ),

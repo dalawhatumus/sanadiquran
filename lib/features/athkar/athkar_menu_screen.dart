@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/reminders.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -62,10 +63,18 @@ class AthkarMenuScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(s.nextReminder, style: tt.bodyMedium),
-                          Text(s.reminderWhen, style: tt.titleSmall),
+                          Builder(
+                            builder: (context) {
+                              final (morning, at) = nextReminder(ref.watch(reminderTimesProvider));
+                              return WordSafeText(
+                                s.reminderAt(morning, MaterialLocalizations.of(context).formatTimeOfDay(at)),
+                                style: tt.titleSmall,
+                              );
+                            },
+                          ),
                           const SizedBox(height: 10),
                           OutlinedButton(
-                            onPressed: () => showSoon(context),
+                            onPressed: () => showReminderSheet(context),
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size(96, 52),
                               side: BorderSide(color: t.primary, width: 2),
@@ -164,5 +173,63 @@ class AthkarMenuScreen extends ConsumerWidget {
       'sleep': 'قبل النوم',
       'waking': 'عند الاستيقاظ',
     }[set.id]!,
+  );
+}
+
+/// Reminders on or off, and their times.
+void showReminderSheet(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (ctx) => Consumer(
+      builder: (ctx, ref, _) {
+        final s = S.of(ctx);
+        final t = ctx.t;
+        final tt = Theme.of(ctx).textTheme;
+        final on = ref.watch(settingsProvider.select((x) => x.remindersOn));
+        final times = ref.watch(reminderTimesProvider);
+        final l = MaterialLocalizations.of(ctx);
+        Widget timeRow(String label, TimeOfDay at, ValueChanged<TimeOfDay> set) => SCard(
+          onTap: on
+              ? () async {
+                  final picked = await showTimePicker(context: ctx, initialTime: at);
+                  if (picked != null) set(picked);
+                }
+              : null,
+          child: Row(
+            children: [
+              Expanded(child: WordSafeText(label, style: tt.titleMedium)),
+              Text(
+                s.n(l.formatTimeOfDay(at)),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: on ? t.primary : t.muted),
+              ),
+            ],
+          ),
+        );
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: WordSafeText(s.remindersL, style: tt.headlineSmall)),
+                  Switch(
+                    value: on,
+                    onChanged: (v) => ref.read(settingsProvider.notifier).update((x) => x.copyWith(remindersOn: v)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(s.reminderTimesHint, style: tt.bodySmall),
+              const SizedBox(height: 14),
+              timeRow(s.morningAthkar, times.morningTime, ref.read(reminderTimesProvider.notifier).setMorning),
+              const SizedBox(height: 10),
+              timeRow(s.eveningAthkar, times.eveningTime, ref.read(reminderTimesProvider.notifier).setEvening),
+            ],
+          ),
+        );
+      },
+    ),
   );
 }

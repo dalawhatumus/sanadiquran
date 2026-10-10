@@ -267,6 +267,7 @@ class S {
   String get tapStop => t('Tap to stop', 'اضغطي للإيقاف', 'اضغط للإيقاف');
   String get recording => t('Recording', 'جارٍ التسجيل');
   String get sampleLen => t('About 1 minute is enough (up to 2)', 'دقيقة واحدة تكفي (حتى دقيقتين)');
+  String sampleLabel(String len) => t('Recitation sample · $len', 'مقطع التلاوة · ${n(len)}');
   String yourSample(String len) => t('Your sample · $len', 'مقطعكِ · ${n(len)}', 'مقطعك · ${n(len)}');
   String get recordAgain => t('Record again', 'سجّلي من جديد', 'سجّل من جديد');
   String get sendSample => t('Send sample', 'أرسلي المقطع', 'أرسل المقطع');
@@ -723,6 +724,158 @@ class S {
   /// "Al-Mulk 11–20" / "سورة المُلك ١١–٢٠" ([sura] is the surah's display name).
   String portionName(String sura, int from, int to) => from == to ? '$sura ${n(from)}' : '$sura ${n(from)}–${n(to)}';
 
+  // ---- Recitation ----
+  String get reciterL => t('Reciter', 'القارئ');
+  String get repeatL => t('Repeat each ayah', 'تكرار كل آية');
+  String get speedL => t('Speed', 'السرعة');
+  String get stop => t('Stop', 'إيقاف');
+  String repeatTimes(int k) => k == 0 ? '∞' : '×${n(k)}';
+  String get recitationFailed => t(
+    "Couldn't play the recitation. Check the internet.",
+    'تعذّر تشغيل التلاوة. تحقّقي من الإنترنت.',
+    'تعذّر تشغيل التلاوة. تحقّق من الإنترنت.',
+  );
+  String get recitationSettings => t('Recitation settings', 'إعدادات التلاوة');
+  String get setNextShort => t('Next portion', 'وِرد قادم');
+  String get nextPortionSet => t('Set as your next portion', 'صار وِردكِ القادم', 'صار وِردك القادم');
+
+  // ---- Reminders ----
+  String get remindersL => t('Athkar reminders', 'تذكير الأذكار');
+  String get remindersChannel => t('Athkar reminders', 'تذكير الأذكار');
+  String get remindersChannelDesc => t('Morning and evening athkar reminders', 'تذكير بأذكار الصباح والمساء');
+  String get morningAthkar => t('Morning athkar', 'أذكار الصباح');
+  String get eveningAthkar => t('Evening athkar', 'أذكار المساء');
+  String get morningReminderBody => t(
+    'A few minutes of remembrance to begin your day.',
+    'دقائق من الذكر تبدئين بها يومكِ.',
+    'دقائق من الذكر تبدأ بها يومك.',
+  );
+  String get eveningReminderBody => t('Time for the evening athkar.', 'حان وقت أذكار المساء.');
+  String reminderAt(bool morning, String time) => '${morning ? morningAthkar : eveningAthkar} · ${n(time)}';
+  String get reminderTimesHint => t(
+    'Choose times that suit you, e.g. after Fajr and after Asr.',
+    'اختاري الوقت المناسب لكِ، مثل بعد الفجر وبعد العصر.',
+    'اختر الوقت المناسب لك، مثل بعد الفجر وبعد العصر.',
+  );
+
+  // ---- Settings: profile, help, privacy ----
+  String get changeName => t('Change name', 'تغيير الاسم');
+  String get save => t('Save', 'حفظ');
+  String get helpSection => t('Help and information', 'المساعدة والمعلومات');
+  String get contactSub => t('Questions, ideas or problems', 'أسئلة أو اقتراحات أو مشكلات');
+  String get noEmailApp => t(
+    'No email app found. Our email address is copied: paste it in any email app.',
+    'لا يوجد تطبيق بريد. نسخنا عنوان بريدنا: الصقيه في أي تطبيق بريد.',
+    'لا يوجد تطبيق بريد. نسخنا عنوان بريدنا: الصقه في أي تطبيق بريد.',
+  );
+  String get privacyTitle => t('Privacy policy', 'سياسة الخصوصية');
+  String get privacySub => t('What we keep and why', 'ما نحفظه ولماذا');
+  String get aboutTitle => t('About Sanadi', 'عن سَنَدي');
+  String get aboutSub => t('Thanks and sources', 'شكر ومصادر');
+  String get blockedTitle => t('Blocked people', 'المحظورون');
+  String get blockedSub => t('People you blocked in messages', 'من حظرتهم في الرسائل');
+  String get blockedEmpty => t('You haven\'t blocked anyone', 'لم تحظري أحدًا', 'لم تحظر أحدًا');
+  String get deleteAccount => t('Delete my account', 'حذف حسابي');
+  String get deleteAccountQ => t('Delete your account?', 'حذف حسابكِ؟', 'حذف حسابك؟');
+  String get deleteAccountBody => t(
+    'Your profile, teacher application and voice sample are deleted for good. Messages you sent and past lessons stay with the other person. Google may ask you to sign in again first.',
+    'يُحذف ملفكِ وطلب التدريس والتسجيل الصوتي نهائيًا. تبقى الرسائل التي أرسلتِها والدروس السابقة عند الطرف الآخر. قد يطلب منكِ Google تسجيل الدخول مرة أخرى أولًا.',
+    'يُحذف ملفك وطلب التدريس والتسجيل الصوتي نهائيًا. تبقى الرسائل التي أرسلتها والدروس السابقة عند الطرف الآخر. قد يطلب منك Google تسجيل الدخول مرة أخرى أولًا.',
+  );
+  String get deleteForever => t('Delete for good', 'حذف نهائي');
+  String get accountDeleted => t('Your account was deleted', 'تم حذف حسابكِ', 'تم حذف حسابك');
+  String get remindersOnSub => t('Morning and evening, on this phone', 'صباحًا ومساءً، على هذا الهاتف');
+  String get remindersOffSub => t('Off', 'متوقف');
+
+  String get aboutBody => t(
+    'Sanadi is free, and always will be. It connects elders who want to memorise the Quran with volunteer teachers of the same gender, over a simple voice call.',
+    'سَنَدي مجاني، وسيبقى كذلك دائمًا. يجمع كبار السن الراغبين في حفظ القرآن بمعلّمين متطوعين من الجنس نفسه، عبر مكالمة صوتية بسيطة.',
+  );
+  String get thanksTitle => t('With thanks', 'مع الشكر');
+  List<(String, String)> get acknowledgements => [
+    (
+      t('Mushaf text and font', 'نص المصحف وخطه'),
+      t(
+        'King Fahd Glorious Quran Printing Complex (KFGQPC), Madinah: Hafs script and page layout.',
+        'مجمع الملك فهد لطباعة المصحف الشريف بالمدينة المنورة: خط حفص وترتيب الصفحات.',
+      ),
+    ),
+    (
+      t('Page layout data', 'بيانات ترتيب الصفحات'),
+      t('The open-source quran-qcf4 project (MIT licence).', 'مشروع quran-qcf4 مفتوح المصدر (رخصة MIT).'),
+    ),
+    (
+      t('Recitations', 'التلاوات'),
+      t(
+        'EveryAyah.com and Quran.com, with the recordings of the reciters listed in the Quran player.',
+        'موقعا EveryAyah.com وQuran.com، بتسجيلات القرّاء المذكورين في مشغّل القرآن.',
+      ),
+    ),
+    (
+      t('Athkar', 'الأذكار'),
+      t(
+        'Hisn al-Muslim (Fortress of the Muslim) by Sa\'id ibn Ali al-Qahtani.',
+        'حصن المسلم للشيخ سعيد بن علي القحطاني.',
+      ),
+    ),
+  ];
+
+  List<(String, String)> get privacySections => [
+    (
+      t('What we keep', 'ما نحفظه'),
+      t(
+        'Your name, gender, whether you are a student or teacher, and the picture you chose. Your Google account is used only to sign you in; we don\'t see your password.',
+        'اسمكِ وجنسكِ وهل أنتِ طالبة أم معلّمة، والصورة التي اخترتِها. يُستخدم حساب Google لتسجيل الدخول فقط، ولا نرى كلمة المرور.',
+        'اسمك وجنسك وهل أنت طالب أم معلّم، والصورة التي اخترتها. يُستخدم حساب Google لتسجيل الدخول فقط، ولا نرى كلمة المرور.',
+      ),
+    ),
+    (
+      t('Messages and lessons', 'الرسائل والدروس'),
+      t(
+        'Text messages, voice notes, lesson times and teachers\' notes are saved so both people can see them. Only the two people in a conversation (and admins, if a report is made) can read them.',
+        'تُحفظ الرسائل والتسجيلات الصوتية وأوقات الدروس وملاحظات المعلّمين ليراها الطرفان. لا يقرؤها إلا طرفا المحادثة (والمشرفون عند وجود بلاغ).',
+      ),
+    ),
+    (
+      t('Calls', 'المكالمات'),
+      t(
+        'Calls go directly between the two phones and are never recorded.',
+        'تتم المكالمات مباشرة بين الهاتفين ولا تُسجَّل أبدًا.',
+      ),
+    ),
+    (
+      t('Teacher applications', 'طلبات التدريس'),
+      t(
+        'A teacher\'s answers and recitation sample are seen only by Sanadi\'s admins, to review the application.',
+        'لا يرى إجابات المعلّم وتسجيل تلاوته إلا مشرفو سَنَدي لمراجعة الطلب.',
+      ),
+    ),
+    (
+      t('On your phone only', 'على هاتفكِ فقط', 'على هاتفك فقط'),
+      t(
+        'Bookmarks, athkar progress and reminder times stay on your phone.',
+        'العلامات وتقدّم الأذكار وأوقات التذكير تبقى على هاتفكِ.',
+        'العلامات وتقدّم الأذكار وأوقات التذكير تبقى على هاتفك.',
+      ),
+    ),
+    (
+      t('Where it is stored', 'أين تُحفظ'),
+      t(
+        'On Google Firebase servers in the Middle East. We never sell your data or show adverts.',
+        'على خوادم Google Firebase في الشرق الأوسط. لا نبيع بياناتكِ ولا نعرض إعلانات.',
+        'على خوادم Google Firebase في الشرق الأوسط. لا نبيع بياناتك ولا نعرض إعلانات.',
+      ),
+    ),
+    (
+      t('Your choice', 'قراركِ', 'قرارك'),
+      t(
+        'You can change your name or picture in Settings, and delete your account at any time. For any question, tap Contact us below.',
+        'يمكنكِ تغيير اسمكِ أو صورتكِ من الإعدادات، وحذف حسابكِ في أي وقت. لأي سؤال اضغطي «تواصل معنا» في الأسفل.',
+        'يمكنك تغيير اسمك أو صورتك من الإعدادات، وحذف حسابك في أي وقت. لأي سؤال اضغط «تواصل معنا» في الأسفل.',
+      ),
+    ),
+  ];
+
   // ---- Admin: connect and reports ----
   String get connectTitle => t('Connect a student and teacher', 'ربط طالب بمعلّم');
   String get connectSub => t('Open a chat between them', 'فتح محادثة بينهما');
@@ -738,6 +891,7 @@ class S {
   String get noOneYet => t('No one yet', 'لا أحد بعد');
   String get reportsTitle => t('Reports', 'البلاغات');
   String get reportsSub => t('Reports about users', 'بلاغات عن المستخدمين');
+  String get markResolved => t('Mark as dealt with', 'تمّت معالجته');
   String get noReports => t('No open reports', 'لا توجد بلاغات مفتوحة');
   String reportedBy(String a, String b) => t('$a reported $b', 'أبلغ $a عن $b');
 

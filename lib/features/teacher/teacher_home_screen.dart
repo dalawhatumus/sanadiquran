@@ -8,6 +8,7 @@ import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
+import '../settings/more_screens.dart';
 import '../../widgets/ui.dart';
 
 /// 30 · Teacher home, plus 15 (application pending) and 16 (not approved).
@@ -84,7 +85,13 @@ class TeacherHomeScreen extends ConsumerWidget {
           children: [
             Text(s.reason, style: tt.titleSmall!.copyWith(color: t.muted)),
             const SizedBox(height: 6),
-            Text(s.rejectReason, style: tt.bodyMedium),
+            Builder(
+              builder: (context) {
+                // The admin's own words when they gave a reason.
+                final reason = ref.watch(applicationReasonProvider).value ?? '';
+                return Text(reason.isEmpty ? s.rejectReason : reason, style: tt.bodyMedium);
+              },
+            ),
           ],
         ),
       ),
@@ -102,7 +109,7 @@ class TeacherHomeScreen extends ConsumerWidget {
         label: s.contactUs,
         icon: Icons.mail_rounded,
         kind: ButtonKind.outline,
-        onPressed: () => showSoon(context),
+        onPressed: () => contactSanadi(context),
       ),
     ];
   }

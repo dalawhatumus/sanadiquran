@@ -285,3 +285,41 @@ test('lessons: only the teacher writes notes, only the student rates', async () 
   await assertFails(updateDoc(doc(db('t1'), `sessions/${id}`), { rating: 0 }));
   await assertFails(updateDoc(doc(db('s1'), `sessions/${id}`), { rating: 7 }));
 });
+
+test('application samples: own only, admins listen, size limit', async () => {
+  const sample = { data: Bytes.fromUint8Array(new Uint8Array(1000)), durationSec: 60, createdAt: serverTimestamp() };
+  await assertSucceeds(setDoc(doc(db('t3'), 'applicationSamples/t3'), sample));
+  await assertFails(setDoc(doc(db('t3'), 'applicationSamples/t1'), sample));
+  await assertFails(setDoc(doc(db('t3'), 'applicationSamples/t3'), { ...sample, data: Bytes.fromUint8Array(new Uint8Array(900001)) }));
+  await assertFails(setDoc(doc(db('t3'), 'applicationSamples/t3'), { ...sample, extra: 1 }));
+  await assertSucceeds(getDoc(doc(db('t3'), 'applicationSamples/t3')));
+  await assertSucceeds(getDoc(doc(db('admin1'), 'applicationSamples/t3')));
+  await assertFails(getDoc(doc(db('t1'), 'applicationSamples/t3')));
+  await assertFails(getDoc(doc(db('s1'), 'applicationSamples/t3')));
+  // The application says how long the sample is.
+  await assertSucceeds(setDoc(doc(db('t3'), 'teacherApplications/t3'), {
+    name: 'Khadijah', gender: 'female', answers: {}, order: [], sampleSec: 60, status: 'pending', submittedAt: serverTimestamp(),
+  }));
+});
+
+test('delete account: own profile, application and sample only', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'applicationSamples/t3'), { data: Bytes.fromUint8Array(new Uint8Array(10)), durationSec: 5 });
+  });
+  await assertFails(deleteDoc(doc(db('t1'), 'applicationSamples/t3')));
+  await assertFails(deleteDoc(doc(db('t1'), 'teacherApplications/t3')));
+  await assertFails(deleteDoc(doc(db('t1'), 'users/t3')));
+  await assertSucceeds(deleteDoc(doc(db('t3'), 'applicationSamples/t3')));
+  await assertSucceeds(deleteDoc(doc(db('t3'), 'teacherApplications/t3')));
+  await assertSucceeds(deleteDoc(doc(db('t3'), 'users/t3')));
+});
+
+test('reports: an admin marks one as dealt with', async () => {
+  const r = doc(collection(db('s1'), 'reports'));
+  await assertSucceeds(setDoc(r, {
+    reporterId: 's1', reporterName: 'F', reportedId: 't1', reportedName: 'A', conversationId: 's1_t1',
+    reason: 'other', details: '', status: 'open', createdAt: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(doc(db('s1'), `reports/${r.id}`), { status: 'resolved' }));
+  await assertSucceeds(updateDoc(doc(db('admin1'), `reports/${r.id}`), { status: 'resolved', resolvedBy: 'admin1' }));
+});

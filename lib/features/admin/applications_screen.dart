@@ -1,5 +1,9 @@
+import 'dart:io';
+
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../backend/backend.dart';
 import '../../core/settings.dart';
@@ -118,6 +122,7 @@ class _ApplicationCardState extends ConsumerState<_ApplicationCard> {
             ],
           ),
           const SizedBox(height: 12),
+          if (a.sampleSec > 0) ...[_SamplePlayer(uid: a.uid, seconds: a.sampleSec), const SizedBox(height: 12)],
           // The answers are kept in English, as the applicant gave them.
           Directionality(
             textDirection: TextDirection.ltr,
@@ -162,6 +167,77 @@ class _ApplicationCardState extends ConsumerState<_ApplicationCard> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Plays an applicant's recitation sample (downloaded once).
+class _SamplePlayer extends ConsumerStatefulWidget {
+  const _SamplePlayer({required this.uid, required this.seconds});
+
+  final String uid;
+  final int seconds;
+
+  @override
+  ConsumerState<_SamplePlayer> createState() => _SamplePlayerState();
+}
+
+class _SamplePlayerState extends ConsumerState<_SamplePlayer> {
+  AudioPlayer? _player;
+  bool _playing = false;
+  bool _loading = false;
+  String? _path;
+
+  @override
+  void dispose() {
+    _player?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggle() async {
+    final s = S.of(context);
+    final p = _player ??= AudioPlayer()
+      ..onPlayerStateChanged.listen((st) {
+        if (mounted) setState(() => _playing = st == PlayerState.playing);
+      });
+    if (_playing) return p.pause();
+    setState(() => _loading = true);
+    try {
+      var path = _path;
+      if (path == null) {
+        final bytes = await ref.read(backendProvider).applicationSample(widget.uid);
+        if (bytes == null) throw StateError('No sample');
+        final dir = await getTemporaryDirectory();
+        final f = File('${dir.path}/sample_${widget.uid}.m4a');
+        await f.writeAsBytes(bytes, flush: true);
+        path = _path = f.path;
+      }
+      await p.play(DeviceFileSource(path));
+    } catch (_) {
+      if (mounted) toast(context, s.cantPlay);
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final t = context.t;
+    return SCard(
+      color: t.tint,
+      padding: const EdgeInsets.all(12),
+      onTap: _loading ? null : _toggle,
+      child: Row(
+        children: [
+          _loading
+              ? const SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 3))
+              : Icon(_playing ? Icons.pause_circle_rounded : Icons.play_circle_rounded, color: t.primary, size: 40),
+          const SizedBox(width: 12),
+          Expanded(
+            child: WordSafeText(s.sampleLabel(s.mmss(widget.seconds)), style: Theme.of(context).textTheme.titleSmall),
           ),
         ],
       ),
