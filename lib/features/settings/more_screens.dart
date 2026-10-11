@@ -9,6 +9,7 @@ import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
 import '../messages/messages_screen.dart';
+import '../../core/limits.dart';
 
 const contactEmail = 'sanadiquran@gmail.com';
 
@@ -67,7 +68,7 @@ class _NameDialogState extends State<_NameDialog> {
       content: TextField(
         controller: _c,
         autofocus: true,
-        maxLength: 40,
+        maxLength: Limits.name,
         textCapitalization: TextCapitalization.words,
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => _save(),

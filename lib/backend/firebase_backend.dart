@@ -80,6 +80,9 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons imple
     return SignedInUser(uid: user.uid, googleName: user.displayName ?? account.displayName, profile: profile);
   }
 
+  /// At most [max] characters (the server refuses longer text).
+  static String _clip(String s, int max) => s.length <= max ? s : s.substring(0, max);
+
   static TeacherStatus _status(Map<String, dynamic>? app) =>
       TeacherStatus.values.where((s) => s.name == app?['status']).firstOrNull ?? TeacherStatus.none;
 
@@ -93,8 +96,9 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons imple
   Future<void> saveProfile(AppSettings s) async {
     final uid = _uid;
     if (uid == null) return;
+    final name = _clip(s.name.trim(), 80);
     await _doc('users', uid).set({
-      'name': s.name.trim(),
+      'name': name,
       'role': s.role?.name,
       'gender': s.gender?.name,
       'avatar': s.avatar,
@@ -108,8 +112,8 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons imple
     for (final c in convs.docs) {
       final names = (c.data()['names'] as Map?) ?? const {};
       final avatars = (c.data()['avatars'] as Map?) ?? const {};
-      if (names[uid] != s.name.trim() || avatars[uid] != s.avatar) {
-        batch.update(c.reference, {'names.$uid': s.name.trim(), 'avatars.$uid': s.avatar});
+      if (names[uid] != name || avatars[uid] != s.avatar) {
+        batch.update(c.reference, {'names.$uid': name, 'avatars.$uid': s.avatar});
         changed = true;
       }
     }
@@ -134,7 +138,7 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons imple
       ).set({'data': Blob(sample), 'durationSec': sampleSec, 'createdAt': FieldValue.serverTimestamp()});
     }
     await _doc('teacherApplications', uid).set({
-      'name': name.trim(),
+      'name': _clip(name.trim(), 80),
       'gender': gender?.name,
       'answers': answers,
       'order': answers.keys.toList(),

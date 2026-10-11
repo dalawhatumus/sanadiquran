@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +14,8 @@ import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
+import '../../core/limits.dart';
+import '../../core/local_files.dart';
 
 /// Answers kept while the teacher moves through the 5 steps.
 class ApplicationDraft {
@@ -205,6 +206,7 @@ class _ApplicationScreenState extends ConsumerState<ApplicationScreen> {
       initialValue: d.ijazah,
       minLines: 2,
       maxLines: 4,
+      maxLength: Limits.applicationAnswer,
       onChanged: (v) => d.ijazah = v,
       style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: context.t.text),
       decoration: InputDecoration(hintText: s.ijazahHint),
@@ -292,8 +294,7 @@ class _SampleRecorderState extends State<_SampleRecorder> {
       return;
     }
     await _player?.stop();
-    final dir = await getTemporaryDirectory();
-    final path = '${dir.path}/sample_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    final path = await LocalFiles.newRecording('sample');
     final rec = _recorder ??= AudioRecorder();
     await rec.start(
       const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: 32000, sampleRate: 16000, numChannels: 1),

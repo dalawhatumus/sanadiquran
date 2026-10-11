@@ -7,6 +7,8 @@ import '../core/settings.dart';
 import '../core/strings.dart';
 import '../core/theme.dart';
 
+export 'dialogs.dart';
+
 /// Direction arrows that never flip with the language. App rule: an arrow
 /// pointing right always means "proceed", pointing left always "go back",
 /// in English and Arabic alike.

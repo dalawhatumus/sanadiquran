@@ -74,6 +74,11 @@ class Reminders {
   static const _morningId = 1;
   static const _eveningId = 2;
 
+  /// The only places a reminder may open. A notification's payload is
+  /// checked against these before the app navigates anywhere.
+  static const routes = {'/athkar/morning', '/athkar/evening'};
+  static String? _safe(String? route) => routes.contains(route) ? route : null;
+
   Future<void> _init() async {
     if (_ready) return;
     _ready = true;
@@ -88,12 +93,12 @@ class Reminders {
       await _plugin.initialize(
         settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
         onDidReceiveNotificationResponse: (r) {
-          final route = r.payload;
+          final route = _safe(r.payload);
           if (route != null) onOpen?.call(route);
         },
       );
       final launch = await _plugin.getNotificationAppLaunchDetails();
-      final route = launch?.notificationResponse?.payload;
+      final route = _safe(launch?.notificationResponse?.payload);
       if ((launch?.didNotificationLaunchApp ?? false) && route != null) _launchRoute = route;
     } catch (e) {
       debugPrint('Reminders unavailable: $e');

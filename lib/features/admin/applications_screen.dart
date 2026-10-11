@@ -1,15 +1,15 @@
-import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../backend/backend.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
+import '../../core/limits.dart';
+import '../../core/local_files.dart';
 
 /// Admins review teacher applications: read the answers, then approve or
 /// turn down with a reason. The teacher's app updates straight away.
@@ -74,6 +74,7 @@ class _ApplicationCardState extends ConsumerState<_ApplicationCard> {
             controller: c,
             minLines: 2,
             maxLines: 4,
+            maxLength: Limits.declineReason,
             decoration: InputDecoration(hintText: s.declineReason),
           ),
           actions: [
@@ -210,8 +211,7 @@ class _SamplePlayerState extends ConsumerState<_SamplePlayer> {
       if (path == null) {
         final bytes = await ref.read(backendProvider).applicationSample(widget.uid);
         if (bytes == null) throw StateError('No sample');
-        final dir = await getTemporaryDirectory();
-        final f = File('${dir.path}/sample_${widget.uid}.m4a');
+        final f = await LocalFiles.applicationSample(widget.uid);
         await f.writeAsBytes(bytes, flush: true);
         path = _path = f.path;
       }

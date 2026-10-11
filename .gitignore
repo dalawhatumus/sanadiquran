@@ -51,3 +51,12 @@ app.*.map.json
 tools/brand/out/
 tools/brand/node_modules/
 tools/brand/*.ttf
+
+# Secrets: never commit signing keys or local credentials (CI reads them
+# from GitHub Secrets).
+*.jks
+*.keystore
+*.p12
+key.properties
+.env
+.env.*

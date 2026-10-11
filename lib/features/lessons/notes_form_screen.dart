@@ -9,6 +9,7 @@ import '../../core/strings.dart';
 import '../../widgets/ui.dart';
 import '../quran/quran_data.dart';
 import 'lessons_ui.dart';
+import '../../core/limits.dart';
 
 /// 34 · Notes on a lesson. Every part is optional; Save works as soon as
 /// anything is filled in. Can be opened right after the call or later from
@@ -236,7 +237,7 @@ class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
           controller: _note,
           minLines: 3,
           maxLines: 6,
-          maxLength: 2000,
+          maxLength: Limits.lessonNote,
           onChanged: (_) => setState(() {}),
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: t.text),
           decoration: InputDecoration(hintText: s.typeNote, counterText: ''),

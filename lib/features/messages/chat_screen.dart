@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
@@ -20,6 +19,8 @@ import '../../core/theme.dart';
 import '../../widgets/ui.dart';
 import 'messages_screen.dart';
 import 'report_sheet.dart';
+import '../../core/limits.dart';
+import '../../core/local_files.dart';
 
 /// 49 · Chat with a teacher or student: large text bubbles and voice notes
 /// (tap to record, tap to send), a Call button when the teacher is
@@ -66,24 +67,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _delete(ChatMessage m) async {
     final s = S.of(context);
-    final t = context.t;
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(s.deleteQ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              s.delete,
-              style: TextStyle(color: t.warn, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (yes == true) unawaited(_backend.deleteMessage(_id, m).catchError((_) {}));
+    final yes = await confirm(context, title: s.deleteQ, confirmLabel: s.delete, destructive: true);
+    if (yes) unawaited(_backend.deleteMessage(_id, m).catchError((_) {}));
   }
 
   @override
@@ -497,21 +482,11 @@ class _ComposerState extends State<_Composer> {
     var status = await Permission.microphone.request();
     if (!status.isGranted) {
       if (!mounted) return;
-      final open = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          content: Text(s.micNeeded, style: const TextStyle(fontSize: 18)),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.openSettings)),
-          ],
-        ),
-      );
-      if (open == true) await openAppSettings();
+      final open = await confirm(context, body: s.micNeeded, confirmLabel: s.openSettings);
+      if (open) await openAppSettings();
       return;
     }
-    final dir = await getTemporaryDirectory();
-    final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    final path = await LocalFiles.newRecording('voice');
     final rec = _recorder ??= AudioRecorder();
     // Speech quality is plenty and keeps a 3-minute note well under 1 MB.
     await rec.start(
@@ -585,7 +560,7 @@ class _ComposerState extends State<_Composer> {
             textDirection: _c.text.trim().isEmpty ? null : textDirectionOf(_c.text),
             minLines: 1,
             maxLines: 4,
-            maxLength: 2000,
+            maxLength: Limits.message,
             textCapitalization: TextCapitalization.sentences,
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: t.text),
             decoration: InputDecoration(hintText: s.typeMessage, counterText: ''),
@@ -714,8 +689,7 @@ class _VoiceNotePlayerState extends ConsumerState<VoiceNotePlayer> {
   }
 
   Future<String> _file() async {
-    final dir = await getApplicationCacheDirectory();
-    final f = File('${dir.path}/voice/${widget.conversationId}_${widget.messageId}.m4a');
+    final f = await LocalFiles.voiceNote(widget.conversationId, widget.messageId);
     if (!await f.exists()) {
       final bytes = await ref.read(backendProvider).voiceAudio(widget.conversationId, widget.messageId);
       await f.parent.create(recursive: true);

@@ -10,7 +10,14 @@
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:usesCleartextTraffic="false">
+        <!-- Security: the app's data (sign-in, cached chats, settings) is not
+             copied to cloud backups or to another phone, and every
+             connection must be encrypted (https / TLS). -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

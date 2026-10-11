@@ -11,6 +11,7 @@ import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 import '../athkar/athkar_menu_screen.dart';
 import 'more_screens.dart';
+import '../../core/local_files.dart';
 
 /// Settings: profile, language, appearance, reminders, help and privacy,
 /// account (sign out, delete), and testing tools for test builds.
@@ -34,6 +35,7 @@ class SettingsScreen extends ConsumerWidget {
         await backend.setAvailable(on: false, gender: settings.gender).catchError((_) {});
       }
       await backend.signOut().catchError((_) {});
+      await LocalFiles.clearAll();
       n.reset();
       if (context.mounted) context.go(Routes.language);
     }
@@ -72,27 +74,14 @@ class SettingsScreen extends ConsumerWidget {
     }
 
     Future<void> deleteAccount() async {
-      final yes = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(s.deleteAccountQ),
-          content: Text(s.deleteAccountBody, style: const TextStyle(fontSize: 18)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(s.cancel, style: const TextStyle(fontSize: 18)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(
-                s.deleteForever,
-                style: TextStyle(fontSize: 18, color: t.warn, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
+      final yes = await confirm(
+        context,
+        title: s.deleteAccountQ,
+        body: s.deleteAccountBody,
+        confirmLabel: s.deleteForever,
+        destructive: true,
       );
-      if (yes != true) return;
+      if (!yes) return;
       try {
         await backend.deleteAccount();
       } on SignInCancelled {
@@ -101,6 +90,7 @@ class SettingsScreen extends ConsumerWidget {
         if (context.mounted) toast(context, s.decisionFailed);
         return;
       }
+      await LocalFiles.clearAll();
       n.reset();
       if (context.mounted) {
         toast(context, s.accountDeleted);
@@ -259,26 +249,8 @@ class SettingsScreen extends ConsumerWidget {
           icon: Icons.logout_rounded,
           kind: ButtonKind.outline,
           onPressed: () async {
-            final yes = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: Text(s.signOutQ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: Text(s.cancel, style: const TextStyle(fontSize: 18)),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: Text(
-                      s.signOut,
-                      style: TextStyle(fontSize: 18, color: t.warn, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-            );
-            if (yes == true) await signOut();
+            final yes = await confirm(context, title: s.signOutQ, confirmLabel: s.signOut, destructive: true);
+            if (yes) await signOut();
           },
         ),
         if (backend.live) ...[

@@ -6,6 +6,7 @@ import '../../backend/chat.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
+import '../../core/limits.dart';
 
 /// 50 · Report or block the other person in a chat.
 Future<void> showReportSheet(BuildContext context, Conversation c) => showModalBottomSheet<void>(
@@ -57,25 +58,9 @@ class _ReportSheetState extends ConsumerState<_ReportSheet> {
 
   Future<void> _block() async {
     final s = S.of(context);
-    final t = context.t;
     final name = widget.c.otherName;
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        content: Text(s.blockQ(name), style: const TextStyle(fontSize: 18)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              s.block,
-              style: TextStyle(color: t.warn, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (yes != true) return;
+    final yes = await confirm(context, body: s.blockQ(name), confirmLabel: s.block, destructive: true);
+    if (!yes) return;
     await ref.read(backendProvider).setBlocked(widget.c.id, blocked: true).catchError((_) {});
     if (mounted) Navigator.pop(context);
   }
@@ -124,7 +109,7 @@ class _ReportSheetState extends ConsumerState<_ReportSheet> {
                       controller: _details,
                       minLines: 2,
                       maxLines: 4,
-                      maxLength: 1000,
+                      maxLength: Limits.reportDetails,
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: t.text),
                       decoration: InputDecoration(hintText: s.reportDetails, counterText: ''),
                     ),

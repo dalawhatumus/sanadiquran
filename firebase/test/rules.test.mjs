@@ -28,6 +28,7 @@ beforeEach(async () => {
     await setDoc(doc(f, 'users/t1'), { name: 'Aisha', role: 'teacher', gender: 'female' });
     await setDoc(doc(f, 'users/t2'), { name: 'Yusuf', role: 'teacher', gender: 'male' });
     await setDoc(doc(f, 'users/t3'), { name: 'Khadijah', role: 'teacher', gender: 'female' });
+    await setDoc(doc(f, 'users/t9'), { name: 'N', role: 'teacher', gender: 'male' });
     await setDoc(doc(f, 'teacherApplications/t1'), { name: 'Aisha', gender: 'female', status: 'approved', answers: {}, order: [] });
     await setDoc(doc(f, 'teacherApplications/t2'), { name: 'Yusuf', gender: 'male', status: 'approved', answers: {}, order: [] });
     await setDoc(doc(f, 'teacherApplications/t3'), { name: 'Khadijah', gender: 'female', status: 'pending', answers: {}, order: [] });
@@ -172,9 +173,15 @@ test('block stops both from sending; each controls only their own block', async 
 });
 
 test('reports: anyone signed in sends, only admins read', async () => {
+  await openChat();
   const r = { reporterId: 's1', reporterName: 'F', reportedId: 't1', reportedName: 'A', conversationId: 's1_t1', reason: 'words', details: '', status: 'open', createdAt: serverTimestamp() };
   await assertSucceeds(addDoc(collection(db('s1'), 'reports'), r));
   await assertFails(addDoc(collection(db('s1'), 'reports'), { ...r, reporterId: 's2' }));
+  // Only about the other member of your own chat, with a known reason.
+  await assertFails(addDoc(collection(db('s1'), 'reports'), { ...r, reportedId: 's1' }));
+  await assertFails(addDoc(collection(db('s1'), 'reports'), { ...r, reportedId: 't2' }));
+  await assertFails(addDoc(collection(db('s2'), 'reports'), { ...r, reporterId: 's2' }));
+  await assertFails(addDoc(collection(db('s1'), 'reports'), { ...r, reason: 'anything' }));
   await assertFails(getDocs(collection(db('s1'), 'reports')));
   await assertSucceeds(getDocs(query(collection(db('admin1'), 'reports'), where('status', '==', 'open'))));
 });
@@ -315,6 +322,7 @@ test('delete account: own profile, application and sample only', async () => {
 });
 
 test('reports: an admin marks one as dealt with', async () => {
+  await openChat();
   const r = doc(collection(db('s1'), 'reports'));
   await assertSucceeds(setDoc(r, {
     reporterId: 's1', reporterName: 'F', reportedId: 't1', reportedName: 'A', conversationId: 's1_t1',
@@ -322,4 +330,51 @@ test('reports: an admin marks one as dealt with', async () => {
   }));
   await assertFails(updateDoc(doc(db('s1'), `reports/${r.id}`), { status: 'resolved' }));
   await assertSucceeds(updateDoc(doc(db('admin1'), `reports/${r.id}`), { status: 'resolved', resolvedBy: 'admin1' }));
+  // Even an admin can't rewrite what was reported.
+  await assertFails(updateDoc(doc(db('admin1'), `reports/${r.id}`), { details: 'changed' }));
+});
+
+// ---- Hardening ----
+
+test('profile: gender is chosen once; picture and language are checked', async () => {
+  await assertSucceeds(setDoc(doc(db('new1'), 'users/new1'), { name: 'A', role: 'student' }));
+  await assertSucceeds(updateDoc(doc(db('new1'), 'users/new1'), { gender: 'male' }));
+  await assertFails(updateDoc(doc(db('new1'), 'users/new1'), { gender: 'female' }));
+  await assertSucceeds(updateDoc(doc(db('new1'), 'users/new1'), { name: 'B', gender: 'male' }));
+  await assertFails(updateDoc(doc(db('s1'), 'users/s1'), { gender: 'male' }));
+  await assertFails(updateDoc(doc(db('s1'), 'users/s1'), { avatar: 'x'.repeat(21) }));
+  await assertFails(updateDoc(doc(db('s1'), 'users/s1'), { locale: 'fr' }));
+  await assertFails(updateDoc(doc(db('s1'), 'users/s1'), { name: 'x'.repeat(81) }));
+});
+
+test('applications: the gender must match the profile; the reason is limited', async () => {
+  const app = { name: 'N', gender: 'female', answers: {}, order: [], status: 'pending', submittedAt: serverTimestamp() };
+  await assertFails(setDoc(doc(db('t9'), 'teacherApplications/t9'), app));
+  await assertSucceeds(setDoc(doc(db('t9'), 'teacherApplications/t9'), { ...app, gender: 'male' }));
+  await assertFails(updateDoc(doc(db('admin1'), 'teacherApplications/t9'), {
+    status: 'rejected', reason: 'x'.repeat(1001), decidedAt: serverTimestamp(), decidedBy: 'admin1',
+  }));
+  await assertFails(updateDoc(doc(db('admin1'), 'teacherApplications/t9'), {
+    status: 'approved', reason: '', decidedAt: serverTimestamp(), decidedBy: 'someone-else',
+  }));
+});
+
+test('a teacher is matched by the gender on their approved application', async () => {
+  // Changing the profile can't move a teacher to the other gender.
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'users/t2'), { name: 'Yusuf', role: 'teacher', gender: 'female' });
+  });
+  await assertFails(setDoc(doc(db('t2'), 'presence/t2'), { available: true, gender: 'female', updatedAt: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(db('t2'), 'presence/t2'), { available: true, gender: 'male', updatedAt: serverTimestamp() }));
+  const id = await startCall('s1', 'female');
+  await assertFails(updateDoc(doc(db('s1'), `calls/${id}`), { status: 'ringing', teacherId: 't2', tried: ['t2'] }));
+  await assertFails(setDoc(doc(db('admin1'), 'conversations/s1_t2'), conv('s1', 't2')));
+});
+
+test('chat: a member changes only their own name and picture', async () => {
+  await openChat();
+  await assertSucceeds(updateDoc(doc(db('s1'), 'conversations/s1_t1'), { 'names.s1': 'Fatima Z', 'avatars.s1': 'fs1' }));
+  await assertFails(updateDoc(doc(db('s1'), 'conversations/s1_t1'), { 'names.t1': 'Someone else' }));
+  await assertFails(updateDoc(doc(db('s1'), 'conversations/s1_t1'), { 'avatars.t1': 'fs1' }));
+  await assertFails(updateDoc(doc(db('s1'), 'conversations/s1_t1'), { 'names.s1': 'x'.repeat(81) }));
 });

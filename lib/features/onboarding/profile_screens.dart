@@ -9,6 +9,7 @@ import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
+import '../../core/limits.dart';
 
 /// 4 · What would you like to do? (Step 1 of 4, neutral Arabic)
 class RoleScreen extends ConsumerStatefulWidget {
@@ -187,6 +188,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
         const SizedBox(height: 8),
         TextField(
           controller: _c,
+          maxLength: Limits.name,
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _next(),

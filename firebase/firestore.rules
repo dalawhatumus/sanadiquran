@@ -15,6 +15,11 @@ service cloud.firestore {
       return exists(app) && get(app).data.status == 'approved';
     }
     function text(v, max) { return v == null || (v is string && v.size() <= max); }
+    // A teacher's gender is the one on their application, which an admin
+    // checked when approving it (an approved application can't be edited).
+    function teacherGender(uid) {
+      return get(/databases/$(db)/documents/teacherApplications/$(uid)).data.gender;
+    }
 
     // Profile: name, role, gender, picture, language.
     match /users/{uid} {
@@ -23,7 +28,12 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['name', 'role', 'gender', 'avatar', 'locale', 'updatedAt'])
         && text(request.resource.data.get('name', null), 80)
         && request.resource.data.get('role', null) in [null, 'student', 'teacher']
-        && request.resource.data.get('gender', null) in [null, 'male', 'female'];
+        && request.resource.data.get('gender', null) in [null, 'male', 'female']
+        && text(request.resource.data.get('avatar', null), 20)
+        && request.resource.data.get('locale', null) in [null, 'ar', 'en']
+        // Gender is chosen once: it decides who can call whom.
+        && (resource == null || resource.data.get('gender', null) == null
+            || request.resource.data.get('gender', null) == resource.data.gender);
       allow delete: if isMe(uid);
     }
 
@@ -31,19 +41,25 @@ service cloud.firestore {
     // "not approved"); only an admin can approve or turn down.
     match /teacherApplications/{uid} {
       allow read: if isMe(uid) || isAdmin();
-      allow create: if isMe(uid)
-        && request.resource.data.status == 'pending'
-        && request.resource.data.keys().hasOnly(['name', 'gender', 'answers', 'order', 'sampleSec', 'status', 'submittedAt'])
-        && request.resource.data.answers.size() <= 20;
-      allow update: if (isMe(uid)
-          && resource.data.status in ['pending', 'rejected']
-          && request.resource.data.status == 'pending'
+      function validApplication() {
+        return request.resource.data.status == 'pending'
           && request.resource.data.keys().hasOnly(['name', 'gender', 'answers', 'order', 'sampleSec', 'status', 'submittedAt'])
-          && request.resource.data.answers.size() <= 20)
+          && text(request.resource.data.name, 80)
+          // The same gender as the applicant's profile.
+          && request.resource.data.gender == userDoc(uid).gender
+          && request.resource.data.answers is map
+          && request.resource.data.answers.size() <= 20
+          && request.resource.data.order is list
+          && request.resource.data.order.size() <= 20;
+      }
+      allow create: if isMe(uid) && validApplication();
+      allow update: if (isMe(uid) && resource.data.status in ['pending', 'rejected'] && validApplication())
         || (isAdmin()
           && request.resource.data.status in ['approved', 'rejected']
           && request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['status', 'reason', 'decidedAt', 'decidedBy']));
+               .hasOnly(['status', 'reason', 'decidedAt', 'decidedBy'])
+          && text(request.resource.data.get('reason', null), 1000)
+          && request.resource.data.get('decidedBy', null) == request.auth.uid);
       // Deleting the account removes the application too.
       allow delete: if isMe(uid);
     }
@@ -65,7 +81,9 @@ service cloud.firestore {
       allow read: if signedIn();
       allow write: if isMe(uid) && isApproved(uid)
         && request.resource.data.keys().hasOnly(['available', 'gender', 'busy', 'updatedAt'])
-        && request.resource.data.available is bool;
+        && request.resource.data.available is bool
+        && request.resource.data.get('busy', false) is bool
+        && request.resource.data.gender == teacherGender(uid);
       allow delete: if isMe(uid);
     }
 
@@ -95,7 +113,7 @@ service cloud.firestore {
         && cid == request.resource.data.members[0] + '_' + request.resource.data.members[1]
         && userDoc(request.resource.data.members[0]).role == 'student'
         && isApproved(request.resource.data.members[1])
-        && userDoc(request.resource.data.members[0]).gender == userDoc(request.resource.data.members[1]).gender;
+        && userDoc(request.resource.data.members[0]).gender == teacherGender(request.resource.data.members[1]);
       // Members update the preview, unread counts, their own name and
       // picture, and their own block; never who is in it.
       allow update: if signedIn() && request.auth.uid in resource.data.members
@@ -104,7 +122,13 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['lastText', 'lastVoiceSec', 'lastSender', 'lastAt', 'unread', 'names', 'avatars', 'blockedBy'])
         && request.resource.data.blockedBy.removeAll([request.auth.uid])
-             == resource.data.blockedBy.removeAll([request.auth.uid]);
+             == resource.data.blockedBy.removeAll([request.auth.uid])
+        // Each member changes only their own name and picture.
+        && request.resource.data.get('names', {}).diff(resource.data.get('names', {})).affectedKeys()
+             .hasOnly([request.auth.uid])
+        && request.resource.data.get('avatars', {}).diff(resource.data.get('avatars', {})).affectedKeys()
+             .hasOnly([request.auth.uid])
+        && text(request.resource.data.get('names', {}).get(request.auth.uid, null), 80);
       allow delete: if false;
 
       function canSend() {
@@ -156,7 +180,9 @@ service cloud.firestore {
         && request.resource.data.status == 'searching'
         && request.resource.data.teacherId == null
         && request.resource.data.keys().hasOnly(['studentId', 'studentName', 'studentAvatar', 'gender', 'status',
-             'teacherId', 'tried', 'createdAt']);
+             'teacherId', 'tried', 'createdAt'])
+        && text(request.resource.data.get('studentName', null), 80)
+        && text(request.resource.data.get('studentAvatar', null), 20);
       // The student rings teachers (approved, same gender), cancels, hangs
       // up and sends the offer.
       allow update: if isStudent()
@@ -165,7 +191,7 @@ service cloud.firestore {
             || request.resource.data.status == resource.data.status)
         && (request.resource.data.teacherId == resource.data.teacherId
             || (isApproved(request.resource.data.teacherId)
-                && userDoc(request.resource.data.teacherId).gender == resource.data.gender));
+                && teacherGender(request.resource.data.teacherId) == resource.data.gender));
       // The teacher being rung answers or declines, then sends the answer
       // and can hang up.
       allow update: if isTeacher()
@@ -227,9 +253,18 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['reporterId', 'reporterName', 'reportedId', 'reportedName',
              'conversationId', 'reason', 'details', 'status', 'createdAt'])
         && request.resource.data.status == 'open'
-        && text(request.resource.data.details, 1000);
+        && request.resource.data.reason in ['words', 'respect', 'personal', 'other']
+        && text(request.resource.data.details, 1000)
+        && text(request.resource.data.reporterName, 80)
+        && text(request.resource.data.reportedName, 80)
+        // About the other member of one of the reporter's own chats.
+        && request.resource.data.reportedId != request.auth.uid
+        && request.auth.uid in convDoc(request.resource.data.conversationId).members
+        && request.resource.data.reportedId in convDoc(request.resource.data.conversationId).members;
       allow read: if isAdmin();
-      allow update: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolvedBy'])
+        && request.resource.data.status in ['open', 'resolved'];
       allow delete: if false;
     }
 
