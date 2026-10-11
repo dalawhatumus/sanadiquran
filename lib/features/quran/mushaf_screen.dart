@@ -129,6 +129,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     final s = S.of(context);
     final start = from ?? _selAyah ?? q.firstOn(_page.value);
     _clearSelection();
+    // Show the player, so pause and stop are at hand; a tap hides it again.
+    _hide?.cancel();
+    if (!_chrome) setState(() => _chrome = true);
     if (!await ref.read(onlineCheckProvider)()) {
       if (mounted) toast(context, s.recitationFailed);
       return;
@@ -535,7 +538,8 @@ class _TopBar extends ConsumerWidget {
 }
 
 /// Listening bar: play from this page (or the chosen ayah), pause, stop,
-/// and the recitation settings. Stays on screen while reciting.
+/// and the recitation settings. Shown and hidden with the other bars (a tap
+/// on the page), so it never covers the ayahs being read.
 class _BottomBar extends ConsumerWidget {
   const _BottomBar({required this.visible, required this.onPlay});
 
@@ -550,7 +554,7 @@ class _BottomBar extends ConsumerWidget {
     final r = ref.watch(recitationProvider);
     final c = ref.read(recitationProvider.notifier);
     final q = ref.watch(quranProvider).value;
-    final show = visible || r.active;
+    final show = visible;
     Widget iconBtn(IconData icon, String tip, VoidCallback onTap) => IconButton(
       tooltip: tip,
       onPressed: onTap,

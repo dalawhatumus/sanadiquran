@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sanadi/features/quran/mushaf_page.dart';
 import 'package:sanadi/features/quran/quran_data.dart';
 
 /// Guards the accuracy of the mushaf: the page layout must place every word
@@ -72,5 +73,30 @@ void main() {
     expect(q.pageOf(q.ayah(38, 1)!), 453); // Sad
     expect(q.pageOf(q.ayah(67, 1)!), 562); // Al-Mulk
     expect(q.pageOf(q.ayah(114, 6)!), 604);
+  });
+
+  test('only the lines printed short are centred; every other line is justified edge to edge', () {
+    final qw = QuranData.parse((
+      File('assets/quran/hafs.json').readAsStringSync(),
+      File('assets/quran/layout.json').readAsStringSync(),
+    ))..attachWidths(File('assets/quran/line_widths.json').readAsStringSync());
+    final centred = <String>[
+      for (var p = 3; p <= QuranData.pageCount; p++)
+        for (final i in centredLines(qw, p)) '$p:${i + 1}',
+    ];
+    // A surah's short last line before the next surah, and the short lines
+    // of the last pages, as in the printed Madani mushaf (page:line).
+    expect(centred, [
+      '528:9', '534:6', '545:6', '593:2', '594:5', '600:10', '602:5', '602:15', //
+      '603:10', '603:15', '604:4', '604:9', '604:14', '604:15',
+    ]);
+    // The first two pages are centred throughout, as printed.
+    for (final p in [1, 2]) {
+      final text = [
+        for (var i = 0; i < qw.lines(p).length; i++)
+          if (qw.lines(p)[i] is TextLine) i,
+      ];
+      expect(centredLines(qw, p), text.toSet(), reason: 'page $p');
+    }
   });
 }

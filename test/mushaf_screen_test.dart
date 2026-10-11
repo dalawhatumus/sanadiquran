@@ -184,10 +184,27 @@ void main() {
       expect(container.read(settingsProvider).mushafMode, MushafMode.large);
       expect(find.byType(MushafPage), findsNothing);
       expect(tester.takeException(), isNull);
+
+      // In Large text, read on a few pages, then tap twice: the text must
+      // stay exactly where it is.
+      for (var i = 0; i < 8 && lastPage() == 300; i++) {
+        await tester.drag(find.byType(CustomScrollView), const Offset(0, -1500));
+        await tester.pumpAndSettle();
+      }
+      final onScreen = lastPage();
+      expect(onScreen, greaterThan(300));
+      final pageBox = find.byKey(ValueKey(onScreen), skipOffstage: false);
+      final before = tester.getTopLeft(pageBox);
+      for (var i = 0; i < 2; i++) {
+        await tester.tapAt(const Offset(180, 420));
+        await tester.pumpAndSettle();
+        expect(tester.getTopLeft(pageBox), before, reason: 'tap ${i + 1} moved the text');
+        expect(lastPage(), onScreen);
+      }
       await tester.tap(find.byIcon(Icons.menu_book_rounded).hitTestable().first);
       await tester.pumpAndSettle();
       expect(container.read(settingsProvider).mushafMode, MushafMode.page);
-      expect(shownPage(), 300);
+      expect(shownPage(), onScreen, reason: 'the pages reopen where Large text was left');
 
       // Opening a surah from the index lands on its first page.
       router.pop();

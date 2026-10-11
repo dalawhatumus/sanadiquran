@@ -61,6 +61,32 @@ const _minGap = 0.08;
 
 final _measured = <int, (List<double>, List<int>)>{};
 
+/// The lines (by index) printed short and centred rather than justified:
+/// every line of the first two pages, single words, and a surah's short
+/// last line just before the next surah (or at the end of the page), as in
+/// the printed Madani mushaf. Every other line is stretched edge to edge,
+/// whatever the screen size.
+Set<int> centredLines(QuranData q, int page) {
+  final lines = q.lines(page);
+  final (widths, gaps) = _lineMetrics(q, page);
+  final ref = q.widthRefSize;
+  final natural = <int, double>{
+    for (var i = 0; i < lines.length; i++)
+      if (lines[i] is TextLine) i: widths[i] + gaps[i] * (_gap * ref - q.spaceWidth),
+  };
+  if (natural.isEmpty) return const {};
+  final sorted = natural.values.toList()..sort();
+  final typical = sorted[sorted.length ~/ 2];
+  return {
+    for (final MapEntry(key: i, value: w) in natural.entries)
+      if (page <= 2 ||
+          gaps[i] == 0 ||
+          w < typical * 0.66 ||
+          (w < typical * 0.75 && (i + 1 == lines.length || lines[i + 1] is HeaderLine)))
+        i,
+  };
+}
+
 /// One page of the Madani mushaf: the exact 15 lines, justified, with the
 /// surah frame, basmala, page header and page number. Each line is drawn as
 /// a single text run, which keeps page turns smooth.
@@ -177,6 +203,7 @@ class _MushafPageState extends State<MushafPage> {
               final lineH = widget.scrollable ? size * 2.05 : (c.maxHeight - header - footer) / 15;
               if (!widget.scrollable) size = math.min(size, lineH / 1.72);
               size = (size * 4).floorToDouble() / 4;
+              final centred = centredLines(q, page);
 
               final body = ValueListenableBuilder<String?>(
                 valueListenable: widget.selected,
@@ -186,7 +213,7 @@ class _MushafPageState extends State<MushafPage> {
                     for (var i = 0; i < lines.length; i++)
                       SizedBox(
                         height: lineH,
-                        child: _line(lines[i], widths[i], gaps[i], natural[i], size, width, ink, t, sel),
+                        child: _line(lines[i], widths[i], gaps[i], centred.contains(i), size, width, ink, t, sel),
                       ),
                   ],
                 ),
@@ -231,7 +258,7 @@ class _MushafPageState extends State<MushafPage> {
     PageLine line,
     double measured,
     int gaps,
-    double natural,
+    bool centred,
     double size,
     double width,
     Color ink,
@@ -250,7 +277,7 @@ class _MushafPageState extends State<MushafPage> {
         // Short lines (the first pages, or a surah's last line) are centred
         // with the usual gaps. Full lines are justified: the gaps between
         // words grow or shrink so the line meets both edges, as printed.
-        final centre = widget.page <= 2 || gaps == 0 || natural * k < width * 0.75;
+        final centre = centred;
         var spacing = centre ? size * _gap - space : (width - measured * k) / gaps;
         // Never closer than [_minGap]; a line that would need it is narrowed.
         spacing = math.max(spacing, size * _minGap - space);

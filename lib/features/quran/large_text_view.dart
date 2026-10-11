@@ -32,7 +32,12 @@ class LargeTextView extends StatefulWidget {
 
 class _LargeTextViewState extends State<LargeTextView> {
   final _pages = <int, BuildContext>{};
-  late final _centerKey = ValueKey('center-${widget.startPage}');
+
+  /// The page the list was opened at. Fixed for the life of the list: the
+  /// screen passes the page now on screen each time it rebuilds (e.g. when
+  /// a tap shows the bars), and re-centring on that would jump the text.
+  late final int _start = widget.startPage;
+  late final _centerKey = ValueKey('center-$_start');
 
   void _check() {
     final box = context.findRenderObject() as RenderBox?;
@@ -61,7 +66,7 @@ class _LargeTextViewState extends State<LargeTextView> {
 
   @override
   Widget build(BuildContext context) {
-    final start = widget.startPage;
+    final start = _start;
     return GestureDetector(
       onTap: widget.onTap,
       child: NotificationListener<ScrollEndNotification>(
