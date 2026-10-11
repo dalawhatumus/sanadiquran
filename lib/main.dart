@@ -7,6 +7,7 @@ import 'app.dart';
 import 'backend/backend.dart';
 import 'backend/config.dart';
 import 'backend/firebase_backend.dart';
+import 'core/log.dart';
 import 'core/settings.dart';
 
 Future<void> main() async {
@@ -21,7 +22,7 @@ Future<void> main() async {
       await Firebase.initializeApp(options: FirebaseConfig.options);
       backend = FirebaseBackend();
     } catch (e) {
-      debugPrint('Firebase did not start, using demo mode: $e');
+      logIssue('Firebase did not start, using demo mode: $e');
     }
   }
 

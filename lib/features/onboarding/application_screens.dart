@@ -1,21 +1,22 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
-import 'package:record/record.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:record/record.dart';
 
 import '../../backend/backend.dart';
+import '../../core/limits.dart';
+import '../../core/local_files.dart';
+import '../../core/log.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
-import '../../core/limits.dart';
-import '../../core/local_files.dart';
 
 /// Answers kept while the teacher moves through the 5 steps.
 class ApplicationDraft {
@@ -74,7 +75,7 @@ class _ApplicationScreenState extends ConsumerState<ApplicationScreen> {
             sample: sample,
             sampleSec: d.sampleSec,
           );
-        }().catchError((Object e) => debugPrint('Application not sent: $e')),
+        }().catchError((Object e) => logIssue('Application not sent: $e')),
       );
       ref.read(settingsProvider.notifier).update((s) => s.copyWith(teacherStatus: TeacherStatus.pending));
       context.go(Routes.applySent);

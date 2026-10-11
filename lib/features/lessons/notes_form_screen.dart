@@ -4,12 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../backend/backend.dart';
 import '../../backend/sessions.dart';
-import '../../core/theme.dart';
+import '../../core/limits.dart';
 import '../../core/strings.dart';
+import '../../core/theme.dart';
 import '../../widgets/ui.dart';
 import '../quran/quran_data.dart';
 import 'lessons_ui.dart';
-import '../../core/limits.dart';
 
 /// 34 · Notes on a lesson. Every part is optional; Save works as soon as
 /// anything is filled in. Can be opened right after the call or later from

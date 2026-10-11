@@ -9,13 +9,13 @@ import 'package:path_provider/path_provider.dart';
 abstract final class LocalFiles {
   /// Ids come from the server; anything but letters, digits, `_` and `-` is
   /// replaced, so a name can never point outside the app's folders.
-  static String _safe(String id) => id.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
+  static String safeName(String id) => id.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
 
   static Future<Directory> _voiceDir() async => Directory('${(await getApplicationCacheDirectory()).path}/voice');
 
   /// Where a received voice note is cached once downloaded.
   static Future<File> voiceNote(String conversationId, String messageId) async =>
-      File('${(await _voiceDir()).path}/${_safe(conversationId)}_${_safe(messageId)}.m4a');
+      File('${(await _voiceDir()).path}/${safeName(conversationId)}_${safeName(messageId)}.m4a');
 
   /// A fresh path for a new recording ([kind]: `voice` or `sample`).
   static Future<String> newRecording(String kind) async =>
@@ -23,7 +23,7 @@ abstract final class LocalFiles {
 
   /// Where an applicant's recitation sample is saved for an admin to hear.
   static Future<File> applicationSample(String uid) async =>
-      File('${(await getTemporaryDirectory()).path}/sample_${_safe(uid)}.m4a');
+      File('${(await getTemporaryDirectory()).path}/sample_${safeName(uid)}.m4a');
 
   /// Deletes every cached voice note and recording.
   static Future<void> clearAll() async {

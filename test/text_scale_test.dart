@@ -5,10 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sanadi/app.dart';
 import 'package:sanadi/backend/backend.dart';
+import 'package:sanadi/core/connectivity.dart';
 import 'package:sanadi/core/router.dart';
 import 'package:sanadi/core/settings.dart';
 import 'package:sanadi/features/call/call_controller.dart';
-import 'package:sanadi/core/connectivity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/layout_checks.dart';

@@ -8,8 +8,8 @@ import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
-import '../settings/more_screens.dart';
 import '../../widgets/ui.dart';
+import '../settings/more_screens.dart';
 
 /// 30 · Teacher home, plus 15 (application pending) and 16 (not approved).
 class TeacherHomeScreen extends ConsumerWidget {

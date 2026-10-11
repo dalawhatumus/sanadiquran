@@ -1,15 +1,14 @@
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../backend/backend.dart';
+import '../../core/limits.dart';
+import '../../core/local_files.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
-import '../../core/limits.dart';
-import '../../core/local_files.dart';
 
 /// Admins review teacher applications: read the answers, then approve or
 /// turn down with a reason. The teacher's app updates straight away.

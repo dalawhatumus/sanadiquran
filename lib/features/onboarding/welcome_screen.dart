@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../backend/backend.dart';
 import '../../core/connectivity.dart';
+import '../../core/log.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -41,7 +42,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       if (mounted) setState(() => _state = _State.idle);
       return;
     } catch (e) {
-      debugPrint('Sign-in failed: $e');
+      logIssue('Sign-in failed: $e');
       if (mounted) setState(() => _state = _State.failed);
       return;
     }

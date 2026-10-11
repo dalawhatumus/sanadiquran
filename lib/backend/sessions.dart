@@ -130,11 +130,6 @@ abstract interface class LessonApi {
 
 final lessonsProvider = StreamProvider<List<Lesson>>((ref) => ref.watch(backendProvider).lessons());
 
-/// A lesson by id, from the loaded history.
-final lessonProvider = Provider.family<Lesson?, String>(
-  (ref, id) => (ref.watch(lessonsProvider).value ?? const <Lesson>[]).where((l) => l.id == id).firstOrNull,
-);
-
 /// A next portion the student chose herself (from the ayah menu), with when.
 class OwnNextPortion extends Notifier<(Portion, DateTime)?> {
   static const _key = 'ownNextPortion';
@@ -143,10 +138,20 @@ class OwnNextPortion extends Notifier<(Portion, DateTime)?> {
   (Portion, DateTime)? build() {
     final raw = ref.read(sharedPreferencesProvider).getString(_key);
     if (raw == null) return null;
-    final m = jsonDecode(raw) as Map<String, dynamic>;
-    final p = Portion.fromMap(m);
-    final at = DateTime.tryParse('${m['at']}');
-    return p == null || at == null ? null : (p, at);
+    try {
+      final m = jsonDecode(raw) as Map<String, dynamic>;
+      final p = Portion.fromMap(m);
+      final at = DateTime.tryParse('${m['at']}');
+      return p == null || at == null ? null : (p, at);
+    } catch (_) {
+      return null; // damaged: as if none was chosen
+    }
+  }
+
+  /// Forgets the choice (when the user signs out of this phone).
+  void clear() {
+    state = null;
+    ref.read(sharedPreferencesProvider).remove(_key);
   }
 
   void set(Portion p) {

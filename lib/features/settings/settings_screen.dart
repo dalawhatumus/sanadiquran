@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../backend/backend.dart';
+import '../../backend/sessions.dart';
+import '../../core/app_info.dart';
+import '../../core/local_files.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -11,7 +14,6 @@ import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 import '../athkar/athkar_menu_screen.dart';
 import 'more_screens.dart';
-import '../../core/local_files.dart';
 
 /// Settings: profile, language, appearance, reminders, help and privacy,
 /// account (sign out, delete), and testing tools for test builds.
@@ -35,8 +37,7 @@ class SettingsScreen extends ConsumerWidget {
         await backend.setAvailable(on: false, gender: settings.gender).catchError((_) {});
       }
       await backend.signOut().catchError((_) {});
-      await LocalFiles.clearAll();
-      n.reset();
+      await forgetUserOnThisPhone(ref);
       if (context.mounted) context.go(Routes.language);
     }
 
@@ -90,8 +91,7 @@ class SettingsScreen extends ConsumerWidget {
         if (context.mounted) toast(context, s.decisionFailed);
         return;
       }
-      await LocalFiles.clearAll();
-      n.reset();
+      await forgetUserOnThisPhone(ref);
       if (context.mounted) {
         toast(context, s.accountDeleted);
         context.go(Routes.language);
@@ -269,4 +269,14 @@ class SettingsScreen extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// After signing out or deleting the account: removes what belonged to that
+/// person from this phone (their profile and settings, chosen next portion,
+/// cached voice notes and recordings), so whoever signs in next starts
+/// clean. Phone-wide choices (reciter, reminder times) are kept.
+Future<void> forgetUserOnThisPhone(WidgetRef ref) async {
+  await LocalFiles.clearAll();
+  ref.read(ownNextPortionProvider.notifier).clear();
+  ref.read(settingsProvider.notifier).reset();
 }

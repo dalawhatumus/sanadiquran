@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/log.dart';
 import '../../core/settings.dart';
 import 'quran_data.dart';
 
@@ -181,7 +182,7 @@ class RecitationController extends Notifier<RecitationState> {
         state = state.copyWith(loading: false, playing: true);
         return;
       } catch (e) {
-        debugPrint('Recitation: $url failed: $e');
+        logIssue('Recitation: $url failed: $e');
         if (token != _token) return;
       }
     }

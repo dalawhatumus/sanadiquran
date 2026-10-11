@@ -12,8 +12,8 @@ import '../../core/router.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/avatars.dart';
-import '../settings/more_screens.dart';
 import '../../widgets/ui.dart';
+import '../settings/more_screens.dart';
 import 'call_controller.dart';
 
 String _clock(S s, int secs) =>

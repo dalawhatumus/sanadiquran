@@ -32,14 +32,12 @@ class S {
 
   // ---- Sample people for this test build (replaced by real accounts) ----
   String get teacherName => t(g('Ustadha Aisha', 'Ustadh Yusuf'), 'الأستاذة عائشة', 'الأستاذ يوسف');
-  String get teacherShort => t(g('Aisha', 'Yusuf'), 'عائشة', 'يوسف');
   String get teacherInitials => ar ? g('ع', 'ي') : g('AY', 'YU');
   String get studentName => t(g('Fatima Ahmed', 'Ahmad Ali'), 'فاطمة أحمد', 'أحمد علي');
   String get studentShort => t(g('Fatima', 'Ahmad'), 'فاطمة', 'أحمد');
   String get studentInitial => ar ? g('ف', 'أ') : g('F', 'A');
 
   // ---- Common ----
-  String get appName => t('Sanadi', 'سَنَدي');
   String get back => t('Back', 'رجوع');
   String get next => t('Next', 'التالي');
   String get cont => t('Continue', 'متابعة');
@@ -51,7 +49,6 @@ class S {
   String get settings => t('Settings', 'الإعدادات');
   String get tryAgain => t('Try again', 'المحاولة مرة أخرى');
   String get comingSoon => t('Coming soon, in sha Allah', 'قريبًا بإذن الله');
-  String get salam => t('As-salamu alaykum', 'السلام عليكم');
   String stepOf(int a, int b) => t('Step $a of $b', 'الخطوة ${n(a)} من ${n(b)}');
   String get reportProblem => t('Report a problem', 'الإبلاغ عن مشكلة');
 
@@ -86,11 +83,6 @@ class S {
     'Reciting to a teacher needs internet. The Quran and athkar still work offline.',
     'التسميع للمعلّمة يحتاج إلى إنترنت. المصحف والأذكار يعملان دون إنترنت.',
     'التسميع للمعلّم يحتاج إلى إنترنت. المصحف والأذكار يعملان دون إنترنت.',
-  );
-  String get messagesNeedInternet => t(
-    'Messages need internet. Connect to Wi-Fi or mobile data.',
-    'الرسائل تحتاج إلى إنترنت. اتصلي بشبكة Wi-Fi أو بيانات الجوال.',
-    'الرسائل تحتاج إلى إنترنت. اتصل بشبكة Wi-Fi أو بيانات الجوال.',
   );
   String get privacy => t('Privacy policy', 'سياسة الخصوصية');
   String get terms => t('Terms', 'الشروط');
@@ -271,7 +263,6 @@ class S {
   String yourSample(String len) => t('Your sample · $len', 'مقطعكِ · ${n(len)}', 'مقطعك · ${n(len)}');
   String get recordAgain => t('Record again', 'سجّلي من جديد', 'سجّل من جديد');
   String get sendSample => t('Send sample', 'أرسلي المقطع', 'أرسل المقطع');
-  String get sendingSample => t('Sending your sample…', 'جارٍ إرسال مقطعكِ…', 'جارٍ إرسال مقطعك…');
   String get sampleNote => t('Test build: the recording is simulated.', 'نسخة تجريبية: التسجيل للعرض فقط.');
   String get pledgeTitle => t('Our promise to students', 'عهدنا مع الطالبات', 'عهدنا مع الطلاب');
   List<String> get pledges => [
@@ -344,13 +335,11 @@ class S {
     'اضغط «سمِّع الآن» لتبدأ أول جلسة. سيظهر هنا معلّمك ووِردك القادم.',
   );
   String get myProgress => t('My progress', 'تقدّمي');
-  String get progressSum => t('37 surahs · 564 ayahs memorised', '٣٧ سورة · ٥٦٤ آية محفوظة');
 
   // ---- 19 Connecting / 21 In call ----
   String get sessionType => t('Correction', 'تصحيح التلاوة');
   String get finding => t('Finding a teacher for you…', 'نبحث لكِ عن معلّمة…', 'نبحث لك عن معلّم…');
   String get findingSub => t('This usually takes less than a minute.', 'عادةً يستغرق هذا أقل من دقيقة.');
-  String get calling => t('Calling $teacherName…', 'نتصل ب$teacherName…');
   String get callingSub =>
       t(g('Please wait while she answers.', 'Please wait while he answers.'), 'انتظري حتى تردّ.', 'انتظر حتى يردّ.');
   String get inSession => t('In session with', 'في جلسة مع');
@@ -388,7 +377,6 @@ class S {
 
   // ---- 24 Call ended (student) ----
   String get sEndTitle => t('May Allah reward you', 'جزاكِ الله خيرًا', 'جزاك الله خيرًا');
-  String sEndSub(int min) => t('$min minutes with $teacherName', '${n(min)} دقيقة مع $teacherName');
   String get savedToProgress => t('Saved to your progress', 'حُفظت في سجلّ تقدّمكِ', 'حُفظت في سجلّ تقدّمك');
   String get rateQ => t('How was your session? (optional)', 'كيف كانت جلستكِ؟ (اختياري)', 'كيف كانت جلستك؟ (اختياري)');
   List<String> get faces => ar ? ['ليست جيدة', 'مقبولة', 'جيدة'] : ['Not good', 'OK', 'Good'];
@@ -396,38 +384,15 @@ class S {
       t('Thank you. JazakAllahu khairan.', 'شكرًا لكِ، جزاكِ الله خيرًا.', 'شكرًا لك، جزاك الله خيرًا.');
 
   // ---- 25 Teacher's notes ----
-  String get tnTitle => t('Notes from $teacherName', 'ملاحظات من $teacherName');
-  String get tnSub => t('Today · 18 minutes', 'اليوم · ١٨ دقيقة');
   String get recitedL => t('You recited', 'سمّعتِ', 'سمّعت');
   String get recited => t('Al-Mulk 1–10', 'سورة المُلك ١–١٠');
   String get practiseL => t('Ayahs to practise', 'آيات للمراجعة');
   String get teacherNoteL => t("Your teacher's note", 'ملاحظة معلّمتكِ', 'ملاحظة معلّمك');
-  String get noteText => t(
-    'Very good, ${female ? 'Fatima' : 'Ahmad'}. Read ayah 7 slowly a few times before next session.',
-    'أحسنتِ يا فاطمة. اقرئي الآية ٧ ببطء عدّة مرات قبل الجلسة القادمة.',
-    'أحسنت يا أحمد. اقرأ الآية ٧ ببطء عدّة مرات قبل الجلسة القادمة.',
-  );
-  String get nextPortion => t('Al-Mulk 11–20', 'سورة المُلك ١١–٢٠');
   String get firstPortion => t('Al-Mulk 1–10', 'سورة المُلك ١–١٠');
   String get notesTag => t('Notes', 'ملاحظات');
 
   // ---- 26 My progress ----
-  String get memorisedL => t('Memorised so far', 'ما حفظتِه حتى الآن', 'ما حفظته حتى الآن');
-  String get progressSummary => t('37 surahs · 564 ayahs', '٣٧ سورة · ٥٦٤ آية');
-  String get juzL => t('The 30 juz', 'الأجزاء الثلاثون');
-  List<String> get legend =>
-      ar ? ['محفوظ', 'قيد الحفظ', 'لم يبدأ بعد'] : ['Memorised', 'In progress', 'Not started yet'];
   String get recentL => t('Recent sessions', 'آخر الجلسات');
-  List<(String, String, String, bool)> get recentSessions => [
-    (t('Today · $teacherName', 'اليوم · $teacherName'), recited, gradeGood, true),
-    (t('Sunday · $teacherName', 'الأحد · $teacherName'), t('Al-Mulk 1–5', 'سورة المُلك ١–٥'), grades[0], false),
-    (
-      t(g('Thursday · Ustadha Maryam', 'Thursday · Ustadh Bilal'), 'الخميس · الأستاذة مريم', 'الخميس · الأستاذ بلال'),
-      t('An-Naba 1–40', 'سورة النبأ ١–٤٠'),
-      grades[2],
-      true,
-    ),
-  ];
   String get progressEmptyTitle => t('Your progress will appear here', 'سيظهر تقدّمكِ هنا', 'سيظهر تقدّمك هنا');
   String get progressEmptyBody => t(
     "After your first session you'll see what you have memorised, juz by juz.",
@@ -471,7 +436,6 @@ class S {
 
   // ---- 34 Call ended (teacher) + optional notes ----
   String get tEndTitle => t('Call ended', 'انتهت المكالمة');
-  String tEndSub(int min) => t('$studentName · $min minutes', '$studentName · ${n(min)} دقيقة');
   String get tEndSaved => t("Saved to $studentShort's progress", 'حُفظت في سجلّ تقدّم $studentShort');
   String get addNotes => t(
     'Add notes for $studentShort (optional)',
@@ -482,7 +446,6 @@ class S {
       t('Notes saved. $studentShort will get a notification.', 'حُفظت الملاحظات. سيصل إشعار إلى $studentShort.');
   String get jazakTeach =>
       t('JazakAllahu khairan for teaching.', 'جزاكِ الله خيرًا على التعليم.', 'جزاك الله خيرًا على التعليم.');
-  String get notesTitle => t('Notes for $studentShort', 'ملاحظات ل$studentShort');
   String notesForName(String name) => t('Notes for $name', 'ملاحظات لـ $name');
   String noteToName(String name) => t('Note to $name', 'ملاحظة لـ $name');
   String get allOptional => t(
@@ -491,7 +454,6 @@ class S {
     'كل ما هنا اختياري. املأ ما يفيد فقط.',
   );
   String get portionL => t('Portion recited', 'الوِرد المُسمَّع');
-  String get surahMulk => t('Al-Mulk (67)', 'سورة المُلك (٦٧)');
   String get fromAyah => t('From ayah', 'من آية');
   String get toAyah => t('To ayah', 'إلى آية');
   String get gradeL => t('Grade', 'التقدير');
@@ -500,16 +462,12 @@ class S {
   String get mistakesL =>
       t('Ayahs to practise: tap one', 'آيات للمراجعة: اضغطي على آية', 'آيات للمراجعة: اضغط على آية');
   String get nextL => t('Next portion', 'الوِرد القادم');
-  String get suggested =>
-      t('Suggested: continues from where she stopped', 'مقترح: يكمل من حيث توقّفت', 'مقترح: يكمل من حيث توقّف');
-  String get noteTo => t('Note to $studentShort', 'ملاحظة ل$studentShort');
   String get typeNote => t('Type a note', 'اكتبي ملاحظة', 'اكتب ملاحظة');
   String get saveNotes => t('Save notes', 'احفظي الملاحظات', 'احفظ الملاحظات');
 
   // ---- 45-47 Athkar ----
   String get athkarTitle => t('Athkar', 'الأذكار');
   String get nextReminder => t('Next reminder', 'التذكير القادم');
-  String get reminderWhen => t('Evening athkar · 4:15 pm, after Asr', 'أذكار المساء · ٤:١٥ م، بعد العصر');
   String get remindersOff => t('Athkar reminders are off', 'تذكيرات الأذكار متوقّفة');
   String get turnOnReminders => t('Turn on reminders', 'فعّلي التذكيرات', 'فعّل التذكيرات');
   String get doneToday => t('Done today', 'تمّت اليوم');
@@ -554,28 +512,18 @@ class S {
   String get goTo => t('Go to', 'انتقال');
   String ayahTitle(String surah, int a) => t('$surah · Ayah $a', '$surah · الآية ${n(a)}');
   String get playFrom => t('Play from this ayah', 'شغّلي من هذه الآية', 'شغّل من هذه الآية');
-  String get repeatAyah => t('Repeat this ayah', 'كرّري هذه الآية', 'كرّر هذه الآية');
-  String get bookmarkAyah => t('Bookmark this ayah', 'ضعي علامة على الآية', 'ضع علامة على الآية');
-  String get removeBookmark => t('Remove bookmark', 'إزالة العلامة');
   String get copy => t('Copy', 'نسخ');
   String get tapToShowBars => t(
     'Tap the page to show the controls again.',
     'اضغطي على الصفحة لإظهار الأزرار مجددًا.',
     'اضغط على الصفحة لإظهار الأزرار مجددًا.',
   );
-  String get reciterName => t('Mishary Alafasy', 'مشاري العفاسي');
-  String get comingSoonShort => t('Coming soon', 'قريبًا');
-  String get copyAyah => t('Copy ayah', 'انسخي الآية', 'انسخ الآية');
   String get copied => t('Ayah copied', 'نُسخت الآية');
   String get bookmarked => t('Bookmark saved', 'حُفظت العلامة');
   String get bookmarks => t('Bookmarks', 'العلامات');
   String get goToPage => t('Go to page', 'الانتقال إلى صفحة');
   String get pageNumberHint => t('Page number (1–604)', 'رقم الصفحة (١–٦٠٤)');
   String get go => t('Go', 'انتقال');
-  String get pagePreviewNote => t(
-    'Page view preview: the exact 15-line layout comes with the mushaf data update.',
-    'معاينة الصفحة: يأتي الترتيب المطابق للمصحف (١٥ سطرًا) مع تحديث بيانات المصحف.',
-  );
 
   // ---- 48–50 Messages, chat, report and block ----
   String get noChatsTitle => t('No messages yet', 'لا توجد رسائل بعد');
@@ -591,7 +539,6 @@ class S {
   );
   String voiceNoteLen(int sec) => t('Voice note · ${_mmss(sec)}', 'رسالة صوتية · ${n(_mmss(sec))}');
   String get voiceNote => t('Voice note', 'رسالة صوتية');
-  String get youPrefix => t('You: ', 'أنتِ: ', 'أنت: ');
   String get yesterday => t('Yesterday', 'أمس');
   String get typeMessage => t('Type a message…', 'اكتبي رسالة…', 'اكتب رسالة…');
   String get send => t('Send', 'إرسال');
@@ -642,10 +589,8 @@ class S {
   );
   String get voiceMax => t('Voice notes can be up to 3 minutes.', 'الرسالة الصوتية حتى ٣ دقائق.');
   String get pause => t('Pause', 'إيقاف مؤقت');
-  String get moreOptions => t('More options', 'خيارات أخرى');
 
   // ---- Real calls ----
-  String callingName(String name) => t('Calling $name…', 'نتصل بـ $name…');
   String get callingAny => t('Calling a teacher…', 'نتصل بمعلّمة…', 'نتصل بمعلّم…');
   String get connectingCall => t('Connecting…', 'جارٍ الاتصال…');
   String get reconnecting => t('Reconnecting…', 'جارٍ إعادة الاتصال…');
@@ -659,7 +604,6 @@ class S {
     'تحقّقي من الإنترنت وحاولي مرة أخرى.',
     'تحقّق من الإنترنت وحاول مرة أخرى.',
   );
-  String get callDropped => t('The call was cut off.', 'انقطعت المكالمة.');
   String sEndSubName(int min, String name) => t('$min minutes with $name', '${n(min)} دقيقة مع $name');
   String tEndSubName(int min, String name) => t('$name · $min minutes', '$name · ${n(min)} دقيقة');
   String missedBodyName(String name) => t(
@@ -685,8 +629,6 @@ class S {
   String notesFromName(String name) => t('Notes from $name', 'ملاحظات من $name');
   String lessonWhen(String date, int min) => t('$date · $min min', '$date · ${n(min)} د');
   String get noNotes => t('No notes', 'بلا ملاحظات');
-  String get addNotesShort => t('Add notes', 'إضافة ملاحظات');
-  String get editNotes => t('Edit notes', 'تعديل الملاحظات');
   String lessonsCount(int k) => switch (k) {
     1 => t('1 lesson', 'درس واحد'),
     2 => t('2 lessons', 'درسان'),

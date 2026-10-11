@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../backend/backend.dart';
 import '../../backend/calls.dart';
+import '../../core/log.dart';
 import '../../core/settings.dart';
 import 'audio_link.dart';
 
@@ -141,7 +142,7 @@ class CallController extends Notifier<CallState> {
     try {
       id = await _b.createCall(name: me.name.trim(), avatar: me.avatar, gender: gender);
     } catch (e) {
-      debugPrint('Call not created: $e');
+      logIssue('Call not created: $e');
       state = const CallState(phase: CallPhase.failed);
       return;
     }
@@ -191,7 +192,7 @@ class CallController extends Notifier<CallState> {
       try {
         await _b.ring(id, pick.uid);
       } catch (e) {
-        debugPrint('Ring failed: $e');
+        logIssue('Ring failed: $e');
         continue;
       }
       if (_cancelled) return;
@@ -244,7 +245,7 @@ class CallController extends Notifier<CallState> {
       await _b.setBusy(true);
       await _b.acceptCall(call.id, name: me.name.trim(), avatar: me.avatar);
     } catch (e) {
-      debugPrint('Accept failed: $e');
+      logIssue('Accept failed: $e');
       await _b.setBusy(false).catchError((_) {});
       state = const CallState(phase: CallPhase.failed, asTeacher: true);
       return;
@@ -324,7 +325,7 @@ class CallController extends Notifier<CallState> {
     try {
       await link.start(id, asStudent: asStudent);
     } catch (e) {
-      debugPrint('Audio failed: $e');
+      logIssue('Audio failed: $e');
       await _b.setCallStatus(id, CallStatus.ended).catchError((_) {});
       await _finish(dropped: true);
     }
@@ -356,10 +357,10 @@ class CallController extends Notifier<CallState> {
               startedAt: at,
               durationSec: secs,
             )
-            .catchError((Object e) => debugPrint('Lesson not saved: $e'));
+            .catchError((Object e) => logIssue('Lesson not saved: $e'));
       }
       // A first lesson opens the chat between them.
-      if (!teacher && call != null) await _b.openChatAfterCall(call).catchError((Object e) => debugPrint('$e'));
+      if (!teacher && call != null) await _b.openChatAfterCall(call).catchError((Object e) => logIssue('$e'));
     }
   }
 

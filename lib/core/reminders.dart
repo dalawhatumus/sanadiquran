@@ -5,6 +5,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'log.dart';
 import 'settings.dart';
 import 'strings.dart';
 
@@ -77,7 +78,7 @@ class Reminders {
   /// The only places a reminder may open. A notification's payload is
   /// checked against these before the app navigates anywhere.
   static const routes = {'/athkar/morning', '/athkar/evening'};
-  static String? _safe(String? route) => routes.contains(route) ? route : null;
+  static String? safeRoute(String? route) => routes.contains(route) ? route : null;
 
   Future<void> _init() async {
     if (_ready) return;
@@ -93,15 +94,15 @@ class Reminders {
       await _plugin.initialize(
         settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
         onDidReceiveNotificationResponse: (r) {
-          final route = _safe(r.payload);
+          final route = safeRoute(r.payload);
           if (route != null) onOpen?.call(route);
         },
       );
       final launch = await _plugin.getNotificationAppLaunchDetails();
-      final route = _safe(launch?.notificationResponse?.payload);
+      final route = safeRoute(launch?.notificationResponse?.payload);
       if ((launch?.didNotificationLaunchApp ?? false) && route != null) _launchRoute = route;
     } catch (e) {
-      debugPrint('Reminders unavailable: $e');
+      logIssue('Reminders unavailable: $e');
     }
   }
 
@@ -134,7 +135,7 @@ class Reminders {
       await daily(_morningId, times.morning, s.morningAthkar, s.morningReminderBody, '/athkar/morning');
       await daily(_eveningId, times.evening, s.eveningAthkar, s.eveningReminderBody, '/athkar/evening');
     } catch (e) {
-      debugPrint('Reminders not scheduled: $e');
+      logIssue('Reminders not scheduled: $e');
     }
   }
 

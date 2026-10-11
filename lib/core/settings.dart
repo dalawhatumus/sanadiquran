@@ -170,7 +170,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
     if (raw == null) return const AppSettings();
     try {
       return AppSettings.fromJson((jsonDecode(raw) as Map).cast<String, Object?>());
-    } on FormatException {
+    } catch (_) {
+      // Damaged or from an incompatible version: start fresh, never crash.
       return const AppSettings();
     }
   }
@@ -219,7 +220,7 @@ class LastPageNotifier extends Notifier<int> {
   static const _key = 'lastPage';
 
   @override
-  int build() => ref.read(sharedPreferencesProvider).getInt(_key) ?? 1;
+  int build() => (ref.read(sharedPreferencesProvider).getInt(_key) ?? 1).clamp(1, 604);
 
   void set(int page) {
     if (page == state) return;

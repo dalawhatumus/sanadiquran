@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sanadi/app.dart';
-import 'package:sanadi/core/settings.dart';
 import 'package:sanadi/core/connectivity.dart';
+import 'package:sanadi/core/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> pumpApp(WidgetTester tester, [Map<String, Object> prefs = const {}, bool online = true]) async {

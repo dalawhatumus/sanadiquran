@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../core/log.dart';
 import '../core/settings.dart';
 import 'backend.dart';
 import 'config.dart';
@@ -46,8 +47,9 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons imple
   Stream<T> _forUser<T>(Stream<T> Function(String uid) build, {required T signedOut}) =>
       perUser(_auth, build, signedOut);
 
-  @override
-  Future<SignedInUser> signIn() async {
+  /// Asks Google for the user's account and returns it with a Firebase
+  /// credential for it. Throws [SignInCancelled] if the user closes it.
+  Future<(GoogleSignInAccount, AuthCredential)> _google() async {
     final google = GoogleSignIn.instance;
     if (!_googleReady) {
       await google.initialize(serverClientId: FirebaseConfig.webClientId);
@@ -60,8 +62,13 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons imple
       if (e.code == GoogleSignInExceptionCode.canceled) throw const SignInCancelled();
       rethrow;
     }
-    final idToken = account.authentication.idToken;
-    final result = await _auth.signInWithCredential(GoogleAuthProvider.credential(idToken: idToken));
+    return (account, GoogleAuthProvider.credential(idToken: account.authentication.idToken));
+  }
+
+  @override
+  Future<SignedInUser> signIn() async {
+    final (account, credential) = await _google();
+    final result = await _auth.signInWithCredential(credential);
     final user = result.user!;
 
     final saved = await _doc('users', user.uid).get();
@@ -176,17 +183,25 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons imple
     final user = _auth.currentUser;
     if (user == null) return;
     final uid = user.uid;
-    // Personal data first (the rules allow it only while signed in).
+    // Deleting an account needs a recent sign-in. Confirm it first, before
+    // anything is deleted, so a cancelled confirmation leaves everything as
+    // it was. Re-authenticating (not signing in afresh) means Firebase
+    // refuses a different Google account ("user-mismatch"): only the
+    // signed-in account can ever be deleted.
+    final lastSignIn = user.metadata.lastSignInTime;
+    if (lastSignIn == null || DateTime.now().difference(lastSignIn) > const Duration(minutes: 4)) {
+      await user.reauthenticateWithCredential((await _google()).$2);
+    }
+    // Personal data next (the rules allow it only while signed in).
     for (final c in ['presence', 'applicationSamples', 'teacherApplications', 'users']) {
-      await _doc(c, uid).delete().catchError((Object e) => debugPrint('Delete $c: $e'));
+      await _doc(c, uid).delete().catchError((Object e) => logIssue('Delete $c: $e'));
     }
     try {
       await user.delete();
     } on FirebaseAuthException catch (e) {
       if (e.code != 'requires-recent-login') rethrow;
-      // Google asks to confirm the account once more before deleting it.
-      await signIn();
-      await _auth.currentUser?.delete();
+      await user.reauthenticateWithCredential((await _google()).$2);
+      await user.delete();
     }
     await signOut();
   }

@@ -5,11 +5,12 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../backend/backend.dart';
 import '../../backend/chat.dart';
+import '../../core/app_info.dart';
+import '../../core/limits.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
 import '../messages/messages_screen.dart';
-import '../../core/limits.dart';
 
 const contactEmail = 'sanadiquran@gmail.com';
 
@@ -167,9 +168,6 @@ class AboutScreen extends StatelessWidget {
     );
   }
 }
-
-/// The version shown in Settings and About (keep in step with pubspec).
-const appVersion = '0.8.2';
 
 /// People this user blocked in messages, with Unblock.
 class BlockedScreen extends ConsumerWidget {
