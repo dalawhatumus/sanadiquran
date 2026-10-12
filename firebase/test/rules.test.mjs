@@ -378,3 +378,51 @@ test('chat: a member changes only their own name and picture', async () => {
   await assertFails(updateDoc(doc(db('s1'), 'conversations/s1_t1'), { 'avatars.t1': 'fs1' }));
   await assertFails(updateDoc(doc(db('s1'), 'conversations/s1_t1'), { 'names.s1': 'x'.repeat(81) }));
 });
+
+// ---- Pausing accounts ----
+
+test('only admins pause and restore; the person can see it', async () => {
+  const pause = { reason: 'Rude messages', by: 'admin1', at: serverTimestamp() };
+  await assertFails(setDoc(doc(db('s1'), 'suspensions/s2'), { ...pause, by: 's1' }));
+  await assertFails(setDoc(doc(db('admin1'), 'suspensions/s2'), { ...pause, by: 'someone' }));
+  await assertSucceeds(setDoc(doc(db('admin1'), 'suspensions/s2'), pause));
+  await assertSucceeds(getDoc(doc(db('s2'), 'suspensions/s2')));
+  await assertFails(getDoc(doc(db('s1'), 'suspensions/s2')));
+  await assertFails(deleteDoc(doc(db('s2'), 'suspensions/s2')));
+  await assertSucceeds(deleteDoc(doc(db('admin1'), 'suspensions/s2')));
+  // An admin removes a paused teacher from the available list.
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'presence/t1'), { available: true, gender: 'female' });
+  });
+  await assertFails(deleteDoc(doc(db('s1'), 'presence/t1')));
+  await assertSucceeds(deleteDoc(doc(db('admin1'), 'presence/t1')));
+});
+
+test('a paused person cannot message, call, teach or apply', async () => {
+  await openChat();
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'suspensions/s1'), { reason: '', by: 'admin1' });
+    await setDoc(doc(c.firestore(), 'suspensions/t1'), { reason: '', by: 'admin1' });
+  });
+  await assertFails(sendText('s1', 'hello'));
+  await assertFails(startCall('s1', 'female'));
+  await assertFails(setDoc(doc(db('t1'), 'presence/t1'), { available: true, gender: 'female', updatedAt: serverTimestamp() }));
+  // Nobody can ring a paused teacher.
+  const id = await startCall('s2', 'female');
+  await assertFails(updateDoc(doc(db('s2'), `calls/${id}`), { status: 'ringing', teacherId: 't1', tried: ['t1'] }));
+  await env.withSecurityRulesDisabled(async (c) => setDoc(doc(c.firestore(), 'suspensions/t3'), { reason: '', by: 'admin1' }));
+  await assertFails(setDoc(doc(db('t3'), 'teacherApplications/t3'), {
+    name: 'K', gender: 'female', answers: {}, order: [], status: 'pending', submittedAt: serverTimestamp(),
+  }));
+  // Restored: everything works again.
+  await env.withSecurityRulesDisabled(async (c) => deleteDoc(doc(c.firestore(), 'suspensions/s1')));
+  await assertSucceeds(sendText('s1', 'hello again'));
+});
+
+test('admins can read lessons for the overview', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'sessions/x1'), { studentId: 's1', teacherId: 't1', durationSec: 600 });
+  });
+  await assertSucceeds(getDocs(collection(db('admin1'), 'sessions')));
+  await assertFails(getDocs(collection(db('s2'), 'sessions')));
+});

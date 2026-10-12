@@ -9,6 +9,7 @@ import '../core/log.dart';
 import '../core/settings.dart';
 import 'backend.dart';
 import 'config.dart';
+import 'firestore_admin.dart';
 import 'firestore_calls.dart';
 import 'firestore_chat.dart';
 import 'firestore_lessons.dart';
@@ -23,7 +24,7 @@ import 'user_stream.dart';
 /// - presence/{uid}: an approved teacher's "available" switch and gender.
 ///   Any signed-in user can read it (to count available teachers).
 /// - admins/{uid}: who can review applications. Added by hand in the console.
-class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons implements Backend {
+class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons, FirestoreAdmin implements Backend {
   FirebaseBackend();
 
   final _auth = FirebaseAuth.instance;

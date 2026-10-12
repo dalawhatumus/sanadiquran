@@ -67,5 +67,6 @@ void main() {
     expect(Limits.lessonNote, lessThanOrEqualTo(serverMax(r'notes\.note, (\d+)\)')));
     expect(Limits.reportDetails, lessThanOrEqualTo(serverMax(r'data\.details, (\d+)\)')));
     expect(Limits.declineReason, lessThanOrEqualTo(serverMax(r"get\('reason', null\), (\d+)\)")));
+    expect(Limits.pauseReason, lessThanOrEqualTo(serverMax(r'data\.reason, (\d+)\)')));
   });
 }

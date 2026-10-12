@@ -242,7 +242,11 @@ class _ApplicationScreenState extends ConsumerState<ApplicationScreen> {
       const SizedBox(height: 8),
       Align(
         alignment: AlignmentDirectional.centerStart,
-        child: LinkButton(label: s.readCode, icon: Icons.description_rounded, onPressed: () => showSoon(context)),
+        child: LinkButton(
+          label: s.readCode,
+          icon: Icons.description_rounded,
+          onPressed: () => context.push(Routes.codeOfConduct),
+        ),
       ),
       const SizedBox(height: 8),
       ChoiceCard(

@@ -64,6 +64,8 @@ void main() {
     Routes.privacy,
     Routes.about,
     Routes.blocked,
+    Routes.terms,
+    Routes.codeOfConduct,
     Routes.mushafAt(sura: 67, ayah: 1),
     Routes.welcome,
     Routes.role,
@@ -93,6 +95,8 @@ void main() {
     Routes.admin,
     Routes.adminConnect,
     Routes.adminReports,
+    Routes.adminUsers,
+    Routes.adminStats,
     Routes.teacherMessages,
     '/chat/demo-chat',
   ];

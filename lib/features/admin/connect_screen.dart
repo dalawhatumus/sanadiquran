@@ -7,6 +7,7 @@ import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
+import 'users_screen.dart';
 
 /// Admins open a chat between a student and an approved teacher of the same
 /// gender. (From the calls update on, a first lesson does this by itself.)
@@ -172,6 +173,16 @@ class ReportsScreen extends ConsumerWidget {
                   if (r.at != null) ...[
                     const SizedBox(height: 6),
                     Text(s.n(MaterialLocalizations.of(context).formatMediumDate(r.at!)), style: tt.bodySmall),
+                  ],
+                  if (r.reportedId.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    BigButton(
+                      label: s.pauseName(r.reportedName),
+                      icon: Icons.pause_circle_rounded,
+                      kind: ButtonKind.outline,
+                      compact: true,
+                      onPressed: () => setPaused(context, ref, uid: r.reportedId, name: r.reportedName, pause: true),
+                    ),
                   ],
                   const SizedBox(height: 10),
                   BigButton(

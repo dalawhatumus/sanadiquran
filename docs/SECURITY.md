@@ -14,6 +14,7 @@ Firebase Auth). Beyond that:
 | Calls | the student and the teacher being rung | the student rings approved teachers whose **application** gender matches. The teacher answers or declines. Neither side can change the other's fields. |
 | Lessons | the two people in it | saved only for a real call between them. Notes are written by the teacher (validated), the rating by the student. |
 | Reports | admins | anyone may report the other member of **their own** chat, with a known reason (details ≤ 1000). Admins can only change the status. |
+| Paused accounts `suspensions/{uid}` | the person, admins | admins only (with a reason, signed with their id). A paused person can't send messages, start or answer calls, switch on "available", or apply to teach; nobody can ring a paused teacher. Restoring deletes the record. |
 | Admins | the admin themself | nobody (added by hand in the console) |
 
 Every rule has emulator tests in `firebase/test/rules.test.mjs`, including

@@ -141,6 +141,8 @@ class SettingsScreen extends ConsumerWidget {
             (Icons.how_to_reg_rounded, s.adminTitle, s.adminSub, Routes.admin),
             (Icons.link_rounded, s.connectTitle, s.connectSub, Routes.adminConnect),
             (Icons.flag_rounded, s.reportsTitle, s.reportsSub, Routes.adminReports),
+            (Icons.people_rounded, s.usersTitle, s.usersSub, Routes.adminUsers),
+            (Icons.insights_rounded, s.overviewTitle, s.overviewSub, Routes.adminStats),
           ])
             linkCard(icon, title, sub, () => context.push(route)),
         ],

@@ -56,21 +56,38 @@ jobs:
 
       # Firebase settings come from repository variables (they are not secret;
       # every Android app ships them). Without them the app runs in demo mode.
+      - name: Collect build settings
+        run: |
+          {
+            echo "DEFINES<<EOF"
+            echo "--dart-define=FIREBASE_API_KEY=${{ vars.FIREBASE_API_KEY }}"
+            echo "--dart-define=FIREBASE_APP_ID=${{ vars.FIREBASE_APP_ID }}"
+            echo "--dart-define=FIREBASE_SENDER_ID=${{ vars.FIREBASE_SENDER_ID }}"
+            echo "--dart-define=FIREBASE_PROJECT_ID=${{ vars.FIREBASE_PROJECT_ID }}"
+            echo "--dart-define=FIREBASE_STORAGE_BUCKET=${{ vars.FIREBASE_STORAGE_BUCKET }}"
+            echo "--dart-define=GOOGLE_WEB_CLIENT_ID=${{ vars.GOOGLE_WEB_CLIENT_ID }}"
+            echo "--dart-define=TURN_URLS=${{ vars.TURN_URLS }}"
+            echo "--dart-define=TURN_USERNAME=${{ vars.TURN_USERNAME }}"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
       - name: Build APK
         env:
           SANADI_KEYSTORE_PASSWORD: ${{ secrets.SANADI_KEYSTORE_PASSWORD }}
           SANADI_KEY_ALIAS: sanadi
-        run: >-
-          flutter build apk --release
-          --dart-define=FIREBASE_API_KEY=${{ vars.FIREBASE_API_KEY }}
-          --dart-define=FIREBASE_APP_ID=${{ vars.FIREBASE_APP_ID }}
-          --dart-define=FIREBASE_SENDER_ID=${{ vars.FIREBASE_SENDER_ID }}
-          --dart-define=FIREBASE_PROJECT_ID=${{ vars.FIREBASE_PROJECT_ID }}
-          --dart-define=FIREBASE_STORAGE_BUCKET=${{ vars.FIREBASE_STORAGE_BUCKET }}
-          --dart-define=GOOGLE_WEB_CLIENT_ID=${{ vars.GOOGLE_WEB_CLIENT_ID }}
-          --dart-define=TURN_URLS=${{ vars.TURN_URLS }}
-          --dart-define=TURN_USERNAME=${{ vars.TURN_USERNAME }}
-          --dart-define=TURN_CREDENTIAL=${{ secrets.TURN_CREDENTIAL }}
+          TURN_CREDENTIAL: ${{ secrets.TURN_CREDENTIAL }}
+        run: flutter build apk --release $DEFINES "--dart-define=TURN_CREDENTIAL=$TURN_CREDENTIAL"
+
+      # The Android App Bundle is what Google Play takes (same app, same key).
+      - name: Build app bundle (for Google Play)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          SANADI_KEYSTORE_PASSWORD: ${{ secrets.SANADI_KEYSTORE_PASSWORD }}
+          SANADI_KEY_ALIAS: sanadi
+          TURN_CREDENTIAL: ${{ secrets.TURN_CREDENTIAL }}
+        run: |
+          flutter build appbundle --release $DEFINES "--dart-define=TURN_CREDENTIAL=$TURN_CREDENTIAL"
+          cp build/app/outputs/bundle/release/app-release.aab "sanadi-build-${{ github.run_number }}.aab"
 
       - name: Name APK
         run: cp build/app/outputs/flutter-apk/app-release.apk "sanadi-build-${{ github.run_number }}.apk"
@@ -97,5 +114,9 @@ jobs:
 
             **Install on Android:** tap `sanadi-build-${{ github.run_number }}.apk` below, open it, and tap Install.
             Allow "Install unknown apps" if asked; if Play Protect warns, tap More details → Install anyway.
-          files: sanadi-build-${{ github.run_number }}.apk
+
+            The `.aab` file is the same build for uploading to Google Play (not for installing on a phone).
+          files: |
+            sanadi-build-${{ github.run_number }}.apk
+            sanadi-build-${{ github.run_number }}.aab
           make_latest: true

@@ -17,6 +17,9 @@ abstract final class Limits {
   /// An admin's reason for turning down an application (server: 1000).
   static const declineReason = 1000;
 
+  /// An admin's note on why an account was paused (server: 500).
+  static const pauseReason = 500;
+
   /// A free-text answer in the teacher application.
   static const applicationAnswer = 500;
 }

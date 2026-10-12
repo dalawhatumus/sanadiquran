@@ -9,6 +9,7 @@ import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
+import '../call/missed_calls.dart';
 import '../settings/more_screens.dart';
 
 /// 30 · Teacher home, plus 15 (application pending) and 16 (not approved).
@@ -124,9 +125,42 @@ class TeacherHomeScreen extends ConsumerWidget {
     ];
     final tt = Theme.of(context).textTheme;
     final on = settings.available;
-    void toggle() => ref.read(settingsProvider.notifier).update((x) => x.copyWith(available: !on));
+    void toggle() {
+      ref.read(settingsProvider.notifier).update((x) => x.copyWith(available: !on));
+      if (!on) ref.read(autoAwayProvider.notifier).dismiss();
+    }
+
+    final autoAway = ref.watch(autoAwayProvider) && !on;
     final fg = on ? t.onPrimary : t.text;
     return [
+      if (autoAway) ...[
+        SCard(
+          color: t.tint,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.notifications_paused_rounded, color: t.warn, size: 30),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    WordSafeText(s.autoAwayTitle, style: tt.titleMedium!.copyWith(color: t.heading)),
+                    const SizedBox(height: 4),
+                    Text(s.autoAwayBody, style: tt.bodyMedium),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: s.close,
+                onPressed: () => ref.read(autoAwayProvider.notifier).dismiss(),
+                icon: Icon(Icons.close_rounded, color: t.muted, size: 28),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+      ],
       Semantics(
         toggled: on,
         button: true,

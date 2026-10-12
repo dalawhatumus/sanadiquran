@@ -94,8 +94,13 @@ class _NameDialogState extends State<_NameDialog> {
   }
 }
 
-class PrivacyScreen extends StatelessWidget {
-  const PrivacyScreen({super.key});
+/// A page of headed paragraphs (privacy policy, terms, code of conduct),
+/// with "Contact us" at the end.
+class _DocumentScreen extends StatelessWidget {
+  const _DocumentScreen({required this.title, required this.sections});
+
+  final String title;
+  final List<(String, String)> sections;
 
   @override
   Widget build(BuildContext context) {
@@ -104,11 +109,11 @@ class PrivacyScreen extends StatelessWidget {
     return StepScaffold(
       showBack: true,
       content: [
-        WordSafeText(s.privacyTitle, style: tt.headlineMedium),
+        WordSafeText(title, style: tt.headlineMedium),
         const SizedBox(height: 8),
-        for (final (title, body) in s.privacySections) ...[
+        for (final (heading, body) in sections) ...[
           const SizedBox(height: 16),
-          WordSafeText(title, style: tt.titleLarge),
+          WordSafeText(heading, style: tt.titleLarge),
           const SizedBox(height: 6),
           Text(body, style: tt.bodyLarge),
         ],
@@ -121,6 +126,37 @@ class PrivacyScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class PrivacyScreen extends StatelessWidget {
+  const PrivacyScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return _DocumentScreen(title: s.privacyTitle, sections: s.privacySections);
+  }
+}
+
+class TermsScreen extends StatelessWidget {
+  const TermsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return _DocumentScreen(title: s.termsTitle, sections: s.termsSections);
+  }
+}
+
+/// What every volunteer teacher agrees to (linked from the application).
+class CodeOfConductScreen extends StatelessWidget {
+  const CodeOfConductScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return _DocumentScreen(title: s.codeTitle, sections: s.codeSections);
   }
 }
 

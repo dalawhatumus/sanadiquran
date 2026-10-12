@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../backend/admin.dart';
 import '../../backend/chat.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
+import '../settings/more_screens.dart';
 
 /// Bottom tabs. Student: Home · Quran · Athkar · Messages.
 /// Teacher: Home · Students · Quran · Messages (athkar is reached from Quran).
@@ -27,14 +29,45 @@ class HomeShell extends ConsumerWidget {
         ? [home, (const SIcon(SIcons.students), s.navStudents), quran, messages]
         : [home, quran, (const SIcon(SIcons.misbaha), s.navAthkar), messages];
 
+    // A paused account sees why on its home tab; the Quran, athkar and
+    // messages stay open (the server refuses new messages and calls).
+    final paused = ref.watch(pausedProvider).value ?? false;
     return Scaffold(
-      body: shell,
+      body: paused && shell.currentIndex == 0 ? const _PausedView() : shell,
       bottomNavigationBar: _TabBar(
         items: items,
         badges: {items.length - 1: unread},
         selected: shell.currentIndex,
         onSelect: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
       ),
+    );
+  }
+}
+
+class _PausedView extends StatelessWidget {
+  const _PausedView();
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final tt = Theme.of(context).textTheme;
+    return StepScaffold(
+      center: true,
+      content: [
+        const Center(child: Illustration(size: 120, child: Icon(Icons.pause_circle_rounded))),
+        const SizedBox(height: 20),
+        WordSafeText(s.pausedTitle, style: tt.headlineSmall, textAlign: TextAlign.center),
+        const SizedBox(height: 10),
+        Text(s.pausedBody, style: tt.bodyLarge, textAlign: TextAlign.center),
+      ],
+      bottom: [
+        BigButton(
+          label: s.contactUs,
+          icon: Icons.mail_rounded,
+          kind: ButtonKind.outline,
+          onPressed: () => contactSanadi(context, subject: 'Sanadi: my account is paused'),
+        ),
+      ],
     );
   }
 }

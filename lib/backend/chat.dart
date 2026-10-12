@@ -82,6 +82,7 @@ class UserReport {
     required this.id,
     required this.reporterName,
     required this.reportedName,
+    this.reportedId = '',
     required this.reason,
     this.details = '',
     this.at,
@@ -90,6 +91,9 @@ class UserReport {
   final String id;
   final String reporterName;
   final String reportedName;
+
+  /// Who was reported (so an admin can pause them).
+  final String reportedId;
   final String reason;
   final String details;
   final DateTime? at;

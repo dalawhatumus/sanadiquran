@@ -251,6 +251,7 @@ mixin FirestoreChat implements ChatApi {
                 id: d.id,
                 reporterName: _str(d.data(), 'reporterName'),
                 reportedName: _str(d.data(), 'reportedName'),
+                reportedId: _str(d.data(), 'reportedId'),
                 reason: _str(d.data(), 'reason'),
                 details: _str(d.data(), 'details'),
                 at: _time(d.data()['createdAt']),

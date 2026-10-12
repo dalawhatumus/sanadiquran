@@ -17,6 +17,8 @@ service cloud.firestore {
     function text(v, max) { return v == null || (v is string && v.size() <= max); }
     // A teacher's gender is the one on their application, which an admin
     // checked when approving it (an approved application can't be edited).
+    // An admin has paused this account (see /suspensions).
+    function paused(uid) { return exists(/databases/$(db)/documents/suspensions/$(uid)); }
     function teacherGender(uid) {
       return get(/databases/$(db)/documents/teacherApplications/$(uid)).data.gender;
     }
@@ -52,8 +54,8 @@ service cloud.firestore {
           && request.resource.data.order is list
           && request.resource.data.order.size() <= 20;
       }
-      allow create: if isMe(uid) && validApplication();
-      allow update: if (isMe(uid) && resource.data.status in ['pending', 'rejected'] && validApplication())
+      allow create: if isMe(uid) && !paused(uid) && validApplication();
+      allow update: if (isMe(uid) && !paused(uid) && resource.data.status in ['pending', 'rejected'] && validApplication())
         || (isAdmin()
           && request.resource.data.status in ['approved', 'rejected']
           && request.resource.data.diff(resource.data).affectedKeys()
@@ -79,12 +81,13 @@ service cloud.firestore {
     // "I'm available to teach". Only approved teachers can set it.
     match /presence/{uid} {
       allow read: if signedIn();
-      allow write: if isMe(uid) && isApproved(uid)
+      allow create, update: if isMe(uid) && isApproved(uid) && !paused(uid)
         && request.resource.data.keys().hasOnly(['available', 'gender', 'busy', 'updatedAt'])
         && request.resource.data.available is bool
         && request.resource.data.get('busy', false) is bool
         && request.resource.data.gender == teacherGender(uid);
-      allow delete: if isMe(uid);
+      // An admin pausing a teacher removes them from the list too.
+      allow delete: if isMe(uid) || isAdmin();
     }
 
     // Chat between a student and a teacher. Only an admin opens a
@@ -98,7 +101,7 @@ service cloud.firestore {
     match /conversations/{cid} {
       allow read: if isAdmin() || (signedIn() && request.auth.uid in resource.data.members);
       // ...or the student, right after their first call with that teacher.
-      allow create: if signedIn()
+      allow create: if signedIn() && !paused(request.auth.uid)
         && request.resource.data.members.size() == 2
         && request.auth.uid == request.resource.data.members[0]
         && cid == request.resource.data.members[0] + '_' + request.resource.data.members[1]
@@ -133,7 +136,8 @@ service cloud.firestore {
 
       function canSend() {
         return isMemberOf(cid) && convDoc(cid).blockedBy.size() == 0
-          && request.resource.data.senderId == request.auth.uid;
+          && request.resource.data.senderId == request.auth.uid
+          && !paused(request.auth.uid);
       }
 
       match /messages/{mid} {
@@ -173,7 +177,7 @@ service cloud.firestore {
       function unchanged(keys) { return !request.resource.data.diff(resource.data).affectedKeys().hasAny(keys); }
 
       allow read: if isStudent() || isTeacher();
-      allow create: if signedIn()
+      allow create: if signedIn() && !paused(request.auth.uid)
         && request.resource.data.studentId == request.auth.uid
         && userDoc(request.auth.uid).role == 'student'
         && request.resource.data.gender == userDoc(request.auth.uid).gender
@@ -191,13 +195,15 @@ service cloud.firestore {
             || request.resource.data.status == resource.data.status)
         && (request.resource.data.teacherId == resource.data.teacherId
             || (isApproved(request.resource.data.teacherId)
+                && !paused(request.resource.data.teacherId)
                 && teacherGender(request.resource.data.teacherId) == resource.data.gender));
       // The teacher being rung answers or declines, then sends the answer
       // and can hang up.
       allow update: if isTeacher()
         && unchanged(['studentId', 'studentName', 'studentAvatar', 'gender', 'teacherId', 'tried', 'offer'])
         && request.resource.data.status in ['active', 'declined', 'ended']
-        && (resource.data.status in ['ringing', 'active']);
+        && (resource.data.status in ['ringing', 'active'])
+        && (request.resource.data.status != 'active' || resource.data.status == 'active' || !paused(request.auth.uid));
       allow delete: if false;
 
       // Network routes for the connection, from each side.
@@ -223,7 +229,7 @@ service cloud.firestore {
           && p.sura is int && p.sura >= 1 && p.sura <= 114 && p.from is int && p.to is int && p.from <= p.to);
       }
 
-      allow read: if inLesson();
+      allow read: if inLesson() || isAdmin();
       allow create: if signedIn()
         && request.auth.uid in [request.resource.data.studentId, request.resource.data.teacherId]
         && callDoc(id).studentId == request.resource.data.studentId
@@ -266,6 +272,17 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolvedBy'])
         && request.resource.data.status in ['open', 'resolved'];
       allow delete: if false;
+    }
+
+    // Paused accounts. Only admins pause and restore; the person can see
+    // that their own account is paused.
+    match /suspensions/{uid} {
+      allow read: if isMe(uid) || isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['reason', 'by', 'at'])
+        && text(request.resource.data.reason, 500)
+        && request.resource.data.by == request.auth.uid;
+      allow delete: if isAdmin();
     }
 
     // Who can review applications. Added by hand in the console.

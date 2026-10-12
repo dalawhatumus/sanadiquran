@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../features/admin/applications_screen.dart';
 import '../features/admin/connect_screen.dart';
+import '../features/admin/stats_screen.dart';
+import '../features/admin/users_screen.dart';
 import '../features/athkar/athkar_menu_screen.dart';
 import '../features/athkar/dhikr_screen.dart';
 import '../features/call/call_screens.dart';
@@ -67,6 +69,10 @@ abstract final class Routes {
   static const adminConnect = '/admin/connect';
   static const adminReports = '/admin/reports';
   static const privacy = '/privacy';
+  static const terms = '/terms';
+  static const codeOfConduct = '/code-of-conduct';
+  static const adminUsers = '/admin/users';
+  static const adminStats = '/admin/stats';
   static const about = '/about';
   static const blocked = '/blocked';
 
@@ -138,6 +144,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: Routes.privacy, builder: (_, _) => const PrivacyScreen()),
+      GoRoute(path: Routes.terms, builder: (_, _) => const TermsScreen()),
+      GoRoute(path: Routes.codeOfConduct, builder: (_, _) => const CodeOfConductScreen()),
+      GoRoute(path: Routes.adminUsers, builder: (_, _) => const UsersScreen()),
+      GoRoute(path: Routes.adminStats, builder: (_, _) => const StatsScreen()),
       GoRoute(path: Routes.about, builder: (_, _) => const AboutScreen()),
       GoRoute(path: Routes.blocked, builder: (_, _) => const BlockedScreen()),
       GoRoute(path: Routes.admin, builder: (_, _) => const ApplicationsScreen()),

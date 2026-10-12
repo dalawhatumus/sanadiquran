@@ -15,6 +15,7 @@ import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 import '../settings/more_screens.dart';
 import 'call_controller.dart';
+import 'missed_calls.dart';
 
 String _clock(S s, int secs) =>
     s.n('${(secs ~/ 60).toString().padLeft(2, '0')}:${(secs % 60).toString().padLeft(2, '0')}');
@@ -566,6 +567,7 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
   void _stop({bool missed = false}) {
     _timer.cancel();
     _sub?.cancel();
+    if (missed && !_missed && widget.callId != null) ref.read(autoAwayProvider.notifier).missed();
     if (mounted && missed) setState(() => _missed = true);
   }
 
@@ -590,6 +592,7 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
     if (call == null) return;
     _answering = true;
     _stop();
+    ref.read(autoAwayProvider.notifier).responded();
     final c = ref.read(callControllerProvider.notifier)..reset();
     unawaited(c.accept(call));
     if (mounted) context.pushReplacement('${Routes.inCall}?teacher=1');
@@ -597,6 +600,7 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
 
   Future<void> _decline() async {
     _stop();
+    ref.read(autoAwayProvider.notifier).responded();
     final c = _call;
     if (c != null) await ref.read(callControllerProvider.notifier).decline(c);
     if (mounted && context.canPop()) context.pop();

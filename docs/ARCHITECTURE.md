@@ -15,6 +15,7 @@ The server is Firebase (Auth + Firestore) on the free Spark plan.
 | `lib/widgets/` | Shared widgets. Import `widgets/ui.dart` to get them all (buttons, cards, text, layout, dialogs, toasts, icons). |
 | `assets/` | Quran text and page layout, athkar, fonts, icons, avatars. |
 | `firebase/` | Firestore security rules, indexes and their emulator tests. |
+| `site/` | The public web pages for Google Play (privacy policy, terms, account deletion), published to GitHub Pages by `.github/workflows/pages.yml`. |
 | `test/` | Widget and unit tests (`flutter test`). |
 | `tools/` | One-off generators (e.g. the mushaf line widths). |
 
@@ -26,14 +27,15 @@ Large screens are split into `part` files next to them. For example,
 ## Backend
 
 `Backend` (in `backend/backend.dart`) is the one interface screens use. It
-combines `ChatApi`, `CallApi` and `LessonApi`. There are two
+combines `ChatApi`, `CallApi`, `LessonApi` and `AdminApi` (pausing
+accounts and the admin overview). There are two
 implementations:
 
 - `DemoBackend`: in memory, used for demo mode (no Firebase settings) and
   all tests.
 - `FirebaseBackend`: Firestore and Firebase Auth. The chat, call and lesson
-  parts are mixins in `firestore_chat.dart`, `firestore_calls.dart` and
-  `firestore_lessons.dart`.
+  parts are mixins in `firestore_chat.dart`, `firestore_calls.dart`,
+  `firestore_lessons.dart` and `firestore_admin.dart`.
 
 Live data for the signed-in user goes through `perUser`
 (`backend/user_stream.dart`). It switches immediately when someone signs in
