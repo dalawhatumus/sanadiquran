@@ -417,7 +417,6 @@ class S {
   String get today => t('Today', 'اليوم');
   String get sessionsL => t('sessions', 'جلسات');
   String get minutesL => t('minutes', 'دقيقة');
-  String get waiting => t('5 students waiting for a teacher', '٥ طالبات ينتظرن معلّمة', '٥ طلاب ينتظرون معلّمًا');
   String get waitingOff => t('Turn on to help them', 'فعّلي حالتكِ لمساعدتهن', 'فعّل حالتك لمساعدتهم');
   String get simulateCall => t('Try a practice call', 'جرّبي مكالمة تجريبية', 'جرّب مكالمة تجريبية');
 
@@ -792,8 +791,8 @@ class S {
     (
       t('Teacher applications', 'طلبات التدريس'),
       t(
-        'A teacher\'s answers and recitation sample are seen only by Sanadi\'s admins, to review the application.',
-        'لا يرى إجابات المعلّم وتسجيل تلاوته إلا مشرفو سَنَدي لمراجعة الطلب.',
+        'A teacher\'s answers and recitation sample are seen only by Sanadi\'s admins, to review the application. Once approved, a teacher\'s name, picture and availability are shown to students of the same gender, so they can call them.',
+        'لا يرى إجابات المعلّم وتسجيل تلاوته إلا مشرفو سَنَدي لمراجعة الطلب. وبعد اعتماده يظهر اسم المعلّم وصورته وإتاحته للطلاب من الجنس نفسه ليتمكّنوا من الاتصال به.',
       ),
     ),
     (
@@ -828,6 +827,48 @@ class S {
       ),
     ),
   ];
+
+  // ---- Teacher list, alerts, continue reading ----
+  String get teachersTitle => t('Teachers', 'المعلّمات', 'المعلّمون');
+  String get seeAll => t('See all', 'عرض الكل');
+  String get tabAll => t('All', 'الكل');
+  String get tabAvailable => t('Available now', 'متاحة الآن', 'متاح الآن');
+  String get tabFavorites => t('Favourites', 'المفضّلة');
+  String get inLesson => t('In a lesson', 'في درس');
+  String get favorite => t('Add to favourites', 'إضافة إلى المفضّلة');
+  String get unfavorite => t('Remove from favourites', 'إزالة من المفضّلة');
+  String get noTeachersYet => t('No teachers yet', 'لا توجد معلّمات بعد', 'لا يوجد معلّمون بعد');
+  String get noTeachersNow => t(
+    'No teacher is free right now. Turn on the alert on your home screen, and we\'ll tell you when one is.',
+    'لا توجد معلّمة متاحة الآن. فعّلي التنبيه في الشاشة الرئيسية وسنخبركِ عند توفّر إحداهن.',
+    'لا يوجد معلّم متاح الآن. فعّل التنبيه في الشاشة الرئيسية وسنخبرك عند توفّر أحدهم.',
+  );
+  String get noFavorites => t(
+    'Tap the heart on a teacher to keep them here.',
+    'اضغطي على القلب بجانب المعلّمة لتظهر هنا.',
+    'اضغط على القلب بجانب المعلّم ليظهر هنا.',
+  );
+  String get callTeacherNote => t(
+    'If your teacher can\'t answer, we\'ll connect you to another free teacher.',
+    'إن لم تستطع المعلّمة الرد، سنوصلكِ بمعلّمة أخرى متاحة.',
+    'إن لم يستطع المعلّم الرد، سنوصلك بمعلّم آخر متاح.',
+  );
+  String readingAt(String sura, int page) => t('$sura · Page $page', '$sura · صفحة ${n(page)}');
+  String get alertTitle => t('Alert me when a teacher is free', 'نبّهيني عند توفّر معلّمة', 'نبّهني عند توفّر معلّم');
+  String get alertSub =>
+      t('For one hour, while Sanadi is open or in the background.', 'لمدة ساعة، ما دام سَنَدي مفتوحًا أو في الخلفية.');
+  String alertOnUntil(String time) => t('On until $time', 'مفعّل حتى ${n(time)}');
+  String get teacherFreeTitle => t('A teacher is free now', 'معلّمة متاحة الآن', 'معلّم متاح الآن');
+  String get teacherFreeBody =>
+      t('Open Sanadi and tap "Recite now".', 'افتحي سَنَدي واضغطي «سمِّعي الآن».', 'افتح سَنَدي واضغط «سمِّع الآن».');
+  String get teacherAlertsChannel => t('Teacher alerts', 'تنبيهات المعلّمين');
+  String get teacherAlertsChannelDesc =>
+      t('When a teacher becomes free (if you asked)', 'عند توفّر معلّم (إن طلبت ذلك)');
+  String waitingCount(int k) => switch (k) {
+    0 => t('No students waiting right now', 'لا طالبات ينتظرن الآن', 'لا طلاب ينتظرون الآن'),
+    1 => t('1 student waiting for a teacher', 'طالبة واحدة تنتظر معلّمة', 'طالب واحد ينتظر معلّمًا'),
+    _ => t('${n(k)} students waiting for a teacher', '${n(k)} طالبات ينتظرن معلّمة', '${n(k)} طلاب ينتظرون معلّمًا'),
+  };
 
   // ---- Admin: people, pausing, overview ----
   String get usersTitle => t('People', 'المستخدمون');

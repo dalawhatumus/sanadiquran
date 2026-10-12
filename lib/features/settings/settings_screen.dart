@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../backend/backend.dart';
 import '../../backend/sessions.dart';
+import '../../backend/teachers.dart';
 import '../../core/app_info.dart';
 import '../../core/local_files.dart';
 import '../../core/router.dart';
@@ -13,6 +14,7 @@ import '../../core/theme.dart';
 import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 import '../athkar/athkar_menu_screen.dart';
+import '../student/teacher_alert.dart';
 import 'more_screens.dart';
 
 /// Settings: profile, language, appearance, reminders, help and privacy,
@@ -31,10 +33,15 @@ class SettingsScreen extends ConsumerWidget {
     final backend = ref.watch(backendProvider);
     final admin = ref.watch(isAdminProvider).value ?? false;
 
-    // Turns off "available" and signs out of the server, then starts again.
+    // Turns off "available" (or the teacher alert) and signs out of the
+    // server, then starts again.
     Future<void> signOut() async {
+      // While still signed in, so the server forgets the waiting student.
+      ref.read(teacherAlertProvider.notifier).turnOff();
       if (teacher && settings.teacherStatus == TeacherStatus.approved) {
-        await backend.setAvailable(on: false, gender: settings.gender).catchError((_) {});
+        await backend
+            .setAvailable(on: false, gender: settings.gender, name: settings.name, avatar: settings.avatar)
+            .catchError((_) {});
       }
       await backend.signOut().catchError((_) {});
       await forgetUserOnThisPhone(ref);
@@ -275,10 +282,13 @@ class SettingsScreen extends ConsumerWidget {
 
 /// After signing out or deleting the account: removes what belonged to that
 /// person from this phone (their profile and settings, chosen next portion,
+/// favourite teachers, the teacher alert,
 /// cached voice notes and recordings), so whoever signs in next starts
 /// clean. Phone-wide choices (reciter, reminder times) are kept.
 Future<void> forgetUserOnThisPhone(WidgetRef ref) async {
   await LocalFiles.clearAll();
+  ref.read(teacherAlertProvider.notifier).turnOff();
+  ref.read(favoriteTeachersProvider.notifier).clear();
   ref.read(ownNextPortionProvider.notifier).clear();
   ref.read(settingsProvider.notifier).reset();
 }

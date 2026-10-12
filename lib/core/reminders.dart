@@ -74,10 +74,14 @@ class Reminders {
 
   static const _morningId = 1;
   static const _eveningId = 2;
+  static const _teacherFreeId = 3;
 
-  /// The only places a reminder may open. A notification's payload is
-  /// checked against these before the app navigates anywhere.
-  static const routes = {'/athkar/morning', '/athkar/evening'};
+  /// The only places a notification may open. Its payload is checked
+  /// against these before the app navigates anywhere.
+  static const routes = {'/athkar/morning', '/athkar/evening', homeRoute};
+
+  /// "A teacher is free": opens the student's home.
+  static const homeRoute = '/s/home';
   static String? safeRoute(String? route) => routes.contains(route) ? route : null;
 
   Future<void> _init() async {
@@ -136,6 +140,30 @@ class Reminders {
       await daily(_eveningId, times.evening, s.eveningAthkar, s.eveningReminderBody, '/athkar/evening');
     } catch (e) {
       logIssue('Reminders not scheduled: $e');
+    }
+  }
+
+  /// Tells a student that a teacher is free now (they asked to be alerted).
+  Future<void> teacherFree(S s) async {
+    await _init();
+    try {
+      await _plugin.show(
+        id: _teacherFreeId,
+        title: s.teacherFreeTitle,
+        body: s.teacherFreeBody,
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            'teacher_alerts',
+            s.teacherAlertsChannel,
+            channelDescription: s.teacherAlertsChannelDesc,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        ),
+        payload: homeRoute,
+      );
+    } catch (e) {
+      logIssue('Teacher alert not shown: $e');
     }
   }
 

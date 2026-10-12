@@ -8,6 +8,7 @@ import 'admin.dart';
 import 'calls.dart';
 import 'chat.dart';
 import 'sessions.dart';
+import 'teachers.dart';
 
 /// What the server knows about a user who just signed in.
 class SignedInUser {
@@ -76,7 +77,7 @@ class TeacherApplication {
 
 /// Everything that needs the internet. [DemoBackend] stands in until
 /// Firebase is configured, so the app can still be tried end to end.
-abstract class Backend implements ChatApi, CallApi, LessonApi, AdminApi {
+abstract class Backend implements ChatApi, CallApi, LessonApi, AdminApi, TeacherDirectoryApi {
   /// True when connected to the real server.
   bool get live;
 
@@ -115,8 +116,9 @@ abstract class Backend implements ChatApi, CallApi, LessonApi, AdminApi {
   /// Where this user's teacher application stands, live.
   Stream<TeacherStatus> teacherStatus();
 
-  /// An approved teacher's "I'm available" switch.
-  Future<void> setAvailable({required bool on, required Gender? gender});
+  /// An approved teacher's "I'm available" switch, with the name and
+  /// picture students see in the teacher list.
+  Future<void> setAvailable({required bool on, required Gender? gender, String name = '', String? avatar});
 
   /// How many teachers of this gender are available now.
   Stream<int> availableTeachers(Gender? gender);
@@ -136,7 +138,7 @@ final backendProvider = Provider<Backend>((ref) => DemoBackend());
 
 /// Works without a server: sign-in just continues, and the testing tools in
 /// Settings stand in for an admin.
-class DemoBackend with DemoChat, DemoCalls, DemoLessons, DemoAdmin implements Backend {
+class DemoBackend with DemoChat, DemoCalls, DemoLessons, DemoAdmin, DemoTeachers implements Backend {
   @override
   bool get live => false;
 
@@ -174,10 +176,12 @@ class DemoBackend with DemoChat, DemoCalls, DemoLessons, DemoAdmin implements Ba
   Stream<TeacherStatus> teacherStatus() => const Stream.empty();
 
   @override
-  Future<void> setAvailable({required bool on, required Gender? gender}) async {}
+  Future<void> setAvailable({required bool on, required Gender? gender, String name = '', String? avatar}) async {}
 
   @override
-  Stream<int> availableTeachers(Gender? gender) => Stream.value(3);
+  Stream<int> availableTeachers(Gender? gender) => gender == null
+      ? Stream.value(1)
+      : teachers(gender).map((list) => list.where((t) => t.state == TeacherState.available).length);
 
   @override
   Stream<bool> isAdmin() => Stream.value(false);
@@ -230,16 +234,19 @@ final backendSyncProvider = Provider<void>((ref) {
   }, onError: (_) {});
   ref.onDispose(status.cancel);
 
-  ref.listen(settingsProvider.select((s) => (s.signedIn, s.role, s.teacherStatus, s.available, s.gender)), (
-    prev,
-    next,
-  ) {
-    bool teaching((bool, UserRole?, TeacherStatus, bool, Gender?)? x) =>
-        x != null && x.$1 && x.$2 == UserRole.teacher && x.$3 == TeacherStatus.approved;
-    if (teaching(next)) {
-      unawaited(backend.setAvailable(on: next.$4, gender: next.$5).catchError((_) {}));
-    } else if (teaching(prev)) {
-      unawaited(backend.setAvailable(on: false, gender: prev!.$5).catchError((_) {}));
-    }
-  }, fireImmediately: true);
+  ref.listen(
+    settingsProvider.select((s) => (s.signedIn, s.role, s.teacherStatus, s.available, s.gender, s.name, s.avatar)),
+    (prev, next) {
+      bool teaching((bool, UserRole?, TeacherStatus, bool, Gender?, String, String?)? x) =>
+          x != null && x.$1 && x.$2 == UserRole.teacher && x.$3 == TeacherStatus.approved;
+      if (teaching(next)) {
+        unawaited(
+          backend.setAvailable(on: next.$4, gender: next.$5, name: next.$6, avatar: next.$7).catchError((_) {}),
+        );
+      } else if (teaching(prev)) {
+        unawaited(backend.setAvailable(on: false, gender: prev!.$5, name: prev.$6, avatar: prev.$7).catchError((_) {}));
+      }
+    },
+    fireImmediately: true,
+  );
 });

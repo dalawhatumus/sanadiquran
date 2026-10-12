@@ -43,6 +43,11 @@ void main() {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
+      // Long names on the home screen scroll (marquee) forever otherwise.
+      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+        disableAnimations: true,
+      );
+      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
       SharedPreferences.setMockInitialValues({
         'settings.v2':
             '{"locale":"$locale","signedIn":true,"role":"student","gender":"female","name":"Fatima",'

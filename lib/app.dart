@@ -9,6 +9,7 @@ import 'core/settings.dart';
 import 'core/strings.dart';
 import 'core/theme.dart';
 import 'features/call/incoming_watcher.dart';
+import 'features/student/teacher_alert.dart';
 
 class SanadiApp extends ConsumerWidget {
   const SanadiApp({super.key});
@@ -18,13 +19,14 @@ class SanadiApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     ref.watch(backendSyncProvider);
     ref.watch(remindersSyncProvider);
+    ref.watch(teacherAlertWatchProvider);
     // A tapped reminder opens its athkar over the home screen, so Back
     // returns home as usual.
     Reminders.instance.onOpen = (route) {
       final home = nextStep(ref.read(settingsProvider));
       if (home != Routes.studentHome && home != Routes.teacherHome) return;
       router.go(home);
-      router.push(route);
+      if (route != home) router.push(route);
     };
     // Only what the app shell needs, so other settings changes don't
     // rebuild every screen.

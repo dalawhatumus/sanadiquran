@@ -17,8 +17,12 @@ import '../../widgets/ui.dart';
 import '../lessons/lessons_ui.dart';
 import '../messages/messages_screen.dart';
 import '../quran/quran_data.dart';
+import 'home_cards.dart';
+import 'teacher_alert.dart';
 
-/// 17 · Student home: one giant "Recite now" action.
+/// 17 · Student home: one giant "Recite now" action (with the alert when
+/// no teacher is free), the next portion and my teacher, continue reading,
+/// the teachers, and progress.
 class StudentHomeScreen extends ConsumerWidget {
   const StudentHomeScreen({super.key});
 
@@ -74,6 +78,16 @@ class StudentHomeScreen extends ConsumerWidget {
                 },
               ),
             const SizedBox(height: 16),
+            // Nobody free: offer the alert (it stays while it is on).
+            if (!offline)
+              Consumer(
+                builder: (context, ref, _) {
+                  final k = ref.watch(availableTeachersProvider(settings.gender)).value;
+                  final on = ref.watch(teacherAlertProvider) != null;
+                  if (!on && k != 0) return const SizedBox.shrink();
+                  return const Padding(padding: EdgeInsets.only(bottom: 14), child: TeacherAlertCard());
+                },
+              ),
             if (firstTime) ...[
               _MyTeacherCard(startCall: startCall, after: true),
               SCard(
@@ -129,6 +143,9 @@ class StudentHomeScreen extends ConsumerWidget {
               ),
               _MyTeacherCard(startCall: startCall),
             ],
+            const SizedBox(height: 14),
+            const ContinueReadingCard(),
+            if (!offline) ...[const SizedBox(height: 18), const TeachersRow()],
             const SizedBox(height: 14),
             SCard(
               onTap: () => context.push(Routes.progress),

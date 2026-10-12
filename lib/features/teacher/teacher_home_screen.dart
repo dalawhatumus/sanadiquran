@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../backend/backend.dart';
 import '../../backend/sessions.dart';
+import '../../backend/teachers.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -235,27 +236,30 @@ class TeacherHomeScreen extends ConsumerWidget {
           ],
         ),
       ),
-      // Sample only: "students waiting" needs notifications (a later update).
-      if (!live) ...[
-        const SizedBox(height: 14),
-        SCard(
-          child: Row(
-            children: [
-              TintBox(size: 52, circle: true, child: SIcon(SIcons.students, color: t.primary)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(s.waiting, style: tt.titleSmall),
-                    if (!on) Text(s.waitingOff, style: tt.bodySmall),
-                  ],
+      // Students who asked to be alerted when a teacher is free.
+      const SizedBox(height: 14),
+      Consumer(
+        builder: (context, ref, _) {
+          final k = ref.watch(waitingStudentsProvider(settings.gender ?? Gender.female)).value ?? 0;
+          return SCard(
+            child: Row(
+              children: [
+                TintBox(size: 52, circle: true, child: SIcon(SIcons.students, color: t.primary)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(s.waitingCount(k), style: tt.titleSmall),
+                      if (!on && k > 0) Text(s.waitingOff, style: tt.bodySmall),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ],
+              ],
+            ),
+          );
+        },
+      ),
       if (!live) ...[
         const SizedBox(height: 20),
         BigButton(

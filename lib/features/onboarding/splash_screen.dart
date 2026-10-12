@@ -26,7 +26,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       context.go(next);
       // Started from an athkar reminder: open it over the home screen.
       final reminder = Reminders.instance.takeLaunchRoute();
-      if (reminder != null && (next == Routes.studentHome || next == Routes.teacherHome)) {
+      if (reminder != null && reminder != next && (next == Routes.studentHome || next == Routes.teacherHome)) {
         GoRouter.of(context).push(reminder);
       }
     });

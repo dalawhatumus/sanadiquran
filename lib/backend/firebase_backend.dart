@@ -13,6 +13,8 @@ import 'firestore_admin.dart';
 import 'firestore_calls.dart';
 import 'firestore_chat.dart';
 import 'firestore_lessons.dart';
+import 'firestore_teachers.dart';
+import 'teachers.dart';
 import 'user_stream.dart';
 
 /// The real server: Google sign-in through Firebase Auth, data in Firestore.
@@ -24,7 +26,9 @@ import 'user_stream.dart';
 /// - presence/{uid}: an approved teacher's "available" switch and gender.
 ///   Any signed-in user can read it (to count available teachers).
 /// - admins/{uid}: who can review applications. Added by hand in the console.
-class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons, FirestoreAdmin implements Backend {
+class FirebaseBackend
+    with FirestoreChat, FirestoreCalls, FirestoreLessons, FirestoreAdmin, FirestoreTeachers
+    implements Backend {
   FirebaseBackend();
 
   final _auth = FirebaseAuth.instance;
@@ -194,7 +198,7 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons, Fire
       await user.reauthenticateWithCredential((await _google()).$2);
     }
     // Personal data next (the rules allow it only while signed in).
-    for (final c in ['presence', 'applicationSamples', 'teacherApplications', 'users']) {
+    for (final c in ['presence', 'waiting', 'applicationSamples', 'teacherApplications', 'users']) {
       await _doc(c, uid).delete().catchError((Object e) => logIssue('Delete $c: $e'));
     }
     try {
@@ -208,46 +212,23 @@ class FirebaseBackend with FirestoreChat, FirestoreCalls, FirestoreLessons, Fire
   }
 
   @override
-  Future<void> setAvailable({required bool on, required Gender? gender}) async {
+  Future<void> setAvailable({required bool on, required Gender? gender, String name = '', String? avatar}) async {
     final uid = _uid;
     if (uid == null) return;
     await _doc('presence', uid).set({
       'available': on,
       'gender': gender?.name,
+      // Shown to students of the same gender in the teacher list.
+      'name': _clip(name.trim(), 80),
+      'avatar': avatar,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
   @override
-  Stream<int> availableTeachers(Gender? gender) => _forUser((uid) {
-    Query<Map<String, dynamic>> q = _db.collection('presence').where('available', isEqualTo: true);
-    if (gender != null) q = q.where('gender', isEqualTo: gender.name);
-    // Recounted on every change and every 30 seconds, as heartbeats age.
-    late StreamController<int> out;
-    QuerySnapshot<Map<String, dynamic>>? last;
-    StreamSubscription<Object?>? sub;
-    Timer? tick;
-    void emit() {
-      final s = last;
-      if (s == null) return;
-      out.add(s.docs.where((d) => d.id != uid && d.data()['busy'] != true && FirestoreCalls.isFresh(d.data())).length);
-    }
-
-    out = StreamController<int>(
-      onListen: () {
-        sub = q.snapshots().listen((s) {
-          last = s;
-          emit();
-        }, onError: out.addError);
-        tick = Timer.periodic(const Duration(seconds: 30), (_) => emit());
-      },
-      onCancel: () {
-        tick?.cancel();
-        return sub?.cancel();
-      },
-    );
-    return out.stream;
-  }, signedOut: 0);
+  Stream<int> availableTeachers(Gender? gender) => gender == null
+      ? Stream.value(0)
+      : teachers(gender).map((list) => list.where((t) => t.state == TeacherState.available).length);
 
   @override
   Stream<bool> isAdmin() =>

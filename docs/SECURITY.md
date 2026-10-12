@@ -9,7 +9,8 @@ Firebase Auth). Beyond that:
 | --- | --- | --- |
 | Profile `users/{uid}` | the person, admins | the person only. Name ≤ 80, a known role, picture and language. **Gender can be set once and never changed**, because it decides who can call whom. |
 | Teacher application, voice sample | the applicant, admins | the applicant sends or resends (same gender as their profile, limited sizes). Only an admin approves or turns it down, signing it with their own id. An approved application can't be edited. |
-| Availability `presence/{uid}` | anyone signed in (only a count is shown) | approved teachers only, with the gender of their **approved application** |
+| Availability `presence/{uid}` (teacher list: first name, picture, available / in a lesson) | students and teachers of the **same gender** only (queries must ask for that gender), admins | approved teachers only, with the gender of their **approved application**; name ≤ 80 |
+| Waiting students `waiting/{uid}` ("Alert me when a teacher is free") | the student, admins, approved teachers of the same gender (to see how many) | the student only, with their own gender, for at most an hour |
 | Conversations and messages | the two members (admins can read conversations) | only an admin or a finished call opens one, between a student and a teacher of the same gender. Members change only the preview, unread counts, **their own** name and picture, and their own block. Messages are sent by the sender only (text ≤ 2000, voice ≤ ~3 min). Deleting is allowed for your own messages only. |
 | Calls | the student and the teacher being rung | the student rings approved teachers whose **application** gender matches. The teacher answers or declines. Neither side can change the other's fields. |
 | Lessons | the two people in it | saved only for a real call between them. Notes are written by the teacher (validated), the rating by the student. |

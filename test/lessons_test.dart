@@ -76,7 +76,8 @@ void main() {
     final (_, router) = await open(tester);
     // Home: the next portion from the latest notes.
     expect(find.text('Al-Mulk 11–20'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('2 lessons'), 300);
+    // The page itself (the teachers row also scrolls, sideways).
+    await tester.scrollUntilVisible(find.text('2 lessons'), 300, scrollable: find.byType(Scrollable).first);
     expect(find.text('2 lessons'), findsOneWidget);
 
     unawaited(router.push(Routes.progress));

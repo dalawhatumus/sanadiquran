@@ -25,6 +25,7 @@ import '../features/settings/more_screens.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/home_shell.dart';
 import '../features/student/progress_screens.dart';
+import '../features/student/teachers_screen.dart';
 import '../features/student/student_home_screen.dart';
 import '../features/teacher/students_screen.dart';
 import '../features/teacher/teacher_home_screen.dart';
@@ -70,6 +71,7 @@ abstract final class Routes {
   static const adminReports = '/admin/reports';
   static const privacy = '/privacy';
   static const terms = '/terms';
+  static const teachers = '/teachers';
   static const codeOfConduct = '/code-of-conduct';
   static const adminUsers = '/admin/users';
   static const adminStats = '/admin/stats';
@@ -145,6 +147,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: Routes.privacy, builder: (_, _) => const PrivacyScreen()),
       GoRoute(path: Routes.terms, builder: (_, _) => const TermsScreen()),
+      GoRoute(path: Routes.teachers, builder: (_, _) => const TeachersScreen()),
       GoRoute(path: Routes.codeOfConduct, builder: (_, _) => const CodeOfConductScreen()),
       GoRoute(path: Routes.adminUsers, builder: (_, _) => const UsersScreen()),
       GoRoute(path: Routes.adminStats, builder: (_, _) => const StatsScreen()),

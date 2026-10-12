@@ -95,7 +95,8 @@ test('applications: send, cannot self-approve, admin decides', async () => {
 test('presence: only approved teachers', async () => {
   await assertSucceeds(setDoc(doc(db('t1'), 'presence/t1'), { available: true, gender: 'female', updatedAt: serverTimestamp() }));
   await assertFails(setDoc(doc(db('t3'), 'presence/t3'), { available: true, gender: 'female', updatedAt: serverTimestamp() }));
-  await assertSucceeds(getDocs(query(collection(db('s1'), 'presence'), where('available', '==', true))));
+  await assertSucceeds(getDocs(query(collection(db('s1'), 'presence'), where('available', '==', true), where('gender', '==', 'female'))));
+  await assertFails(getDocs(query(collection(db('s1'), 'presence'), where('available', '==', true))));
   await assertFails(getDoc(doc(db(null), 'presence/t1')));
 });
 
@@ -425,4 +426,39 @@ test('admins can read lessons for the overview', async () => {
   });
   await assertSucceeds(getDocs(collection(db('admin1'), 'sessions')));
   await assertFails(getDocs(collection(db('s2'), 'sessions')));
+});
+
+// ---- Teacher list and waiting students ----
+
+test('students see the teachers of their own gender only, with name and picture', async () => {
+  await assertSucceeds(setDoc(doc(db('t1'), 'presence/t1'), {
+    available: true, gender: 'female', name: 'Aisha', avatar: 'ft2', updatedAt: serverTimestamp(),
+  }));
+  await assertSucceeds(setDoc(doc(db('t2'), 'presence/t2'), {
+    available: true, gender: 'male', name: 'Yusuf', avatar: 'mt1', updatedAt: serverTimestamp(),
+  }));
+  await assertFails(setDoc(doc(db('t1'), 'presence/t1'), { available: true, gender: 'female', name: 'x'.repeat(81) }));
+  await assertFails(setDoc(doc(db('t1'), 'presence/t1'), { available: true, gender: 'female', phone: '123' }));
+  await assertSucceeds(getDocs(query(collection(db('s1'), 'presence'), where('gender', '==', 'female'))));
+  await assertFails(getDocs(query(collection(db('s1'), 'presence'), where('gender', '==', 'male'))));
+  await assertFails(getDocs(collection(db('s1'), 'presence')));
+  await assertSucceeds(getDoc(doc(db('s1'), 'presence/t1')));
+  await assertFails(getDoc(doc(db('s1'), 'presence/t2')));
+  // A teacher with no entry yet reads as "not there", not as an error.
+  await assertSucceeds(getDoc(doc(db('s1'), 'presence/t3')));
+  await assertSucceeds(getDocs(collection(db('admin1'), 'presence')));
+});
+
+test('waiting: a student waits up to an hour; teachers of that gender see it', async () => {
+  const soon = new Date(Date.now() + 60 * 60 * 1000);
+  const tooLong = new Date(Date.now() + 3 * 60 * 60 * 1000);
+  await assertSucceeds(setDoc(doc(db('s1'), 'waiting/s1'), { gender: 'female', until: soon }));
+  await assertFails(setDoc(doc(db('s1'), 'waiting/s1'), { gender: 'female', until: tooLong }));
+  await assertFails(setDoc(doc(db('s1'), 'waiting/s1'), { gender: 'male', until: soon }));
+  await assertFails(setDoc(doc(db('s1'), 'waiting/s2'), { gender: 'female', until: soon }));
+  await assertSucceeds(getDocs(query(collection(db('t1'), 'waiting'), where('gender', '==', 'female'))));
+  await assertFails(getDocs(query(collection(db('t2'), 'waiting'), where('gender', '==', 'female'))));
+  await assertFails(getDocs(query(collection(db('s2'), 'waiting'), where('gender', '==', 'female'))));
+  await assertFails(getDocs(query(collection(db('t3'), 'waiting'), where('gender', '==', 'female'))));
+  await assertSucceeds(deleteDoc(doc(db('s1'), 'waiting/s1')));
 });

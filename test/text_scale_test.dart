@@ -65,6 +65,7 @@ void main() {
     Routes.about,
     Routes.blocked,
     Routes.terms,
+    Routes.teachers,
     Routes.codeOfConduct,
     Routes.mushafAt(sura: 67, ayah: 1),
     Routes.welcome,
