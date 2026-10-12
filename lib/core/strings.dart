@@ -86,6 +86,10 @@ class S {
   );
   String get privacy => t('Privacy policy', 'سياسة الخصوصية');
   String get terms => t('Terms', 'الشروط');
+  String get adultsNote => t(
+    'Accounts are for adults. Children can recite on a parent\'s account, with the parent nearby.',
+    'الحسابات للبالغين. يمكن للأطفال القراءة من حساب وليّ الأمر وبحضوره.',
+  );
 
   // ---- 4 Role (neutral Arabic) ----
   String get roleTitle => t('What would you like to do?', 'ما الذي يناسبك؟');
@@ -811,8 +815,8 @@ class S {
     (
       t('Children', 'الأطفال'),
       t(
-        'Children are welcome, with the permission of a parent or guardian, who sets up the account and stays nearby during lessons. We ask a child for no more than anyone else: a first name, gender and a picture from the app\'s set.',
-        'الأطفال مرحَّب بهم بإذن وليّ الأمر، الذي يُنشئ الحساب ويبقى قريبًا أثناء الدروس. لا نطلب من الطفل أكثر مما نطلبه من غيره: الاسم الأول والجنس وصورة من مجموعة التطبيق.',
+        'Accounts are for adults. A child can recite to a teacher on a parent\'s or guardian\'s account, with that parent nearby. Children don\'t have accounts of their own, so we keep nothing about them. Everyone can read the Quran and athkar without an account.',
+        'الحسابات للبالغين. يمكن للطفل أن يقرأ على المعلّم من حساب وليّ أمره وبحضوره. ليس للأطفال حسابات خاصة بهم، فلا نحفظ عنهم شيئًا. ويمكن للجميع قراءة القرآن والأذكار دون حساب.',
       ),
     ),
     (
@@ -879,6 +883,13 @@ class S {
       ),
     ),
     (
+      t('Accounts and children', 'الحسابات والأطفال'),
+      t(
+        'You must be an adult to have an account. A child may recite to a teacher only on a parent\'s or guardian\'s account, with that parent nearby during the lesson.',
+        'يُشترط أن يكون صاحب الحساب بالغًا. ولا يقرأ الطفل على المعلّم إلا من حساب وليّ أمره، وبحضوره أثناء الدرس.',
+      ),
+    ),
+    (
       t('Respect and good manners', 'الاحترام وحسن الخلق'),
       t(
         'Speak kindly and with respect. Students are only connected with teachers of the same gender. Never ask for or share phone numbers, addresses, photos or money.',
@@ -928,6 +939,13 @@ class S {
       t(
         'Teach only students of your own gender. Sanadi connects you this way; never try to get around it.',
         'التعليم لطلاب من الجنس نفسه فقط. هكذا يربط سَنَدي بين الطرفين، ولا يجوز تجاوز ذلك.',
+      ),
+    ),
+    (
+      t('Teaching children', 'تعليم الأطفال'),
+      t(
+        'A child may recite on a parent\'s account, with the parent nearby. Teach a child only when a parent is present, keep lessons short and encouraging, and never contact a child outside Sanadi.',
+        'قد يقرأ الطفل من حساب وليّ أمره وبحضوره. تعليم الطفل يكون بحضور وليّ الأمر فقط، بدروس قصيرة مشجِّعة، ودون أي تواصل مع الطفل خارج سَنَدي.',
       ),
     ),
     (

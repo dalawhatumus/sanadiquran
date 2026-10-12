@@ -126,6 +126,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
             busy: _state == _State.busy,
             onPressed: _signIn,
           ),
+        Text(s.adultsNote, textAlign: TextAlign.center, style: tt.bodySmall),
         Wrap(
           alignment: WrapAlignment.center,
           spacing: 8,

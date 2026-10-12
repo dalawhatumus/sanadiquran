@@ -333,4 +333,4 @@ Monthly cost target: **R0** at launch, with a Firebase budget alert at R100.
 3. Teacher verification: is an audio sample enough, or do we require an ijazah or a reference?
 4. Which reciter(s) to offer by default in the mushaf audio?
 5. Countries to enable at launch: all, or SA + the Arab countries first?
-6. Minimum age for students and teachers (affects the Play content rating and safety)?
+6. ~~Minimum age~~ — decided: accounts are for adults. Children recite (talqeen) on a parent's or guardian's account, with the parent present; children never have their own accounts. The mushaf and athkar work for everyone without an account. On Google Play the target audience is adults (not "designed for children").
