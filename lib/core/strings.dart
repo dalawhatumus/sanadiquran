@@ -730,8 +730,8 @@ class S {
   String get remindersOffSub => t('Off', 'متوقف');
 
   String get aboutBody => t(
-    'Sanadi is free, and always will be. It connects elders who want to memorise the Quran with volunteer teachers of the same gender, over a simple voice call.',
-    'سَنَدي مجاني، وسيبقى كذلك دائمًا. يجمع كبار السن الراغبين في حفظ القرآن بمعلّمين متطوعين من الجنس نفسه، عبر مكالمة صوتية بسيطة.',
+    'Sanadi is free, and always will be. It connects learners of every age, from children learning to recite to elders memorising, with volunteer teachers of the same gender, over a simple voice call.',
+    'سَنَدي مجاني، وسيبقى كذلك دائمًا. يجمع المتعلّمين من كل الأعمار، من الأطفال في التلقين إلى كبار السن في الحفظ، بمعلّمين متطوعين من الجنس نفسه، عبر مكالمة صوتية بسيطة.',
   );
   String get thanksTitle => t('With thanks', 'مع الشكر');
   List<(String, String)> get acknowledgements => [
@@ -806,6 +806,13 @@ class S {
         'On Google Firebase servers in the Middle East. We never sell your data or show adverts.',
         'على خوادم Google Firebase في الشرق الأوسط. لا نبيع بياناتكِ ولا نعرض إعلانات.',
         'على خوادم Google Firebase في الشرق الأوسط. لا نبيع بياناتك ولا نعرض إعلانات.',
+      ),
+    ),
+    (
+      t('Children', 'الأطفال'),
+      t(
+        'Children are welcome, with the permission of a parent or guardian, who sets up the account and stays nearby during lessons. We ask a child for no more than anyone else: a first name, gender and a picture from the app\'s set.',
+        'الأطفال مرحَّب بهم بإذن وليّ الأمر، الذي يُنشئ الحساب ويبقى قريبًا أثناء الدروس. لا نطلب من الطفل أكثر مما نطلبه من غيره: الاسم الأول والجنس وصورة من مجموعة التطبيق.',
       ),
     ),
     (
