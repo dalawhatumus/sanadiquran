@@ -78,7 +78,7 @@ class TeacherAlertCard extends ConsumerWidget {
                 children: [
                   WordSafeText(s.alertTitle, style: tt.titleMedium!.copyWith(color: t.heading)),
                   const SizedBox(height: 2),
-                  Text(
+                  WordSafeText(
                     on
                         ? s.alertOnUntil(
                             MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(until)),

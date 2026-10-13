@@ -79,10 +79,12 @@ class Reminders {
   /// The only places a notification may open. Its payload is checked
   /// against these before the app navigates anywhere.
   static const routes = {'/athkar/morning', '/athkar/evening', homeRoute};
+  static final _chatRoute = RegExp(r'^/chat/[A-Za-z0-9_-]{1,128}$');
 
   /// "A teacher is free": opens the student's home.
   static const homeRoute = '/s/home';
-  static String? safeRoute(String? route) => routes.contains(route) ? route : null;
+  static String? safeRoute(String? route) =>
+      route != null && (routes.contains(route) || _chatRoute.hasMatch(route)) ? route : null;
 
   Future<void> _init() async {
     if (_ready) return;
@@ -164,6 +166,37 @@ class Reminders {
       );
     } catch (e) {
       logIssue('Teacher alert not shown: $e');
+    }
+  }
+
+  /// A new message in a chat the user isn't looking at. One notification
+  /// per conversation (a newer message replaces it); tapping opens the chat.
+  Future<void> newMessage({
+    required S s,
+    required String conversationId,
+    required String from,
+    required String text,
+  }) async {
+    await _init();
+    try {
+      await _plugin.show(
+        // 1000+ keeps clear of the reminder ids.
+        id: 1000 + (conversationId.hashCode & 0x3fffffff) % 1000000,
+        title: from,
+        body: text,
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            'messages',
+            s.messagesChannel,
+            channelDescription: s.messagesChannelDesc,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        ),
+        payload: '/chat/$conversationId',
+      );
+    } catch (e) {
+      logIssue('Message notification not shown: $e');
     }
   }
 

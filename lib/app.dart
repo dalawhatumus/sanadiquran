@@ -7,8 +7,10 @@ import 'core/reminders.dart';
 import 'core/router.dart';
 import 'core/settings.dart';
 import 'core/strings.dart';
+import 'core/text_size.dart';
 import 'core/theme.dart';
 import 'features/call/incoming_watcher.dart';
+import 'features/messages/message_alerts.dart';
 import 'features/student/teacher_alert.dart';
 
 class SanadiApp extends ConsumerWidget {
@@ -20,6 +22,7 @@ class SanadiApp extends ConsumerWidget {
     ref.watch(backendSyncProvider);
     ref.watch(remindersSyncProvider);
     ref.watch(teacherAlertWatchProvider);
+    ref.watch(messageAlertsProvider);
     // A tapped reminder opens its athkar over the home screen, so Back
     // returns home as usual.
     Reminders.instance.onOpen = (route) {
@@ -53,7 +56,7 @@ class SanadiApp extends ConsumerWidget {
       themeMode: settings.$2,
       builder: (context, child) => StringsScope(
         s: S(ar: locale.languageCode == 'ar', female: settings.$3 == Gender.female),
-        child: IncomingCallWatcher(child: child!),
+        child: AppTextSize(child: IncomingCallWatcher(child: child!)),
       ),
     );
   }

@@ -861,6 +861,14 @@ class S {
   String get teacherFreeTitle => t('A teacher is free now', 'معلّمة متاحة الآن', 'معلّم متاح الآن');
   String get teacherFreeBody =>
       t('Open Sanadi and tap "Recite now".', 'افتحي سَنَدي واضغطي «سمِّعي الآن».', 'افتح سَنَدي واضغط «سمِّع الآن».');
+  String get textSizeL => t('Text size', 'حجم الخط');
+  String get textSizePhone => t('Same as phone', 'مثل الهاتف');
+  String get textSizePreview => t('This is how text looks in Sanadi.', 'هكذا يبدو الخط في سَنَدي.');
+  String percent(double x) => ar ? '${n((x * 100).round())}\u066A' : '${(x * 100).round()}%';
+  String get messagesChannel => t('Messages', 'الرسائل');
+  String get messagesChannelDesc => t('New messages from your teacher or student', 'رسائل جديدة من المعلّم أو الطالب');
+  String get messageAlertsL => t('Message notifications', 'إشعارات الرسائل');
+  String get messageAlertsSub => t('While Sanadi is open or in the background', 'ما دام سَنَدي مفتوحًا أو في الخلفية');
   String get teacherAlertsChannel => t('Teacher alerts', 'تنبيهات المعلّمين');
   String get teacherAlertsChannelDesc =>
       t('When a teacher becomes free (if you asked)', 'عند توفّر معلّم (إن طلبت ذلك)');

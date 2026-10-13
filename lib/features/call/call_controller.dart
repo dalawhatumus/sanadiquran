@@ -43,6 +43,7 @@ class CallState {
     this.asTeacher = false,
     this.otherName = '',
     this.otherAvatar,
+    this.otherUid,
     this.connectedAt,
     this.muted = false,
     this.speaker = true,
@@ -55,6 +56,10 @@ class CallState {
   final bool asTeacher;
   final String otherName;
   final String? otherAvatar;
+
+  /// The other person (the student, for a teacher; the teacher, for a
+  /// student), once known.
+  final String? otherUid;
 
   /// When the audio first connected (the session time counts from here).
   final DateTime? connectedAt;
@@ -75,6 +80,7 @@ class CallState {
     String? callId,
     String? otherName,
     String? otherAvatar,
+    String? otherUid,
     DateTime? connectedAt,
     bool? muted,
     bool? speaker,
@@ -86,6 +92,7 @@ class CallState {
     asTeacher: asTeacher,
     otherName: otherName ?? this.otherName,
     otherAvatar: otherAvatar ?? this.otherAvatar,
+    otherUid: otherUid ?? this.otherUid,
     connectedAt: connectedAt ?? this.connectedAt,
     muted: muted ?? this.muted,
     speaker: speaker ?? this.speaker,
@@ -224,6 +231,7 @@ class CallController extends Notifier<CallState> {
       asTeacher: true,
       otherName: call.studentName,
       otherAvatar: call.studentAvatar,
+      otherUid: call.studentId,
     );
     if (!await ref.read(micPermissionProvider)()) {
       await decline(call);
@@ -286,7 +294,12 @@ class CallController extends Notifier<CallState> {
     if (asStudent) {
       if (c.status == CallStatus.active && state.searching) {
         _resolve(CallStatus.active);
-        state = state.copyWith(phase: CallPhase.connecting, otherName: c.teacherName, otherAvatar: c.teacherAvatar);
+        state = state.copyWith(
+          phase: CallPhase.connecting,
+          otherName: c.teacherName,
+          otherAvatar: c.teacherAvatar,
+          otherUid: c.teacherId,
+        );
         _lastCall = c;
         _connect(c.id, asStudent: true);
       } else if (c.status == CallStatus.declined && state.phase == CallPhase.ringing) {

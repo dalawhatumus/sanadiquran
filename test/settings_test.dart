@@ -67,23 +67,24 @@ void main() {
       expect(container.read(settingsProvider).name, 'Fatima Zahra');
 
       // Athkar reminders: turn off and on, and confirm a time.
+      Finder inSheet(Type type) => find.descendant(of: find.byType(BottomSheet), matching: find.byType(type));
       await tapText(s.remindersL);
-      expect(find.byType(Switch), findsOneWidget);
-      await tester.tap(find.byType(Switch));
+      expect(inSheet(Switch), findsOneWidget);
+      await tester.tap(inSheet(Switch));
       await tester.pumpAndSettle();
       expect(container.read(settingsProvider).remindersOn, isFalse);
-      await tester.tap(find.byType(Switch));
+      await tester.tap(inSheet(Switch));
       await tester.pumpAndSettle();
       expect(container.read(settingsProvider).remindersOn, isTrue);
       await tester.tap(find.text(s.morningAthkar).last);
       await tester.pumpAndSettle();
-      final ok = find.text(MaterialLocalizations.of(tester.element(find.byType(Switch))).okButtonLabel);
+      final ok = find.text(MaterialLocalizations.of(tester.element(inSheet(Switch))).okButtonLabel);
       await tester.tap(ok);
       await tester.pumpAndSettle();
       expect(prefs.getInt('reminder.morning'), 7 * 60);
       await tester.tapAt(const Offset(180, 40));
       await tester.pumpAndSettle();
-      expect(find.byType(Switch), findsNothing);
+      expect(inSheet(Switch), findsNothing);
 
       // Privacy policy and About open, and come back.
       await tapText(s.privacyTitle);

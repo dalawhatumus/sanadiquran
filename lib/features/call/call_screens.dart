@@ -8,11 +8,15 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../backend/backend.dart';
 import '../../backend/calls.dart';
+import '../../backend/sessions.dart';
 import '../../core/router.dart';
+import '../../core/screen.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
+import '../lessons/lessons_ui.dart';
+import '../quran/quran_data.dart';
 import '../settings/more_screens.dart';
 import 'call_controller.dart';
 import 'missed_calls.dart';
@@ -189,16 +193,20 @@ class InCallScreen extends ConsumerStatefulWidget {
 
 class _InCallScreenState extends ConsumerState<InCallScreen> {
   late final Timer _tick;
+  Portion? _portion;
 
   @override
   void initState() {
     super.initState();
     _tick = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+    // No dimming or locking while the student recites.
+    Screen.keepOn(true);
   }
 
   @override
   void dispose() {
     _tick.cancel();
+    Screen.keepOn(false);
     super.dispose();
   }
 
@@ -255,6 +263,12 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
       }
     });
     final (name, initials, avatar) = _other(s, st);
+    // "Open Quran" goes to the student's portion: their own next portion,
+    // or (for the teacher) the one from their last lesson together.
+    final notes = st.otherUid == null || !widget.asTeacher
+        ? null
+        : ref.watch(lastNotesForStudentProvider(st.otherUid!))?.notes;
+    _portion = widget.asTeacher ? (notes?.next ?? notes?.recited) : ref.watch(nextPortionProvider);
     final secs = st.connectedAt == null ? 0 : DateTime.now().difference(st.connectedAt!).inSeconds;
     final (statusIcon, statusText, statusColor) = switch (st.phase) {
       CallPhase.active => (SIcons.bars3, s.goodConn, t.primary),
@@ -389,7 +403,9 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
                 Icons.menu_book_rounded,
                 s.openQuran,
                 false,
-                () => context.push(Routes.mushaf),
+                () => context.push(
+                  _portion == null ? Routes.mushaf : Routes.mushafAt(sura: _portion!.sura, ayah: _portion!.from),
+                ),
                 iconWidget: SIcon(SIcons.rehal, size: 32, color: t.text),
               ),
             ],
@@ -615,6 +631,18 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
     final name = demo ? s.studentName : (_call?.studentName ?? '');
     final avatar = demo ? sampleStudentAvatar(s.female) : _call?.studentAvatar;
     final initial = name.trim().isEmpty ? '?' : name.trim().characters.first.toUpperCase();
+    // What this student recited with this teacher last time (if anything).
+    final studentId = _call?.studentId;
+    final notes = studentId == null ? null : ref.watch(lastNotesForStudentProvider(studentId))?.notes;
+    final recited = notes?.recited ?? notes?.next;
+    final String? lastPortion = demo
+        ? s.lastPortion
+        : recited == null
+        ? null
+        : [
+            portionText(s, ref.watch(quranProvider).value, recited),
+            if (notes?.grade != null) s.grades[notes!.grade!.clamp(0, 2)],
+          ].join(' · ');
 
     if (_missed) {
       return StepScaffold(
@@ -683,18 +711,20 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
           Center(child: Avatar(initial, size: 120, image: avatar)),
           const SizedBox(height: 18),
           WordSafeText(name, style: tt.headlineMedium, textAlign: TextAlign.center),
-          const SizedBox(height: 10),
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(20)),
-              child: Text(
-                s.sessionType,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.heading),
+          // A sample lesson type (demo only; real calls have no type).
+          if (demo) const SizedBox(height: 10),
+          if (demo)
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(color: t.tint, borderRadius: BorderRadius.circular(20)),
+                child: Text(
+                  s.sessionType,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.heading),
+                ),
               ),
             ),
-          ),
-          if (demo) ...[
+          if (lastPortion != null) ...[
             const SizedBox(height: 16),
             SCard(
               child: Row(
@@ -706,7 +736,7 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(s.lastPortionL, style: tt.bodySmall),
-                        Text(s.lastPortion, style: tt.titleSmall),
+                        Text(lastPortion, style: nameFont(context, tt.titleSmall!)),
                       ],
                     ),
                   ),

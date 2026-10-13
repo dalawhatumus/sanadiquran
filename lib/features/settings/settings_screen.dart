@@ -10,10 +10,12 @@ import '../../core/local_files.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
+import '../../core/text_size.dart';
 import '../../core/theme.dart';
 import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 import '../athkar/athkar_menu_screen.dart';
+import '../messages/message_alerts.dart';
 import '../student/teacher_alert.dart';
 import 'more_screens.dart';
 
@@ -189,6 +191,63 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => n.update((x) => x.copyWith(themeMode: mode)),
               ),
           ],
+        ),
+        section(s.textSizeL),
+        Consumer(
+          builder: (context, ref, _) {
+            final size = ref.watch(textSizeProvider);
+            final set = ref.read(textSizeProvider.notifier).set;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    PickChip(label: s.textSizePhone, selected: size == null, onTap: () => set(null)),
+                    for (final x in TextSize.choices)
+                      PickChip(label: s.percent(x), selected: size == x, onTap: () => set(x)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SCard(
+                  color: t.tint,
+                  child: Text(s.textSizePreview, style: tt.bodyLarge),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        Consumer(
+          builder: (context, ref, _) {
+            final on = ref.watch(messageAlertsOnProvider);
+            return Semantics(
+              toggled: on,
+              button: true,
+              child: SCard(
+                onTap: () => ref.read(messageAlertsOnProvider.notifier).set(!on),
+                child: Row(
+                  children: [
+                    TintBox(child: Icon(Icons.chat_bubble_rounded, color: t.primary)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          WordSafeText(s.messageAlertsL, style: tt.titleMedium!.copyWith(color: t.heading)),
+                          WordSafeText(s.messageAlertsSub, style: tt.bodySmall),
+                        ],
+                      ),
+                    ),
+                    ExcludeSemantics(
+                      child: Switch(value: on, onChanged: (v) => ref.read(messageAlertsOnProvider.notifier).set(v)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
         linkCard(
           Icons.notifications_rounded,

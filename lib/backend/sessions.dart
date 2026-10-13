@@ -130,6 +130,14 @@ abstract interface class LessonApi {
 
 final lessonsProvider = StreamProvider<List<Lesson>>((ref) => ref.watch(backendProvider).lessons());
 
+/// A teacher's newest lesson with notes for [studentUid] (from their
+/// lessons together), or null.
+final lastNotesForStudentProvider = Provider.family<Lesson?, String>(
+  (ref, studentUid) => (ref.watch(lessonsProvider).value ?? const <Lesson>[])
+      .where((l) => l.studentId == studentUid && (l.notes?.recited != null || l.notes?.next != null))
+      .firstOrNull,
+);
+
 /// A next portion the student chose herself (from the ayah menu), with when.
 class OwnNextPortion extends Notifier<(Portion, DateTime)?> {
   static const _key = 'ownNextPortion';
