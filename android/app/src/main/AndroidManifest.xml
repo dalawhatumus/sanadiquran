@@ -7,6 +7,13 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Athkar reminders survive a restart of the phone. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- While a teacher is available: keep Sanadi running so calls can ring
+         with the app in the background or the phone locked, show the call
+         full screen, and ask once to be left out of battery saving. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
@@ -45,6 +52,15 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Keeps Sanadi listening for calls while a teacher is available. -->
+        <service
+            android:name=".AvailabilityService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="A volunteer Quran teacher who has switched on 'available to teach' must receive incoming voice calls from students while the app is in the background. The app does not use Firebase Cloud Messaging, so it keeps its connection open only while the teacher is available; it stops as soon as the teacher switches 'available' off in the app." />
+        </service>
         <!-- Athkar reminders (scheduled on the phone, no server needed). -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">

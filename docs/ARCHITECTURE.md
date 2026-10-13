@@ -56,6 +56,12 @@ Storage). Calls are WebRTC audio, signalled through Firestore.
   which must stay within the limits in `firebase/firestore.rules`. A test
   checks this.
 - **Logging:** use `logIssue()`. It writes in debug builds only.
+- **Native bits** (Android, `MainActivity.kt` and `AvailabilityService.kt`)
+  are reached only through `core/background.dart` and `core/screen.dart`,
+  which never throw: keep-screen-on during calls, showing over the lock
+  screen while a call rings, the teacher's background service, and Back
+  moving the app to the background while a teacher is available.
+- **Notifications** all go through `Reminders` (`core/reminders.dart`).
 - **Confirmations:** use `confirm(context, ...)` from `widgets/dialogs.dart`.
 
 ## Checks before a release

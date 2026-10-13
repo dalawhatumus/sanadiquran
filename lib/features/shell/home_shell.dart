@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../backend/admin.dart';
 import '../../backend/chat.dart';
+import '../../core/background.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
@@ -32,13 +33,25 @@ class HomeShell extends ConsumerWidget {
     // A paused account sees why on its home tab; the Quran, athkar and
     // messages stay open (the server refuses new messages and calls).
     final paused = ref.watch(pausedProvider).value ?? false;
-    return Scaffold(
-      body: paused && shell.currentIndex == 0 ? const _PausedView() : shell,
-      bottomNavigationBar: _TabBar(
-        items: items,
-        badges: {items.length - 1: unread},
-        selected: shell.currentIndex,
-        onSelect: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+    // While a teacher is available, Back on the home tabs keeps Sanadi
+    // running in the background, so calls can still ring.
+    return ValueListenableBuilder<bool>(
+      valueListenable: Background.listening,
+      builder: (context, listening, child) => PopScope(
+        canPop: !(teacher && listening),
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) Background.moveToBack();
+        },
+        child: child!,
+      ),
+      child: Scaffold(
+        body: paused && shell.currentIndex == 0 ? const _PausedView() : shell,
+        bottomNavigationBar: _TabBar(
+          items: items,
+          badges: {items.length - 1: unread},
+          selected: shell.currentIndex,
+          onSelect: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+        ),
       ),
     );
   }

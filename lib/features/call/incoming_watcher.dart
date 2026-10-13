@@ -3,15 +3,22 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../backend/admin.dart';
 import '../../backend/backend.dart';
 import '../../backend/calls.dart';
+import '../../core/background.dart';
+import '../../core/reminders.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
+import '../../core/strings.dart';
 import 'call_controller.dart';
 
-/// While the app is open, shows the incoming-call screen when a student's
-/// call rings for this teacher. A second call while one is in progress is
-/// declined, so that student is put through to someone else straight away.
+/// Shows the incoming-call screen when a student's call rings for this
+/// teacher. While a teacher is available (and online), a background service
+/// keeps Sanadi running so this also works with the app in the background
+/// or the phone locked: then a full-screen call alert brings the app up. A
+/// second call while one is in progress is declined, so that student is put
+/// through to someone else straight away.
 class IncomingCallWatcher extends ConsumerStatefulWidget {
   const IncomingCallWatcher({super.key, required this.child});
 
@@ -30,7 +37,7 @@ class _IncomingCallWatcherState extends ConsumerState<IncomingCallWatcher> with 
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _heartbeat());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncService());
   }
 
   @override
@@ -46,17 +53,33 @@ class _IncomingCallWatcherState extends ConsumerState<IncomingCallWatcher> with 
     _heartbeat();
   }
 
-  bool get _reachable {
+  /// An approved, available teacher, online and not paused.
+  bool get _teaching {
     final me = ref.read(settingsProvider);
-    return _foreground &&
+    return ref.read(backendProvider).live &&
         me.signedIn &&
         me.role == UserRole.teacher &&
         me.teacherStatus == TeacherStatus.approved &&
-        me.available;
+        me.available &&
+        !(ref.read(pausedProvider).value ?? false);
   }
 
-  /// While an available teacher has the app on screen, says "still here"
-  /// every minute; students only ring teachers who do.
+  bool get _reachable => _teaching && (_foreground || Background.running);
+
+  /// Starts or stops the background service with the "available" switch.
+  Future<void> _syncService() async {
+    if (_teaching) {
+      final me = ref.read(settingsProvider);
+      await Background.startListening(S(ar: me.locale?.languageCode == 'ar', female: me.female));
+    } else {
+      await Background.stopListening();
+    }
+    _heartbeat();
+  }
+
+  /// While an available teacher is reachable (app on screen, or kept alive
+  /// in the background), says "still here" every minute; students only
+  /// ring teachers who do.
   void _heartbeat() {
     _beat?.cancel();
     _beat = null;
@@ -78,6 +101,16 @@ class _IncomingCallWatcherState extends ConsumerState<IncomingCallWatcher> with 
       if (busy || !me.available) {
         controller.decline(c);
       } else {
+        if (!_foreground) {
+          // Not on screen: wake the phone and show the call over the lock
+          // screen (cleared when the call screens close).
+          Background.overLockScreen(true);
+          Reminders.instance.incomingCall(
+            s: S(ar: me.locale?.languageCode == 'ar', female: me.female),
+            callId: c.id,
+            studentName: c.studentName,
+          );
+        }
         ref.read(routerProvider).push('${Routes.incoming}?id=${c.id}');
         break;
       }
@@ -89,8 +122,9 @@ class _IncomingCallWatcherState extends ConsumerState<IncomingCallWatcher> with 
     ref.listen(incomingCallsProvider, (_, next) => _onCalls(next.value ?? const []));
     ref.listen(
       settingsProvider.select((s) => (s.signedIn, s.role, s.teacherStatus, s.available)),
-      (_, _) => _heartbeat(),
+      (_, _) => _syncService(),
     );
+    ref.listen(pausedProvider, (_, _) => _syncService());
     return widget.child;
   }
 }

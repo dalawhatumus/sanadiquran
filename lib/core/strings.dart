@@ -618,9 +618,9 @@ class S {
     'تم توصيل $name بمعلّم آخر حتى لا ينتظر.',
   );
   String get keepOpen => t(
-    'Keep Sanadi open on your screen to receive calls.',
-    'أبقي سَنَدي مفتوحًا على الشاشة لتصلكِ المكالمات.',
-    'أبقِ سَنَدي مفتوحًا على الشاشة لتصلك المكالمات.',
+    'Calls ring even with Sanadi in the background or your phone locked. Don\'t swipe Sanadi away from your recent apps, or calls can\'t reach you.',
+    'ترنّ المكالمات حتى وسَنَدي في الخلفية أو الهاتف مقفل. لا تُغلقي سَنَدي بسحبه من التطبيقات الأخيرة، وإلا لن تصلكِ المكالمات.',
+    'ترنّ المكالمات حتى وسَنَدي في الخلفية أو الهاتف مقفل. لا تُغلق سَنَدي بسحبه من التطبيقات الأخيرة، وإلا لن تصلك المكالمات.',
   );
   String get micNeededCall => t(
     'Sanadi needs the microphone for calls. Allow it in your phone settings.',
@@ -861,6 +861,40 @@ class S {
   String get teacherFreeTitle => t('A teacher is free now', 'معلّمة متاحة الآن', 'معلّم متاح الآن');
   String get teacherFreeBody =>
       t('Open Sanadi and tap "Recite now".', 'افتحي سَنَدي واضغطي «سمِّعي الآن».', 'افتح سَنَدي واضغط «سمِّع الآن».');
+  // ---- Ringing in the background, and other notifications ----
+  String get callsChannel => t('Incoming calls', 'المكالمات الواردة');
+  String get callsChannelDesc => t('A student calling you', 'اتصال من طالب');
+  String get missedChannel => t('Missed calls', 'المكالمات الفائتة');
+  String get missedChannelDesc => t('Calls you couldn\'t answer', 'مكالمات لم تتمكّن من الرد عليها');
+  String get notesChannel => t('Lesson notes', 'ملاحظات الدروس');
+  String get notesChannelDesc => t('When your teacher adds notes', 'عند إضافة المعلّم ملاحظات');
+  String get notesTapToRead => t('Tap to read them', 'اضغطي لقراءتها', 'اضغط لقراءتها');
+  String get accountChannel => t('Your account', 'حسابك');
+  String get accountChannelDesc => t('News about your teacher application', 'مستجدات طلب التدريس');
+  String get approvedTitle => t('You\'re approved to teach', 'تم اعتمادكِ للتدريس', 'تم اعتمادك للتدريس');
+  String get approvedBody => t(
+    'Jazakum Allahu khayran. Switch on "available" when you\'re ready.',
+    'جزاكِ الله خيرًا. فعّلي الإتاحة حين تكونين مستعدة.',
+    'جزاك الله خيرًا. فعّل الإتاحة حين تكون مستعدًا.',
+  );
+  String get notApprovedTitle => t('About your application', 'بخصوص طلبكِ', 'بخصوص طلبك');
+  String get notApprovedBody =>
+      t('Open Sanadi to read the reply.', 'افتحي سَنَدي لقراءة الرد.', 'افتح سَنَدي لقراءة الرد.');
+  String get availabilityChannel => t('Available to teach', 'الإتاحة للتدريس');
+  String get availabilityTitle => t('You\'re available to teach', 'أنتِ متاحة للتدريس', 'أنت متاح للتدريس');
+  String get availabilityText => t(
+    'Sanadi will ring here when a student calls.',
+    'سيرنّ سَنَدي هنا عند اتصال طالبة.',
+    'سيرنّ سَنَدي هنا عند اتصال طالب.',
+  );
+  String get batteryTitle => t('So calls always ring', 'لكي ترنّ المكالمات دائمًا');
+  String get batteryBody => t(
+    'Phones put apps to sleep to save battery, and a sleeping app can\'t ring. On the next screen, please allow Sanadi to run without battery limits. It only stays awake while you\'re available to teach.',
+    'تُنيم الهواتف التطبيقات لتوفير البطارية، والتطبيق النائم لا يرنّ. في الشاشة التالية، يُرجى السماح لسَنَدي بالعمل دون قيود البطارية. لا يبقى مستيقظًا إلا وأنتِ متاحة للتدريس.',
+    'تُنيم الهواتف التطبيقات لتوفير البطارية، والتطبيق النائم لا يرنّ. في الشاشة التالية، يُرجى السماح لسَنَدي بالعمل دون قيود البطارية. لا يبقى مستيقظًا إلا وأنت متاح للتدريس.',
+  );
+  String get batteryAllow => t('Continue', 'متابعة');
+
   String get textSizeL => t('Text size', 'حجم الخط');
   String get textSizePhone => t('Same as phone', 'مثل الهاتف');
   String get textSizePreview => t('This is how text looks in Sanadi.', 'هكذا يبدو الخط في سَنَدي.');

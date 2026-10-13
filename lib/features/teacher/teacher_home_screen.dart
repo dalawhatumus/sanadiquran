@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../backend/backend.dart';
 import '../../backend/sessions.dart';
@@ -128,7 +129,10 @@ class TeacherHomeScreen extends ConsumerWidget {
     final on = settings.available;
     void toggle() {
       ref.read(settingsProvider.notifier).update((x) => x.copyWith(available: !on));
-      if (!on) ref.read(autoAwayProvider.notifier).dismiss();
+      if (!on) {
+        ref.read(autoAwayProvider.notifier).dismiss();
+        if (live) askBatteryOnce(context, ref);
+      }
     }
 
     final autoAway = ref.watch(autoAwayProvider) && !on;
@@ -326,4 +330,26 @@ class _LinkCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The first time a teacher switches "available" on: explains why Sanadi
+/// should run without battery limits, then shows Android's own request.
+/// Asked once (the phone's settings can change it later).
+Future<void> askBatteryOnce(BuildContext context, WidgetRef ref) async {
+  const key = 'batteryAsked';
+  final prefs = ref.read(sharedPreferencesProvider);
+  if (prefs.getBool(key) ?? false) return;
+  try {
+    if (await Permission.ignoreBatteryOptimizations.isGranted) return;
+  } catch (_) {
+    return; // Not available here (e.g. tests).
+  }
+  await prefs.setBool(key, true);
+  if (!context.mounted) return;
+  final s = S.of(context);
+  final yes = await confirm(context, title: s.batteryTitle, body: s.batteryBody, confirmLabel: s.batteryAllow);
+  if (!yes) return;
+  try {
+    await Permission.ignoreBatteryOptimizations.request();
+  } catch (_) {}
 }

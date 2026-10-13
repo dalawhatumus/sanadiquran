@@ -9,6 +9,8 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../backend/backend.dart';
 import '../../backend/calls.dart';
 import '../../backend/sessions.dart';
+import '../../core/background.dart';
+import '../../core/reminders.dart';
 import '../../core/router.dart';
 import '../../core/screen.dart';
 import '../../core/strings.dart';
@@ -199,14 +201,17 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
   void initState() {
     super.initState();
     _tick = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
-    // No dimming or locking while the student recites.
+    // No dimming or locking while the student recites; and if the call was
+    // answered from the lock screen, it stays visible there until it ends.
     Screen.keepOn(true);
+    Background.overLockScreen(true);
   }
 
   @override
   void dispose() {
     _tick.cancel();
     Screen.keepOn(false);
+    Background.overLockScreen(false);
     super.dispose();
   }
 
@@ -583,7 +588,14 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
   void _stop({bool missed = false}) {
     _timer.cancel();
     _sub?.cancel();
-    if (missed && !_missed && widget.callId != null) ref.read(autoAwayProvider.notifier).missed();
+    unawaited(Reminders.instance.cancelIncomingCall());
+    if (missed && !_missed && widget.callId != null) {
+      ref.read(autoAwayProvider.notifier).missed();
+      // Not looking at the phone: leave a "missed call" notification.
+      if (mounted && WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+        unawaited(Reminders.instance.missedCall(s: S.of(context), studentName: _call?.studentName ?? ''));
+      }
+    }
     if (mounted && missed) setState(() => _missed = true);
   }
 
@@ -591,6 +603,9 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
   void dispose() {
     _timer.cancel();
     _sub?.cancel();
+    unawaited(Reminders.instance.cancelIncomingCall());
+    // Answered: the call screen keeps it over the lock screen instead.
+    if (!_answering) Background.overLockScreen(false);
     super.dispose();
   }
 

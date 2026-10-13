@@ -43,8 +43,16 @@ attempts to break it.
   and reminder times are kept.
 - **File names** built from server ids are sanitised (`LocalFiles.safeName`).
 - **Damaged saved data** never crashes the app; it starts fresh instead.
-- **Reminder notifications** can only open the morning or evening athkar
-  (an allow-list), never any other screen.
+- **Notifications** can only open the places they were made for: the
+  morning or evening athkar, home, a chat (`/chat/<id>`), a lesson's notes
+  (`/notes?id=<id>`) or a ringing call. Anything else in a payload is
+  ignored (an allow-list, tested).
+- **Over the lock screen** only while a call rings or is in progress: the
+  flag is switched on for the call screens and off again when they close,
+  so Sanadi never opens on a locked phone otherwise.
+- **Background service** (teachers only, while "available"): keeps the app
+  running with a visible notification so calls can ring; it stops when the
+  teacher switches off, signs out, is paused, or closes the app.
 - **Logging:** release builds write nothing to the system log
   (`logIssue`).
 

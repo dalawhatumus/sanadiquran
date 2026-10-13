@@ -10,6 +10,7 @@ import 'core/strings.dart';
 import 'core/text_size.dart';
 import 'core/theme.dart';
 import 'features/call/incoming_watcher.dart';
+import 'features/lessons/lesson_alerts.dart';
 import 'features/messages/message_alerts.dart';
 import 'features/student/teacher_alert.dart';
 
@@ -23,9 +24,13 @@ class SanadiApp extends ConsumerWidget {
     ref.watch(remindersSyncProvider);
     ref.watch(teacherAlertWatchProvider);
     ref.watch(messageAlertsProvider);
+    ref.watch(lessonAlertsProvider);
     // A tapped reminder opens its athkar over the home screen, so Back
     // returns home as usual.
     Reminders.instance.onOpen = (route) {
+      // The call screen is already up; tapping the call alert only brings
+      // the app forward.
+      if (route.startsWith(Routes.incoming)) return;
       final home = nextStep(ref.read(settingsProvider));
       if (home != Routes.studentHome && home != Routes.teacherHome) return;
       router.go(home);

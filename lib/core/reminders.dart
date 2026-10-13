@@ -78,13 +78,28 @@ class Reminders {
 
   /// The only places a notification may open. Its payload is checked
   /// against these before the app navigates anywhere.
-  static const routes = {'/athkar/morning', '/athkar/evening', homeRoute};
+  static const routes = {'/athkar/morning', '/athkar/evening', homeRoute, teacherHomeRoute};
   static final _chatRoute = RegExp(r'^/chat/[A-Za-z0-9_-]{1,128}$');
+  static final _notesRoute = RegExp(r'^/notes\?id=[A-Za-z0-9_-]{1,128}$');
+  static final _incomingRoute = RegExp(r'^/call/incoming\?id=[A-Za-z0-9_-]{1,128}$');
 
   /// "A teacher is free": opens the student's home.
   static const homeRoute = '/s/home';
+
+  /// A decision on a teacher's application: opens the teacher's home.
+  static const teacherHomeRoute = '/t/home';
+
+  static const _incomingId = 4;
+  static const _missedId = 5;
+  static const _decisionId = 6;
   static String? safeRoute(String? route) =>
-      route != null && (routes.contains(route) || _chatRoute.hasMatch(route)) ? route : null;
+      route != null &&
+          (routes.contains(route) ||
+              _chatRoute.hasMatch(route) ||
+              _notesRoute.hasMatch(route) ||
+              _incomingRoute.hasMatch(route))
+      ? route
+      : null;
 
   Future<void> _init() async {
     if (_ready) return;
@@ -145,60 +160,135 @@ class Reminders {
     }
   }
 
-  /// Tells a student that a teacher is free now (they asked to be alerted).
-  Future<void> teacherFree(S s) async {
-    await _init();
-    try {
-      await _plugin.show(
-        id: _teacherFreeId,
-        title: s.teacherFreeTitle,
-        body: s.teacherFreeBody,
-        notificationDetails: NotificationDetails(
-          android: AndroidNotificationDetails(
-            'teacher_alerts',
-            s.teacherAlertsChannel,
-            channelDescription: s.teacherAlertsChannelDesc,
-            importance: Importance.high,
-            priority: Priority.high,
-          ),
-        ),
-        payload: homeRoute,
-      );
-    } catch (e) {
-      logIssue('Teacher alert not shown: $e');
-    }
-  }
-
-  /// A new message in a chat the user isn't looking at. One notification
-  /// per conversation (a newer message replaces it); tapping opens the chat.
-  Future<void> newMessage({
-    required S s,
-    required String conversationId,
-    required String from,
-    required String text,
+  /// Shows one notification now. Never throws: notifications are a help,
+  /// and the app works without them.
+  Future<void> _show({
+    required int id,
+    required String channel,
+    required String channelName,
+    required String channelDesc,
+    required String title,
+    required String body,
+    required String payload,
+    Importance importance = Importance.high,
+    bool fullScreen = false,
+    bool ongoing = false,
+    int? timeoutMs,
   }) async {
     await _init();
     try {
       await _plugin.show(
-        // 1000+ keeps clear of the reminder ids.
-        id: 1000 + (conversationId.hashCode & 0x3fffffff) % 1000000,
-        title: from,
-        body: text,
+        id: id,
+        title: title,
+        body: body,
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
-            'messages',
-            s.messagesChannel,
-            channelDescription: s.messagesChannelDesc,
-            importance: Importance.high,
-            priority: Priority.high,
+            channel,
+            channelName,
+            channelDescription: channelDesc,
+            importance: importance,
+            priority: importance == Importance.high || importance == Importance.max
+                ? Priority.high
+                : Priority.defaultPriority,
+            fullScreenIntent: fullScreen,
+            category: fullScreen ? AndroidNotificationCategory.call : null,
+            ongoing: ongoing,
+            autoCancel: !ongoing,
+            timeoutAfter: timeoutMs,
           ),
         ),
-        payload: '/chat/$conversationId',
+        payload: payload,
       );
     } catch (e) {
-      logIssue('Message notification not shown: $e');
+      logIssue('Notification $id not shown: $e');
     }
   }
+
+  Future<void> _cancel(int id) async {
+    try {
+      await _plugin.cancel(id: id);
+    } catch (_) {}
+  }
+
+  /// Tells a student that a teacher is free now (they asked to be alerted).
+  Future<void> teacherFree(S s) => _show(
+    id: _teacherFreeId,
+    channel: 'teacher_alerts',
+    channelName: s.teacherAlertsChannel,
+    channelDesc: s.teacherAlertsChannelDesc,
+    title: s.teacherFreeTitle,
+    body: s.teacherFreeBody,
+    payload: homeRoute,
+  );
+
+  /// A new message in a chat the user isn't looking at. One notification
+  /// per conversation (a newer message replaces it); tapping opens the chat.
+  Future<void> newMessage({required S s, required String conversationId, required String from, required String text}) =>
+      _show(
+        // 1000+ keeps clear of the other ids.
+        id: 1000 + (conversationId.hashCode & 0x3fffffff) % 1000000,
+        channel: 'messages',
+        channelName: s.messagesChannel,
+        channelDesc: s.messagesChannelDesc,
+        title: from,
+        body: text,
+        payload: '/chat/$conversationId',
+      );
+
+  /// A student is calling: full screen over the lock screen (where Android
+  /// allows it; otherwise a high-priority alert). Cleared when answered,
+  /// declined or missed, and by itself after the ringing time.
+  Future<void> incomingCall({required S s, required String callId, required String studentName}) => _show(
+    id: _incomingId,
+    channel: 'calls',
+    channelName: s.callsChannel,
+    channelDesc: s.callsChannelDesc,
+    title: s.incoming,
+    body: studentName,
+    payload: '/call/incoming?id=$callId',
+    importance: Importance.max,
+    fullScreen: true,
+    ongoing: true,
+    timeoutMs: 35000,
+  );
+
+  Future<void> cancelIncomingCall() => _cancel(_incomingId);
+
+  /// A teacher missed a call.
+  Future<void> missedCall({required S s, required String studentName}) => _show(
+    id: _missedId,
+    channel: 'missed_calls',
+    channelName: s.missedChannel,
+    channelDesc: s.missedChannelDesc,
+    title: s.missedTitle,
+    body: s.missedBodyName(studentName),
+    payload: teacherHomeRoute,
+    importance: Importance.defaultImportance,
+  );
+
+  /// A student's teacher added notes to a lesson.
+  Future<void> lessonNotes({required S s, required String lessonId, required String teacherName}) => _show(
+    id: 2000 + (lessonId.hashCode & 0x3fffffff) % 1000000,
+    channel: 'lesson_notes',
+    channelName: s.notesChannel,
+    channelDesc: s.notesChannelDesc,
+    title: s.notesFromName(teacherName),
+    body: s.notesTapToRead,
+    payload: '/notes?id=$lessonId',
+    importance: Importance.defaultImportance,
+  );
+
+  /// An admin approved (or turned down) a teacher's application.
+  Future<void> applicationDecided({required S s, required bool approved}) => _show(
+    id: _decisionId,
+    channel: 'account',
+    channelName: s.accountChannel,
+    channelDesc: s.accountChannelDesc,
+    title: approved ? s.approvedTitle : s.notApprovedTitle,
+    body: approved ? s.approvedBody : s.notApprovedBody,
+    payload: teacherHomeRoute,
+    importance: Importance.defaultImportance,
+  );
 
   static tz.TZDateTime _next(int minutes) {
     final now = tz.TZDateTime.now(tz.local);
