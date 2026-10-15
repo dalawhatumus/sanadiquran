@@ -33,7 +33,7 @@ class _RoleScreenState extends ConsumerState<RoleScreen> {
     final s = S.of(context);
     final tt = Theme.of(context).textTheme;
     return StepScaffold(
-      step: s.stepOf(1, 4),
+      step: s.stepOf(1, 5),
       content: [
         WordSafeText(s.roleTitle, style: tt.headlineMedium),
         const SizedBox(height: 24),
@@ -94,7 +94,7 @@ class _GenderScreenState extends ConsumerState<GenderScreen> {
     return StepScaffold(
       showBack: true,
       onBack: () => context.canPop() ? context.pop() : context.go(Routes.role),
-      step: s.stepOf(2, 4),
+      step: s.stepOf(2, 5),
       content: [
         WordSafeText(s.genderTitle, style: tt.headlineMedium),
         const SizedBox(height: 24),
@@ -166,7 +166,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
       return;
     }
     ref.read(settingsProvider.notifier).update((st) => st.copyWith(name: name));
-    context.push(Routes.permMic);
+    context.push(Routes.details);
   }
 
   @override
@@ -178,7 +178,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
     return StepScaffold(
       showBack: true,
       onBack: () => context.canPop() ? context.pop() : context.go(Routes.gender),
-      step: s.stepOf(3, 4),
+      step: s.stepOf(3, 5),
       content: [
         WordSafeText(s.nameTitle, style: tt.headlineMedium),
         const SizedBox(height: 8),
@@ -204,11 +204,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
         const SizedBox(height: 28),
         Text(s.choosePictureOptional, style: tt.titleSmall),
         const SizedBox(height: 12),
-        AvatarGrid(
-          selected: ref.watch(settingsProvider.select((x) => x.avatar)),
-          onPick: (id) =>
-              ref.read(settingsProvider.notifier).update((x) => x.copyWith(avatar: id, clearAvatar: id == null)),
-        ),
+        AvatarGrid(selected: ref.watch(settingsProvider.select((x) => x.avatar))),
       ],
       bottom: [BigButton(label: s.next, trailingIcon: Arrows.forward, onPressed: _next)],
     );

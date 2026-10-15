@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../backend/admin.dart';
 import '../../backend/backend.dart';
+import '../../backend/photos.dart';
+import '../../core/countries.dart';
 import '../../core/limits.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -10,7 +13,9 @@ import '../../core/theme.dart';
 import '../../widgets/ui.dart';
 import '../messages/messages_screen.dart';
 
-/// Admins find anyone by name and pause or restore their account.
+/// Admins find anyone by name, see the details they gave, and pause or
+/// restore their account or remove their picture. "WhatsApp community"
+/// lists those who asked to join, with their numbers to copy.
 class UsersScreen extends ConsumerStatefulWidget {
   const UsersScreen({super.key});
 
@@ -20,6 +25,7 @@ class UsersScreen extends ConsumerStatefulWidget {
 
 class _UsersScreenState extends ConsumerState<UsersScreen> {
   final _search = TextEditingController();
+  bool _whatsappOnly = false;
 
   @override
   void dispose() {
@@ -36,7 +42,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final query = _search.text.trim().toLowerCase();
     final list = [
       for (final u in users.value ?? const <UserEntry>[])
-        if (query.isEmpty || u.name.toLowerCase().contains(query)) u,
+        if ((query.isEmpty || u.name.toLowerCase().contains(query) || (u.phone ?? '').contains(query)) &&
+            (!_whatsappOnly || (u.whatsapp && u.phone != null)))
+          u,
     ];
     return StepScaffold(
       showBack: true,
@@ -52,6 +60,30 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             prefixIcon: Icon(Icons.search_rounded, color: t.muted, size: 28),
           ),
         ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            PickChip(
+              label: s.whatsappMember,
+              selected: _whatsappOnly,
+              onTap: () => setState(() => _whatsappOnly = !_whatsappOnly),
+            ),
+          ],
+        ),
+        if (_whatsappOnly && list.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          BigButton(
+            label: s.copyNumbers,
+            icon: Icons.copy_rounded,
+            kind: ButtonKind.outline,
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: [for (final u in list) u.phone].join('\n')));
+              if (context.mounted) toast(context, s.numbersCopied);
+            },
+          ),
+        ],
         const SizedBox(height: 16),
         if (users.hasError)
           WarnBanner(icon: Icons.error_rounded, text: s.decisionFailed)
@@ -82,10 +114,10 @@ class _UserCard extends ConsumerWidget {
       if (u.gender != null) u.gender == Gender.female ? s.sister : s.brother,
     ].join(' · ');
     return SCard(
-      onTap: () => setPaused(context, ref, uid: u.uid, name: u.name, pause: !u.paused),
+      onTap: () => _showPerson(context, ref, u),
       child: Row(
         children: [
-          Avatar(initialOf(u.name), size: 52),
+          Avatar(initialOf(u.name), size: 52, image: u.avatar),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -108,6 +140,113 @@ class _UserCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// A person's details (for admins), with Pause or Restore, and Remove
+/// picture when they use their own photo.
+Future<void> _showPerson(BuildContext context, WidgetRef ref, UserEntry u) async {
+  final s = S.of(context);
+  final action = await showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    builder: (ctx) {
+      final t = ctx.t;
+      final tt = Theme.of(ctx).textTheme;
+      final country = Country.byCode(u.nationality);
+      Widget row(IconData icon, String label, String? value, {Widget? trailing}) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          children: [
+            Icon(icon, color: t.muted, size: 26),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: tt.bodySmall),
+                  Text(
+                    value ?? s.notGivenYet,
+                    style: tt.titleMedium!.copyWith(color: value == null ? t.muted : t.text),
+                  ),
+                ],
+              ),
+            ),
+            ?trailing,
+          ],
+        ),
+      );
+      return SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Avatar(initialOf(u.name), size: 72, image: u.avatar),
+                  const SizedBox(width: 14),
+                  Expanded(child: FullName(u.name.isEmpty ? '—' : u.name, style: tt.titleLarge!)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              row(Icons.cake_rounded, s.ageGroupL, u.ageGroup == null ? null : s.ageLabel(u.ageGroup!)),
+              row(
+                Icons.public_rounded,
+                s.nationalityL,
+                country == null ? u.nationality : '${country.flag} ${country.name(s.ar)}',
+              ),
+              row(
+                Icons.phone_rounded,
+                s.phoneL,
+                u.phone == null ? null : '\u2066${u.phone}\u2069',
+                trailing: u.phone == null
+                    ? null
+                    : IconButton(
+                        tooltip: s.copy,
+                        icon: Icon(Icons.copy_rounded, color: t.primary),
+                        style: IconButton.styleFrom(minimumSize: const Size(kMinTap, kMinTap)),
+                        onPressed: () async {
+                          await Clipboard.setData(ClipboardData(text: u.phone!));
+                          if (ctx.mounted) toast(ctx, s.numberCopied);
+                        },
+                      ),
+              ),
+              row(Icons.groups_rounded, s.whatsappMember, u.whatsapp ? s.yes : s.no),
+              const SizedBox(height: 8),
+              BigButton(
+                label: u.paused ? s.restoreAccount : s.pauseAccount,
+                icon: u.paused ? Icons.play_circle_rounded : Icons.pause_circle_rounded,
+                kind: ButtonKind.outline,
+                onPressed: () => Navigator.pop(ctx, 'pause'),
+              ),
+              if (photoOwner(u.avatar) != null) ...[
+                const SizedBox(height: 10),
+                BigButton(
+                  label: s.removePhoto,
+                  icon: Icons.hide_image_rounded,
+                  kind: ButtonKind.outline,
+                  onPressed: () => Navigator.pop(ctx, 'photo'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    },
+  );
+  if (!context.mounted) return;
+  if (action == 'pause') {
+    await setPaused(context, ref, uid: u.uid, name: u.name, pause: !u.paused);
+  } else if (action == 'photo') {
+    final yes = await confirm(context, title: s.removePhotoQ, confirmLabel: s.removePhoto, destructive: true);
+    if (!yes) return;
+    try {
+      await ref.read(backendProvider).removePhoto(u.uid);
+      if (context.mounted) toast(context, s.photoRemoved);
+    } catch (_) {
+      if (context.mounted) toast(context, s.decisionFailed);
+    }
   }
 }
 

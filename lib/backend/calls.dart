@@ -61,8 +61,43 @@ const presenceFresh = Duration(seconds: 150);
 
 /// A teacher who could take a call now.
 class Candidate {
-  const Candidate(this.uid);
+  const Candidate(this.uid, {this.lessonsToday = 0});
   final String uid;
+
+  /// Lessons this teacher has given today (to share calls out fairly).
+  final int lessonsToday;
+}
+
+/// The order a student's call tries free teachers: the one they chose,
+/// then their own teachers (favourites, then those they had lessons with,
+/// most recent first), then the teachers who have taught least today. Ties
+/// keep the order given (shuffled by the server query), so calls are
+/// shared out.
+///
+/// Every candidate is already the student's gender: the server only lists
+/// (and its rules only let a call ring) teachers of the same gender.
+List<Candidate> rankCandidates(
+  List<Candidate> free, {
+  String? preferred,
+  Set<String> favourites = const {},
+  List<String> previous = const [],
+}) {
+  int rank(Candidate c) {
+    if (c.uid == preferred) return 0;
+    if (favourites.contains(c.uid)) return 1;
+    final i = previous.indexOf(c.uid);
+    if (i >= 0) return 2 + i;
+    return 1 << 20;
+  }
+
+  final order = {for (var i = 0; i < free.length; i++) free[i].uid: i};
+  return [...free]..sort((a, b) {
+    final r = rank(a).compareTo(rank(b));
+    if (r != 0) return r;
+    final l = a.lessonsToday.compareTo(b.lessonsToday);
+    if (l != 0) return l;
+    return order[a.uid]!.compareTo(order[b.uid]!);
+  });
 }
 
 /// Calls without a server of our own: the student's app finds a free
@@ -105,6 +140,10 @@ abstract interface class CallApi {
   /// "Still here": sent every minute while an available teacher has the app
   /// open. Teachers who stop sending it aren't rung (or counted).
   Future<void> presenceHeartbeat();
+
+  /// How many lessons this teacher has given today, so students' calls go
+  /// first to teachers who have taught least.
+  Future<void> setLessonsToday(int count);
 
   /// After a call, opens the chat between its student and teacher (if it
   /// isn't open already).
@@ -204,6 +243,9 @@ mixin DemoCalls implements CallApi {
 
   @override
   Future<void> presenceHeartbeat() async {}
+
+  @override
+  Future<void> setLessonsToday(int count) async {}
 
   @override
   Future<void> openChatAfterCall(CallInfo call) async {}

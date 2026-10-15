@@ -16,6 +16,7 @@ import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 import '../athkar/athkar_menu_screen.dart';
 import '../messages/message_alerts.dart';
+import '../quran/ayah_of_day.dart';
 import '../student/teacher_alert.dart';
 import 'more_screens.dart';
 
@@ -145,6 +146,13 @@ class SettingsScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 10),
         BigButton(label: s.changeName, icon: Icons.badge_rounded, kind: ButtonKind.tint, onPressed: changeName),
+        const SizedBox(height: 10),
+        BigButton(
+          label: s.yourDetails,
+          icon: Icons.contact_phone_rounded,
+          kind: ButtonKind.tint,
+          onPressed: () => context.push(Routes.editDetails),
+        ),
         if (admin) ...[
           for (final (icon, title, sub, route) in [
             (Icons.how_to_reg_rounded, s.adminTitle, s.adminSub, Routes.admin),
@@ -254,6 +262,18 @@ class SettingsScreen extends ConsumerWidget {
           s.remindersL,
           settings.remindersOn ? s.remindersOnSub : s.remindersOffSub,
           () => showReminderSheet(context),
+        ),
+        Consumer(
+          builder: (context, ref, _) {
+            final ayah = ref.watch(ayahOfDayProvider);
+            final time = MaterialLocalizations.of(context).formatTimeOfDay(ayah.time);
+            return linkCard(
+              Icons.wb_sunny_rounded,
+              s.ayahOfDay,
+              ayah.on ? s.ayahOfDaySub(time) : s.ayahOfDayOff,
+              () => showAyahOfDaySheet(context),
+            );
+          },
         ),
         section(s.helpSection),
         linkCard(Icons.mail_rounded, s.contactUs, s.contactSub, () => contactSanadi(context)),

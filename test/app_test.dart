@@ -47,7 +47,7 @@ Map<String, Object> done({
   String status = 'none',
 }) => {
   'settings.v2':
-      '{"locale":"$locale","signedIn":true,"role":"$role","gender":"$gender","name":"Fatima Ahmed","permissionsDone":true,"tourDone":true,"teacherStatus":"$status"}',
+      '{"locale":"$locale","signedIn":true,"role":"$role","gender":"$gender","name":"Fatima Ahmed","permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001","tourDone":true,"teacherStatus":"$status"}',
 };
 
 void main() {
@@ -66,11 +66,11 @@ void main() {
     expect(find.text('Recite the Quran to a teacher, anytime.'), findsOneWidget);
 
     await tapText(tester, 'Continue with Google');
-    expect(find.text('Step 1 of 4'), findsOneWidget);
+    expect(find.text('Step 1 of 5'), findsOneWidget);
     await tapText(tester, 'Memorise and recite');
     await tapText(tester, 'Next');
 
-    expect(find.text('Step 2 of 4'), findsOneWidget);
+    expect(find.text('Step 2 of 5'), findsOneWidget);
     await tapText(tester, 'Female');
     await tapText(tester, 'Next');
 
@@ -80,7 +80,31 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Fatima Ahmed');
     await tapText(tester, 'Next');
 
+    // About you: everything is checked when Next is tapped.
+    expect(find.text('Step 4 of 5'), findsOneWidget);
+    expect(find.text('A little about you'), findsOneWidget);
+    await tapText(tester, 'Next');
+    expect(find.text('Please choose your age'), findsOneWidget);
+    expect(find.text('Please choose your nationality'), findsOneWidget);
+    expect(find.text('Please check the number and the country code'), findsOneWidget);
+    await tapText(tester, '25–34');
+    await tapText(tester, 'Choose your nationality');
+    await tester.enterText(find.descendant(of: find.byType(BottomSheet), matching: find.byType(TextField)), 'saudi');
+    await tester.pumpAndSettle();
+    await tapText(tester, 'Saudi Arabia');
+    // The country code follows the nationality; a leading 0 is dropped.
+    expect(find.text('+966'), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('phone')), '05 1234 5678');
+    await tester.pumpAndSettle();
+    await tapText(tester, "Join Sanadi's WhatsApp community (optional)");
+    await tapText(tester, 'Next');
+
     expect(find.text('Allow the microphone'), findsOneWidget);
+    final saved = (await SharedPreferences.getInstance()).getString('settings.v2')!;
+    expect(saved, contains('"ageGroup":"25-34"'));
+    expect(saved, contains('"nationality":"SA"'));
+    expect(saved, contains('"phone":"+966512345678"'));
+    expect(saved, contains('"whatsapp":true'));
     await tapText(tester, 'Not now');
     expect(find.text('Allow notifications'), findsOneWidget);
     await tapText(tester, 'Not now');
@@ -107,8 +131,7 @@ void main() {
 
   testWidgets('teacher application ends on the pending home', (tester) async {
     await pumpApp(tester, {
-      'settings.v2':
-          '{"locale":"en","signedIn":true,"role":"teacher","gender":"female","name":"Aisha","permissionsDone":true}',
+      'settings.v2': '{"locale":"en","signedIn":true,"role":"teacher","gender":"female","name":"Aisha","permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001"}',
     });
     expect(find.text('Application · 1 of 5'), findsOneWidget);
     await tapText(tester, 'South Africa');

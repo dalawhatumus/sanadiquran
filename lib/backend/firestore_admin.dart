@@ -39,6 +39,11 @@ mixin FirestoreAdmin implements AdminApi {
               role: UserRole.values.where((r) => r.name == d.data()['role']).firstOrNull,
               gender: Gender.values.where((g) => g.name == d.data()['gender']).firstOrNull,
               paused: pausedIds.contains(d.id),
+              avatar: d.data()['avatar'] as String?,
+              ageGroup: d.data()['ageGroup'] as String?,
+              nationality: d.data()['nationality'] as String?,
+              phone: d.data()['phone'] as String?,
+              whatsapp: d.data()['whatsapp'] == true,
             ),
         ], (u) => u.name),
       );

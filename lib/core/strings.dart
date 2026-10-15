@@ -763,15 +763,38 @@ class S {
         'حصن المسلم للشيخ سعيد بن علي القحطاني.',
       ),
     ),
+    (
+      t('Countries and phone codes', 'الدول ورموز الهواتف'),
+      t(
+        'Country names from the Unicode CLDR project; calling codes and number lengths from Google\'s phone number data.',
+        'أسماء الدول من مشروع Unicode CLDR، ورموز الاتصال وأطوال الأرقام من بيانات أرقام الهواتف لدى Google.',
+      ),
+    ),
   ];
 
   List<(String, String)> get privacySections => [
     (
       t('What we keep', 'ما نحفظه'),
       t(
-        'Your name, gender, whether you are a student or teacher, and the picture you chose. Your Google account is used only to sign you in; we don\'t see your password.',
-        'اسمكِ وجنسكِ وهل أنتِ طالبة أم معلّمة، والصورة التي اخترتِها. يُستخدم حساب Google لتسجيل الدخول فقط، ولا نرى كلمة المرور.',
-        'اسمك وجنسك وهل أنت طالب أم معلّم، والصورة التي اخترتها. يُستخدم حساب Google لتسجيل الدخول فقط، ولا نرى كلمة المرور.',
+        'Your name, gender, whether you are a student or teacher, the picture you chose, and the details you give when signing up: your age group, nationality and phone number. Your Google account is used only to sign you in; we don\'t see your password.',
+        'اسمكِ وجنسكِ وهل أنتِ طالبة أم معلّمة، والصورة التي اخترتِها، والبيانات التي تذكرينها عند التسجيل: فئتكِ العمرية وجنسيتكِ ورقم هاتفكِ. يُستخدم حساب Google لتسجيل الدخول فقط، ولا نرى كلمة المرور.',
+        'اسمك وجنسك وهل أنت طالب أم معلّم، والصورة التي اخترتها، والبيانات التي تذكرها عند التسجيل: فئتك العمرية وجنسيتك ورقم هاتفك. يُستخدم حساب Google لتسجيل الدخول فقط، ولا نرى كلمة المرور.',
+      ),
+    ),
+    (
+      t('Your phone number', 'رقم هاتفكِ', 'رقم هاتفك'),
+      t(
+        'Only Sanadi\'s admins can see it, and it is used only to keep your account safe and to contact you if needed. Teachers and students never see it. If you choose to join Sanadi\'s WhatsApp community, an admin adds you to it with this number, and WhatsApp\'s own privacy rules then apply there. You can change your choice in Settings.',
+        'لا يراه إلا مشرفو سَنَدي، ولا يُستخدم إلا لأمان حسابكِ وللتواصل معكِ عند الحاجة. لا تراه المعلّمات ولا الطالبات أبدًا. وإن اخترتِ الانضمام إلى مجتمع سَنَدي على واتساب يضيفكِ أحد المشرفين بهذا الرقم، وتسري هناك قواعد الخصوصية الخاصة بواتساب. يمكنكِ تغيير اختياركِ من الإعدادات.',
+        'لا يراه إلا مشرفو سَنَدي، ولا يُستخدم إلا لأمان حسابك وللتواصل معك عند الحاجة. لا يراه المعلّمون ولا الطلاب أبدًا. وإن اخترت الانضمام إلى مجتمع سَنَدي على واتساب يضيفك أحد المشرفين بهذا الرقم، وتسري هناك قواعد الخصوصية الخاصة بواتساب. يمكنك تغيير اختيارك من الإعدادات.',
+      ),
+    ),
+    (
+      t('Your own photo', 'صورتكِ الخاصة', 'صورتك الخاصة'),
+      t(
+        'If you use your own photo, it is saved small and seen only by people of your own gender in Sanadi, and by admins, who can remove a picture that isn\'t suitable. Choosing another picture deletes it.',
+        'إن استخدمتِ صورتكِ الخاصة فإنها تُحفظ بحجم صغير، ولا يراها إلا من هم من جنسكِ في سَنَدي والمشرفون، ويمكن للمشرفين حذف الصورة غير اللائقة. واختيار صورة أخرى يحذفها.',
+        'إن استخدمت صورتك الخاصة فإنها تُحفظ بحجم صغير، ولا يراها إلا من هم من جنسك في سَنَدي والمشرفون، ويمكن للمشرفين حذف الصورة غير اللائقة. واختيار صورة أخرى يحذفها.',
       ),
     ),
     (
@@ -798,9 +821,9 @@ class S {
     (
       t('On your phone only', 'على هاتفكِ فقط', 'على هاتفك فقط'),
       t(
-        'Bookmarks, athkar progress and reminder times stay on your phone.',
-        'العلامات وتقدّم الأذكار وأوقات التذكير تبقى على هاتفكِ.',
-        'العلامات وتقدّم الأذكار وأوقات التذكير تبقى على هاتفك.',
+        'Bookmarks, athkar progress, reminder times and the Ayah of the day setting stay on your phone.',
+        'العلامات وتقدّم الأذكار وأوقات التذكير وإعداد «آية اليوم» تبقى على هاتفكِ.',
+        'العلامات وتقدّم الأذكار وأوقات التذكير وإعداد «آية اليوم» تبقى على هاتفك.',
       ),
     ),
     (
@@ -821,9 +844,9 @@ class S {
     (
       t('Your choice', 'قراركِ', 'قرارك'),
       t(
-        'You can change your name or picture in Settings, and delete your account at any time. For any question, tap Contact us below.',
-        'يمكنكِ تغيير اسمكِ أو صورتكِ من الإعدادات، وحذف حسابكِ في أي وقت. لأي سؤال اضغطي «تواصل معنا» في الأسفل.',
-        'يمكنك تغيير اسمك أو صورتك من الإعدادات، وحذف حسابك في أي وقت. لأي سؤال اضغط «تواصل معنا» في الأسفل.',
+        'You can change your name, picture or details in Settings, and delete your account at any time. For any question, tap Contact us below.',
+        'يمكنكِ تغيير اسمكِ أو صورتكِ أو بياناتكِ من الإعدادات، وحذف حسابكِ في أي وقت. لأي سؤال اضغطي «تواصل معنا» في الأسفل.',
+        'يمكنك تغيير اسمك أو صورتك أو بياناتك من الإعدادات، وحذف حسابك في أي وقت. لأي سؤال اضغط «تواصل معنا» في الأسفل.',
       ),
     ),
   ];
@@ -1122,6 +1145,98 @@ class S {
   String get declineReason => t('Reason (the applicant will see it)', 'السبب (سيظهر لصاحب الطلب)');
   String get decisionFailed =>
       t("Couldn't save. Check the internet and try again.", 'تعذّر الحفظ. تحقّق من الإنترنت وحاول مجددًا.');
+
+  // ---- About you (age group, nationality, phone) ----
+  String get detailsTitle => t('A little about you', 'قليلًا عنكِ', 'قليلًا عنك');
+  String get detailsSub => t(
+    'This helps keep Sanadi safe. Only Sanadi\'s admins can see these details; other users never do.',
+    'يساعدنا هذا على حماية سَنَدي. لا يرى هذه البيانات إلا مشرفو سَنَدي، ولا يراها أي مستخدم آخر.',
+  );
+  String get ageGroupL => t('Age', 'العمر');
+  String ageLabel(String group) => group == '65+' ? t('65 or over', '${n(65)} فأكثر') : n(group.replaceAll('-', '–'));
+  String get under18Note => t(
+    'Under 18? Please recite on a parent\'s account, with them nearby.',
+    'أقلّ من ${n(18)} سنة؟ اقرئي من حساب وليّ أمركِ وبحضوره.',
+    'أقلّ من ${n(18)} سنة؟ اقرأ من حساب وليّ أمرك وبحضوره.',
+  );
+  String get needAge => t('Please choose your age', 'اختاري عمركِ من فضلكِ', 'اختر عمرك من فضلك');
+  String get nationalityL => t('Nationality', 'الجنسية');
+  String get chooseNationality => t('Choose your nationality', 'اختاري جنسيتكِ', 'اختر جنسيتك');
+  String get needNationality => t('Please choose your nationality', 'اختاري جنسيتكِ من فضلكِ', 'اختر جنسيتك من فضلك');
+  String get phoneL => t('Phone number', 'رقم الهاتف');
+  String get phoneSub => t(
+    'Kept for your account\'s safety, so we can reach you if needed. It is never shown to teachers or students.',
+    'يُحفظ لأمان حسابكِ، لنتواصل معكِ عند الحاجة. لا يظهر أبدًا للمعلّمات أو الطالبات.',
+    'يُحفظ لأمان حسابك، لنتواصل معك عند الحاجة. لا يظهر أبدًا للمعلّمين أو الطلاب.',
+  );
+  String get phoneInvalid => t(
+    'Please check the number and the country code',
+    'تحقّقي من الرقم ومن رمز الدولة',
+    'تحقّق من الرقم ومن رمز الدولة',
+  );
+  String get countryCodeL => t('Country code', 'رمز الدولة');
+  String get search => t('Search', 'بحث');
+  String get whatsappL =>
+      t('Join Sanadi\'s WhatsApp community (optional)', 'الانضمام إلى مجتمع سَنَدي على واتساب (اختياري)');
+  String get whatsappSub => t(
+    'News and reminders from Sanadi. An admin adds you using this number, and you can leave at any time.',
+    'أخبار وتذكيرات من سَنَدي. يضيفكِ أحد المشرفين بهذا الرقم، ويمكنكِ المغادرة في أي وقت.',
+    'أخبار وتذكيرات من سَنَدي. يضيفك أحد المشرفين بهذا الرقم، ويمكنك المغادرة في أي وقت.',
+  );
+  String get yourDetails => t('Your details', 'بياناتكِ', 'بياناتك');
+  String get whatsappMember => t('WhatsApp community', 'مجتمع واتساب');
+  String get copyNumbers => t('Copy their numbers', 'نسخ أرقامهم');
+  String get numbersCopied => t('Numbers copied', 'نُسخت الأرقام');
+  String get numberCopied => t('Number copied', 'نُسخ الرقم');
+  String get notGivenYet => t('Not given yet', 'لم تُذكر بعد');
+  String get yes => t('Yes', 'نعم');
+  String get no => t('No', 'لا');
+
+  // ---- Own profile photo ----
+  String get ownPhoto => t('My own photo', 'صورتي الخاصة');
+  String get takePhoto => t('Take a photo', 'التقاط صورة');
+  String get choosePhoto => t('Choose from gallery', 'اختيار من المعرض');
+  String get photoRules => t(
+    'Please use a decent picture of yourself. Teachers and students of the same gender can see it.',
+    'استخدمي صورة لائقة لكِ. تراها المعلّمات والطالبات فقط.',
+    'استخدم صورة لائقة لك. يراها المعلّمون والطلاب فقط.',
+  );
+  String get photoSaving => t('Saving your picture…', 'جارٍ حفظ الصورة…');
+  String get photoFailed => t(
+    'Couldn\'t save the picture. Check the internet and try again.',
+    'تعذّر حفظ الصورة. تحقّقي من الإنترنت وحاولي مجددًا.',
+    'تعذّر حفظ الصورة. تحقّق من الإنترنت وحاول مجددًا.',
+  );
+  String get removePhoto => t('Remove picture', 'حذف الصورة');
+  String get removePhotoQ => t('Remove this person\'s picture?', 'حذف صورة هذا الشخص؟');
+  String get photoRemoved => t('Picture removed', 'حُذفت الصورة');
+
+  // ---- Ayah of the day ----
+  String get ayahOfDay => t('Ayah of the day', 'آية اليوم');
+  String get ayahMeaningL => t('Meaning', 'المعنى');
+  String get ayahMeaningNote => t(
+    'The English is an approximate translation of the meaning; only the Arabic is the Quran.',
+    'المعنى بأسلوب مبسّط، وليس تفسيرًا كاملًا.',
+  );
+  String ayahOfDaySub(String time) => t('Every day at $time', 'كل يوم الساعة ${n(time)}');
+  String get ayahOfDayOff => t('Off', 'متوقّفة');
+  String get ayahOfDayHint => t(
+    'A short ayah about everyday life, with its meaning, as a notification.',
+    'آية قصيرة عن الحياة اليومية مع معناها، في إشعار.',
+  );
+  String get ayahTimeL => t('Time', 'الوقت');
+  String get ayahChannel => t('Ayah of the day', 'آية اليوم');
+  String get ayahChannelDesc => t('A short ayah with its meaning, once a day', 'آية قصيرة مع معناها، مرة كل يوم');
+  String ayahRef(String sura, int from, int to) => from == to
+      ? t('$sura, ayah $from', '$sura، الآية ${n(from)}')
+      : t('$sura, ayahs $from–$to', '$sura، الآيات ${n(from)}–${n(to)}');
+
+  // ---- Auto scroll in the mushaf ----
+  String get autoScroll => t('Auto scroll', 'التمرير التلقائي');
+  String speedN(int v) => t('Speed $v', 'السرعة ${n(v)}');
+  String get slower => t('Slower', 'أبطأ');
+  String get faster => t('Faster', 'أسرع');
+  String get stopAutoScroll => t('Stop auto scroll', 'إيقاف التمرير التلقائي');
 }
 
 class StringsScope extends InheritedWidget {

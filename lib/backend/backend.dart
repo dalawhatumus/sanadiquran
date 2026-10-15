@@ -7,6 +7,7 @@ import '../core/settings.dart';
 import 'admin.dart';
 import 'calls.dart';
 import 'chat.dart';
+import 'photos.dart';
 import 'sessions.dart';
 import 'teachers.dart';
 
@@ -26,13 +27,27 @@ class SignedInUser {
 
 /// The parts of a profile kept online.
 class SavedProfile {
-  const SavedProfile({this.name = '', this.role, this.gender, this.avatar, this.teacherStatus = TeacherStatus.none});
+  const SavedProfile({
+    this.name = '',
+    this.role,
+    this.gender,
+    this.avatar,
+    this.teacherStatus = TeacherStatus.none,
+    this.ageGroup,
+    this.nationality,
+    this.phone,
+    this.whatsapp = false,
+  });
 
   final String name;
   final UserRole? role;
   final Gender? gender;
   final String? avatar;
   final TeacherStatus teacherStatus;
+  final String? ageGroup;
+  final String? nationality;
+  final String? phone;
+  final bool whatsapp;
 
   /// Fills the local settings from the saved profile.
   AppSettings applyTo(AppSettings s) => s.copyWith(
@@ -42,6 +57,10 @@ class SavedProfile {
     gender: gender,
     avatar: avatar,
     teacherStatus: teacherStatus,
+    ageGroup: ageGroup,
+    nationality: nationality,
+    phone: phone,
+    whatsapp: whatsapp,
     // They have seen the tour before.
     tourDone: role != null ? true : null,
   );
@@ -77,7 +96,7 @@ class TeacherApplication {
 
 /// Everything that needs the internet. [DemoBackend] stands in until
 /// Firebase is configured, so the app can still be tried end to end.
-abstract class Backend implements ChatApi, CallApi, LessonApi, AdminApi, TeacherDirectoryApi {
+abstract class Backend implements ChatApi, CallApi, LessonApi, AdminApi, TeacherDirectoryApi, PhotoApi {
   /// True when connected to the real server.
   bool get live;
 
@@ -87,7 +106,8 @@ abstract class Backend implements ChatApi, CallApi, LessonApi, AdminApi, Teacher
 
   Future<void> signOut();
 
-  /// Saves the profile online (name, role, gender, picture, language).
+  /// Saves the profile online (name, role, gender, picture, language, and
+  /// the details asked when signing up).
   Future<void> saveProfile(AppSettings s);
 
   /// Sends a teacher application for review.
@@ -138,7 +158,7 @@ final backendProvider = Provider<Backend>((ref) => DemoBackend());
 
 /// Works without a server: sign-in just continues, and the testing tools in
 /// Settings stand in for an admin.
-class DemoBackend with DemoChat, DemoCalls, DemoLessons, DemoAdmin, DemoTeachers implements Backend {
+class DemoBackend with DemoChat, DemoCalls, DemoLessons, DemoAdmin, DemoTeachers, DemoPhotos implements Backend {
   @override
   bool get live => false;
 
@@ -223,10 +243,16 @@ final backendSyncProvider = Provider<void>((ref) {
   if (!backend.live) return;
   final settings = ref.read(settingsProvider.notifier);
 
-  ref.listen(settingsProvider.select((s) => (s.signedIn, s.name, s.role, s.gender, s.avatar, s.locale)), (_, next) {
-    final s = ref.read(settingsProvider);
-    if (s.signedIn && s.role != null) unawaited(backend.saveProfile(s).catchError((_) {}));
-  }, fireImmediately: true);
+  ref.listen(
+    settingsProvider.select(
+      (s) => (s.signedIn, s.name, s.role, s.gender, s.avatar, s.locale, s.ageGroup, s.nationality, s.phone, s.whatsapp),
+    ),
+    (_, next) {
+      final s = ref.read(settingsProvider);
+      if (s.signedIn && s.role != null) unawaited(backend.saveProfile(s).catchError((_) {}));
+    },
+    fireImmediately: true,
+  );
 
   final status = backend.teacherStatus().listen((st) {
     final s = ref.read(settingsProvider);
@@ -241,7 +267,10 @@ final backendSyncProvider = Provider<void>((ref) {
           x != null && x.$1 && x.$2 == UserRole.teacher && x.$3 == TeacherStatus.approved;
       if (teaching(next)) {
         unawaited(
-          backend.setAvailable(on: next.$4, gender: next.$5, name: next.$6, avatar: next.$7).catchError((_) {}),
+          backend
+              .setAvailable(on: next.$4, gender: next.$5, name: next.$6, avatar: next.$7)
+              .then((_) => backend.setLessonsToday(lessonsToday(ref.read(lessonsProvider).value, backend.myUid)))
+              .catchError((_) {}),
         );
       } else if (teaching(prev)) {
         unawaited(backend.setAvailable(on: false, gender: prev!.$5, name: prev.$6, avatar: prev.$7).catchError((_) {}));
@@ -249,4 +278,21 @@ final backendSyncProvider = Provider<void>((ref) {
     },
     fireImmediately: true,
   );
+
+  // An approved teacher's lesson count for today, for sharing out calls.
+  ref.listen(lessonsProvider, (prev, next) {
+    final s = ref.read(settingsProvider);
+    if (!s.signedIn || s.role != UserRole.teacher || s.teacherStatus != TeacherStatus.approved) return;
+    final before = lessonsToday(prev?.value, backend.myUid);
+    final now = lessonsToday(next.value, backend.myUid);
+    if (prev?.value == null || before != now) unawaited(backend.setLessonsToday(now).catchError((_) {}));
+  });
 });
+
+/// Lessons [uid] gave as a teacher today.
+int lessonsToday(List<Lesson>? lessons, String? uid) {
+  final now = DateTime.now();
+  return (lessons ?? const <Lesson>[])
+      .where((l) => l.teacherId == uid && l.at.year == now.year && l.at.month == now.month && l.at.day == now.day)
+      .length;
+}

@@ -63,9 +63,17 @@ mixin FirestoreCalls implements CallApi {
         .get();
     final free = [
       for (final d in s.docs)
-        if (d.data()['busy'] != true && d.id != _me && !exclude.contains(d.id) && isFresh(d.data())) Candidate(d.id),
+        if (d.data()['busy'] != true && d.id != _me && !exclude.contains(d.id) && isFresh(d.data()))
+          Candidate(d.id, lessonsToday: lessonsToday(d.data())),
     ]..shuffle(Random());
     return free;
+  }
+
+  /// Today's lesson count from a presence document (0 if it was written on
+  /// another day).
+  static int lessonsToday(Map<String, dynamic> d) {
+    final day = DateTime.now().toIso8601String().substring(0, 10);
+    return d['lessonsDay'] == day ? ((d['lessonsToday'] as num?)?.toInt() ?? 0) : 0;
   }
 
   @override
@@ -141,6 +149,16 @@ mixin FirestoreCalls implements CallApi {
     final me = _me;
     if (me == null) return;
     await db.collection('presence').doc(me).update({'updatedAt': FieldValue.serverTimestamp()});
+  }
+
+  @override
+  Future<void> setLessonsToday(int count) async {
+    final me = _me;
+    if (me == null) return;
+    await db.collection('presence').doc(me).update({
+      'lessonsToday': count.clamp(0, 200),
+      'lessonsDay': DateTime.now().toIso8601String().substring(0, 10),
+    });
   }
 
   /// Whether a presence entry has had a heartbeat recently (a write still on

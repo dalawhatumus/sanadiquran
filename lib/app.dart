@@ -12,6 +12,7 @@ import 'core/theme.dart';
 import 'features/call/incoming_watcher.dart';
 import 'features/lessons/lesson_alerts.dart';
 import 'features/messages/message_alerts.dart';
+import 'features/quran/ayah_of_day.dart';
 import 'features/student/teacher_alert.dart';
 
 class SanadiApp extends ConsumerWidget {
@@ -22,6 +23,7 @@ class SanadiApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     ref.watch(backendSyncProvider);
     ref.watch(remindersSyncProvider);
+    ref.watch(ayahOfDaySyncProvider);
     ref.watch(teacherAlertWatchProvider);
     ref.watch(messageAlertsProvider);
     ref.watch(lessonAlertsProvider);

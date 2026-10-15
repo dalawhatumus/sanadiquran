@@ -7,15 +7,46 @@ import 'backend.dart';
 
 /// A person in the admin's user list.
 class UserEntry {
-  const UserEntry({required this.uid, required this.name, this.role, this.gender, this.paused = false});
+  const UserEntry({
+    required this.uid,
+    required this.name,
+    this.role,
+    this.gender,
+    this.paused = false,
+    this.avatar,
+    this.ageGroup,
+    this.nationality,
+    this.phone,
+    this.whatsapp = false,
+  });
 
   final String uid;
   final String name;
   final UserRole? role;
   final Gender? gender;
+  final String? avatar;
+  final String? ageGroup;
+  final String? nationality;
+  final String? phone;
+
+  /// Asked to join Sanadi's WhatsApp community.
+  final bool whatsapp;
 
   /// An admin has paused this account.
   final bool paused;
+
+  UserEntry copyWithPaused(bool paused) => UserEntry(
+    uid: uid,
+    name: name,
+    role: role,
+    gender: gender,
+    paused: paused,
+    avatar: avatar,
+    ageGroup: ageGroup,
+    nationality: nationality,
+    phone: phone,
+    whatsapp: whatsapp,
+  );
 }
 
 /// The admin's overview. A value is null when it couldn't be counted.
@@ -73,15 +104,29 @@ mixin DemoAdmin implements AdminApi {
   final _adminChanges = StreamController<void>.broadcast();
 
   static const _people = [
-    UserEntry(uid: 'demo', name: 'Fatima', role: UserRole.student, gender: Gender.female),
-    UserEntry(uid: 'demo-teacher', name: 'Aisha Rahman', role: UserRole.teacher, gender: Gender.female),
+    UserEntry(
+      uid: 'demo',
+      name: 'Fatima',
+      role: UserRole.student,
+      gender: Gender.female,
+      ageGroup: '25-34',
+      nationality: 'SA',
+      phone: '+966500000001',
+      whatsapp: true,
+    ),
+    UserEntry(
+      uid: 'demo-teacher',
+      name: 'Aisha Rahman',
+      role: UserRole.teacher,
+      gender: Gender.female,
+      ageGroup: '35-44',
+      nationality: 'EG',
+      phone: '+201000000002',
+    ),
     UserEntry(uid: 'demo-student-2', name: 'Ahmad', role: UserRole.student, gender: Gender.male),
   ];
 
-  List<UserEntry> _list() => [
-    for (final p in _people)
-      UserEntry(uid: p.uid, name: p.name, role: p.role, gender: p.gender, paused: _pausedIds.contains(p.uid)),
-  ];
+  List<UserEntry> _list() => [for (final p in _people) p.copyWithPaused(_pausedIds.contains(p.uid))];
 
   @override
   Stream<bool> paused() => Stream.value(false);

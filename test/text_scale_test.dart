@@ -72,6 +72,10 @@ void main() {
     Routes.role,
     Routes.gender,
     Routes.name,
+    Routes.details,
+    Routes.editDetails,
+    Routes.ayah,
+    Routes.ayahOfDay(1000),
     Routes.permMic,
     Routes.permNotif,
     '/perm-denied/mic',
@@ -120,7 +124,7 @@ void main() {
           SharedPreferences.setMockInitialValues({
             'settings.v2':
                 '{"locale":"$locale","signedIn":true,"role":"$role","gender":"female",'
-                '"name":"Fatima Ahmed","permissionsDone":true,"tourDone":true,"teacherStatus":"approved","sessions":2}',
+                '"name":"Fatima Ahmed","permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001","tourDone":true,"teacherStatus":"approved","sessions":2}',
           });
           final prefs = await SharedPreferences.getInstance();
           await tester.pumpWidget(

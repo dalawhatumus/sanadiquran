@@ -13,20 +13,22 @@ import '../features/lessons/notes_form_screen.dart';
 import '../features/messages/chat_screen.dart';
 import '../features/messages/messages_screen.dart';
 import '../features/onboarding/application_screens.dart';
+import '../features/onboarding/details_screen.dart';
 import '../features/onboarding/language_screen.dart';
 import '../features/onboarding/permission_screens.dart';
 import '../features/onboarding/profile_screens.dart';
 import '../features/onboarding/splash_screen.dart';
 import '../features/onboarding/tour_screen.dart';
 import '../features/onboarding/welcome_screen.dart';
+import '../features/quran/ayah_of_day.dart';
 import '../features/quran/mushaf_screen.dart';
 import '../features/quran/surah_index_screen.dart';
 import '../features/settings/more_screens.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/home_shell.dart';
 import '../features/student/progress_screens.dart';
-import '../features/student/teachers_screen.dart';
 import '../features/student/student_home_screen.dart';
+import '../features/student/teachers_screen.dart';
 import '../features/teacher/students_screen.dart';
 import '../features/teacher/teacher_home_screen.dart';
 import 'settings.dart';
@@ -38,6 +40,8 @@ abstract final class Routes {
   static const role = '/role';
   static const gender = '/gender';
   static const name = '/name';
+  static const details = '/details';
+  static const editDetails = '/details?edit=1';
   static const permMic = '/perm/mic';
   static const permNotif = '/perm/notif';
   static const permFullScreen = '/perm/fullscreen';
@@ -77,7 +81,9 @@ abstract final class Routes {
   static const adminStats = '/admin/stats';
   static const about = '/about';
   static const blocked = '/blocked';
+  static const ayah = '/ayah';
 
+  static String ayahOfDay(int day) => '$ayah?day=$day';
   static String chat(String conversationId) => '/chat/$conversationId';
   static String lessonNotes(String id) => '$teacherNotes?id=$id';
   static String notesFormFor(String id) => '$notesForm?id=$id';
@@ -103,6 +109,7 @@ String nextStep(AppSettings s) {
   if (s.role == null) return Routes.role;
   if (s.gender == null) return Routes.gender;
   if (s.name.trim().isEmpty) return Routes.name;
+  if (!s.detailsDone) return Routes.details;
   if (!s.permissionsDone) return Routes.permMic;
   if (s.role == UserRole.student && !s.tourDone) return Routes.tour;
   if (s.role == UserRole.teacher && s.teacherStatus == TeacherStatus.none) return '${Routes.apply}/1';
@@ -131,6 +138,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.gender, builder: (_, _) => const GenderScreen()),
       GoRoute(path: Routes.name, builder: (_, _) => const NameScreen()),
       GoRoute(
+        path: Routes.details,
+        builder: (_, st) => DetailsScreen(editing: st.uri.queryParameters['edit'] == '1'),
+      ),
+      GoRoute(
         path: '/perm/:kind',
         builder: (_, st) => PermissionScreen(kind: PermKind.fromPath(st.pathParameters['kind']!)),
       ),
@@ -153,6 +164,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.adminStats, builder: (_, _) => const StatsScreen()),
       GoRoute(path: Routes.about, builder: (_, _) => const AboutScreen()),
       GoRoute(path: Routes.blocked, builder: (_, _) => const BlockedScreen()),
+      GoRoute(
+        path: Routes.ayah,
+        builder: (_, st) => AyahOfDayScreen(day: int.tryParse(st.uri.queryParameters['day'] ?? '')),
+      ),
       GoRoute(path: Routes.admin, builder: (_, _) => const ApplicationsScreen()),
       GoRoute(path: Routes.adminConnect, builder: (_, _) => const ConnectScreen()),
       GoRoute(path: Routes.adminReports, builder: (_, _) => const ReportsScreen()),

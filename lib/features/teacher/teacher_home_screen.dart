@@ -12,6 +12,7 @@ import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
 import '../call/missed_calls.dart';
+import '../quran/ayah_of_day.dart';
 import '../settings/more_screens.dart';
 
 /// 30 · Teacher home, plus 15 (application pending) and 16 (not approved).
@@ -32,7 +33,7 @@ class TeacherHomeScreen extends ConsumerWidget {
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          children: [header, const SizedBox(height: 16), ...body],
+          children: [header, const SizedBox(height: 16), ...body, const SizedBox(height: 14), const AyahOfDayCard()],
         ),
       ),
     );

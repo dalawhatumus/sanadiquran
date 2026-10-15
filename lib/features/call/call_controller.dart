@@ -6,6 +6,8 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../backend/backend.dart';
 import '../../backend/calls.dart';
+import '../../backend/sessions.dart';
+import '../../backend/teachers.dart';
 import '../../core/log.dart';
 import '../../core/settings.dart';
 import 'audio_link.dart';
@@ -144,7 +146,12 @@ class CallController extends Notifier<CallState> {
       return;
     }
     final me = ref.read(settingsProvider);
-    final gender = me.gender ?? Gender.female;
+    // Teachers are matched strictly by gender: without one, no call.
+    final gender = me.gender;
+    if (gender == null) {
+      state = const CallState(phase: CallPhase.failed);
+      return;
+    }
     final String id;
     try {
       id = await _b.createCall(name: me.name.trim(), avatar: me.avatar, gender: gender);
@@ -193,7 +200,12 @@ class CallController extends Notifier<CallState> {
         await Future<void>.delayed(const Duration(seconds: 5));
         continue;
       }
-      final pick = free.where((c) => c.uid == preferredTeacher).firstOrNull ?? free.first;
+      final pick = rankCandidates(
+        free,
+        preferred: preferredTeacher,
+        favourites: ref.read(favoriteTeachersProvider),
+        previous: _previousTeachers(),
+      ).first;
       tried.add(pick.uid);
       final waiter = _waiting = Completer<CallStatus>();
       try {
@@ -210,6 +222,16 @@ class CallController extends Notifier<CallState> {
       await _b.setCallStatus(id, CallStatus.searching).catchError((_) {});
       state = state.copyWith(phase: CallPhase.finding);
     }
+  }
+
+  /// Teachers this student had lessons with, most recent first.
+  List<String> _previousTeachers() {
+    final me = _b.myUid;
+    final seen = <String>[];
+    for (final l in ref.read(lessonsProvider).value ?? const <Lesson>[]) {
+      if (l.studentId == me && !seen.contains(l.teacherId)) seen.add(l.teacherId);
+    }
+    return seen;
   }
 
   /// Student: stops looking (before anyone answers).

@@ -16,6 +16,7 @@ import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 import '../lessons/lessons_ui.dart';
 import '../messages/messages_screen.dart';
+import '../quran/ayah_of_day.dart';
 import '../quran/quran_data.dart';
 import 'home_cards.dart';
 import 'teacher_alert.dart';
@@ -143,6 +144,8 @@ class StudentHomeScreen extends ConsumerWidget {
               ),
               _MyTeacherCard(startCall: startCall),
             ],
+            const SizedBox(height: 14),
+            const AyahOfDayCard(),
             const SizedBox(height: 14),
             const ContinueReadingCard(),
             if (!offline) ...[const SizedBox(height: 18), const TeachersRow()],

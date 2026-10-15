@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../core/strings.dart';
 import '../../core/theme.dart';
@@ -17,6 +19,8 @@ class LargeTextView extends StatefulWidget {
     required this.onAyah,
     required this.onPage,
     required this.onTap,
+    this.autoScroll,
+    this.onAutoEnd,
   });
 
   final QuranData q;
@@ -26,12 +30,67 @@ class LargeTextView extends StatefulWidget {
   final ValueChanged<int> onPage;
   final VoidCallback onTap;
 
+  /// Auto scroll speed in pixels a second (0 stops it).
+  final ValueListenable<double>? autoScroll;
+
+  /// Auto scroll reached the end of the Quran.
+  final VoidCallback? onAutoEnd;
+
   @override
   State<LargeTextView> createState() => _LargeTextViewState();
 }
 
-class _LargeTextViewState extends State<LargeTextView> {
+class _LargeTextViewState extends State<LargeTextView> with SingleTickerProviderStateMixin {
   final _pages = <int, BuildContext>{};
+  final _scroll = ScrollController();
+  late final Ticker _ticker = createTicker(_tick);
+  Duration _last = Duration.zero;
+
+  /// A finger is on the text: auto scroll waits, so it never fights a drag.
+  bool _touching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.autoScroll?.addListener(_onAuto);
+    // Started after the first frame, once the list can scroll.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _onAuto();
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.autoScroll?.removeListener(_onAuto);
+    _ticker.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _onAuto() {
+    final on = (widget.autoScroll?.value ?? 0) > 0;
+    if (on && !_ticker.isActive) {
+      _last = Duration.zero;
+      _ticker.start();
+    } else if (!on && _ticker.isActive) {
+      _ticker.stop();
+    }
+  }
+
+  void _tick(Duration elapsed) {
+    final dt = (elapsed - _last).inMicroseconds / 1e6;
+    _last = elapsed;
+    if (_touching || !_scroll.hasClients || dt <= 0 || dt > 0.5) return;
+    final pos = _scroll.position;
+    final next = pos.pixels + (widget.autoScroll?.value ?? 0) * dt;
+    if (next >= pos.maxScrollExtent) {
+      _scroll.jumpTo(pos.maxScrollExtent);
+      _ticker.stop();
+      widget.onAutoEnd?.call();
+    } else {
+      _scroll.jumpTo(next);
+    }
+  }
 
   /// The page the list was opened at. Fixed for the life of the list: the
   /// screen passes the page now on screen each time it rebuilds (e.g. when
@@ -67,23 +126,29 @@ class _LargeTextViewState extends State<LargeTextView> {
   @override
   Widget build(BuildContext context) {
     final start = _start;
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: NotificationListener<ScrollEndNotification>(
-        onNotification: (_) {
-          _check();
-          return false;
-        },
-        child: CustomScrollView(
-          center: _centerKey,
-          slivers: [
-            SliverList.builder(itemCount: start - 1, itemBuilder: (_, i) => _page(start - 1 - i)),
-            SliverList.builder(
-              key: _centerKey,
-              itemCount: QuranData.pageCount - start + 1,
-              itemBuilder: (_, i) => _page(start + i),
-            ),
-          ],
+    return Listener(
+      onPointerDown: (_) => _touching = true,
+      onPointerUp: (_) => _touching = false,
+      onPointerCancel: (_) => _touching = false,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: NotificationListener<ScrollEndNotification>(
+          onNotification: (_) {
+            _check();
+            return false;
+          },
+          child: CustomScrollView(
+            controller: _scroll,
+            center: _centerKey,
+            slivers: [
+              SliverList.builder(itemCount: start - 1, itemBuilder: (_, i) => _page(start - 1 - i)),
+              SliverList.builder(
+                key: _centerKey,
+                itemCount: QuranData.pageCount - start + 1,
+                itemBuilder: (_, i) => _page(start + i),
+              ),
+            ],
+          ),
         ),
       ),
     );

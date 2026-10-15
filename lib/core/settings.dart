@@ -14,6 +14,10 @@ enum TeacherStatus { none, pending, approved, rejected }
 
 enum MushafMode { large, page }
 
+/// Age groups asked when signing up. Accounts are for adults (children
+/// recite on a parent's account).
+const ageGroups = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+
 /// Overridden in main() with the instance loaded at startup.
 final sharedPreferencesProvider = Provider<SharedPreferences>(
   (ref) => throw UnimplementedError('sharedPreferencesProvider not overridden'),
@@ -39,6 +43,10 @@ class AppSettings {
     this.athkarDone = const {},
     this.pageBookmarks = const [],
     this.avatar,
+    this.ageGroup,
+    this.nationality,
+    this.phone,
+    this.whatsapp = false,
   });
 
   /// Null until the user picks a language on first launch.
@@ -72,6 +80,21 @@ class AppSettings {
   /// Chosen profile picture id (see avatars.dart), or null for initials.
   final String? avatar;
 
+  /// One of [ageGroups].
+  final String? ageGroup;
+
+  /// Two-letter country code.
+  final String? nationality;
+
+  /// International number ("+9665…"). Seen only by the user and admins.
+  final String? phone;
+
+  /// Would like to join Sanadi's WhatsApp community.
+  final bool whatsapp;
+
+  /// Age group, nationality and phone are given (asked once, when signing up).
+  bool get detailsDone => ageGroup != null && nationality != null && phone != null;
+
   bool get female => gender == Gender.female;
   String get firstName => name.trim().split(RegExp(r'\s+')).first;
 
@@ -94,6 +117,10 @@ class AppSettings {
     List<int>? pageBookmarks,
     String? avatar,
     bool clearAvatar = false,
+    String? ageGroup,
+    String? nationality,
+    String? phone,
+    bool? whatsapp,
   }) {
     return AppSettings(
       locale: locale ?? this.locale,
@@ -113,6 +140,10 @@ class AppSettings {
       athkarDone: athkarDone ?? this.athkarDone,
       pageBookmarks: pageBookmarks ?? this.pageBookmarks,
       avatar: clearAvatar ? null : (avatar ?? this.avatar),
+      ageGroup: ageGroup ?? this.ageGroup,
+      nationality: nationality ?? this.nationality,
+      phone: phone ?? this.phone,
+      whatsapp: whatsapp ?? this.whatsapp,
     );
   }
 
@@ -134,6 +165,10 @@ class AppSettings {
     'athkarDone': athkarDone,
     'pageBookmarks': pageBookmarks,
     'avatar': avatar,
+    'ageGroup': ageGroup,
+    'nationality': nationality,
+    'phone': phone,
+    'whatsapp': whatsapp,
   };
 
   static T? _enum<T extends Enum>(List<T> values, Object? name) => values.where((v) => v.name == name).firstOrNull;
@@ -156,6 +191,10 @@ class AppSettings {
     athkarDone: {...((j['athkarDone'] as Map?) ?? const {}).cast<String, String>()},
     pageBookmarks: [...((j['pageBookmarks'] as List?) ?? const []).cast<num>().map((x) => x.toInt())],
     avatar: j['avatar'] as String?,
+    ageGroup: ageGroups.contains(j['ageGroup']) ? j['ageGroup'] as String : null,
+    nationality: j['nationality'] is String ? j['nationality'] as String : null,
+    phone: j['phone'] is String ? j['phone'] as String : null,
+    whatsapp: j['whatsapp'] == true,
   );
 }
 

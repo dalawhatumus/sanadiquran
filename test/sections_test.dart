@@ -56,7 +56,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'settings.v2':
           '{"locale":"$locale","signedIn":true,"role":"student","gender":"female","name":"Fatima Ahmed",'
-          '"permissionsDone":true,"tourDone":true,"sessions":2,'
+          '"permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001","tourDone":true,"sessions":2,'
           '"bookmarks":["2:255","18:10","36:1","67:1","112:1"],"pageBookmarks":[1,50,293,604]}',
     });
     final prefs = await SharedPreferences.getInstance();

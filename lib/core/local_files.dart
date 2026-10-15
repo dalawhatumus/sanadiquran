@@ -2,8 +2,9 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
-/// Audio the app keeps on the phone, all in its private storage: voice
-/// notes played in chats (cached), and recordings being made (temporary).
+/// Files the app keeps on the phone, all in its private storage: voice
+/// notes played in chats and profile photos (cached), and recordings being
+/// made (temporary).
 /// Everything here is removed when the user signs out or deletes their
 /// account, so the next person on a shared phone finds nothing.
 abstract final class LocalFiles {
@@ -17,6 +18,11 @@ abstract final class LocalFiles {
   static Future<File> voiceNote(String conversationId, String messageId) async =>
       File('${(await _voiceDir()).path}/${safeName(conversationId)}_${safeName(messageId)}.m4a');
 
+  static Future<Directory> _photoDir() async => Directory('${(await getApplicationCacheDirectory()).path}/photos');
+
+  /// Where a profile photo is cached, by its avatar value.
+  static Future<File> photo(String avatar) async => File('${(await _photoDir()).path}/${safeName(avatar)}.jpg');
+
   /// A fresh path for a new recording ([kind]: `voice` or `sample`).
   static Future<String> newRecording(String kind) async =>
       '${(await getTemporaryDirectory()).path}/${kind}_${DateTime.now().millisecondsSinceEpoch}.m4a';
@@ -25,11 +31,13 @@ abstract final class LocalFiles {
   static Future<File> applicationSample(String uid) async =>
       File('${(await getTemporaryDirectory()).path}/sample_${safeName(uid)}.m4a');
 
-  /// Deletes every cached voice note and recording.
+  /// Deletes every cached voice note, photo and recording.
   static Future<void> clearAll() async {
     try {
       final voice = await _voiceDir();
       if (await voice.exists()) await voice.delete(recursive: true);
+      final photos = await _photoDir();
+      if (await photos.exists()) await photos.delete(recursive: true);
       final temp = await getTemporaryDirectory();
       await for (final f in temp.list()) {
         final name = f.uri.pathSegments.last;

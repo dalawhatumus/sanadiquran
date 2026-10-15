@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../backend/photos.dart';
 import '../core/theme.dart';
 import 'ui.dart';
 
@@ -89,7 +91,8 @@ class Illustration extends StatelessWidget {
   }
 }
 
-/// A profile picture: one of the Sanadi avatars, or initials in a circle.
+/// A profile picture: the person's own photo, one of the Sanadi avatars,
+/// or initials in a circle (also while a photo loads, or if it can't).
 class Avatar extends StatelessWidget {
   const Avatar(this.initials, {super.key, this.size = 56, this.ring = false, this.image});
 
@@ -97,15 +100,43 @@ class Avatar extends StatelessWidget {
   final double size;
   final bool ring;
 
-  /// Avatar id (e.g. "fs2"); null shows the initials.
+  /// Avatar id (e.g. "fs2") or photo ("photo:…"); null shows the initials.
   final String? image;
+
+  static final _drawn = RegExp(r'^[fm][st][1-6]$');
 
   @override
   Widget build(BuildContext context) {
     final t = context.t;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final border = ring ? Border.all(color: t.sage, width: 3) : null;
-    if (image != null) {
+    final image = this.image;
+    if (image != null && photoOwner(image) != null) {
+      return Consumer(
+        builder: (context, ref, initials) {
+          final bytes = ref.watch(photoProvider(image)).value;
+          if (bytes == null) return initials!;
+          return Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(shape: BoxShape.circle, border: border),
+            child: ClipOval(
+              child: Image.memory(
+                bytes,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
+                errorBuilder: (_, _, _) => initials!,
+              ),
+            ),
+          );
+        },
+        child: Avatar(initials, size: size, ring: ring),
+      );
+    }
+    if (image != null && _drawn.hasMatch(image)) {
       return Container(
         width: size,
         height: size,

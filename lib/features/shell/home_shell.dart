@@ -9,8 +9,10 @@ import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
 import '../settings/more_screens.dart';
+import '../student/availability_bar.dart';
 
-/// Bottom tabs. Student: Home · Quran · Athkar · Messages.
+/// Bottom tabs. Student: Home · Quran · Athkar · Messages, with the
+/// teacher availability bar above them away from home.
 /// Teacher: Home · Students · Quran · Messages (athkar is reached from Quran).
 /// Labels stay on one line (capped at 130% text size, then shrunk to fit).
 class HomeShell extends ConsumerWidget {
@@ -46,11 +48,18 @@ class HomeShell extends ConsumerWidget {
       ),
       child: Scaffold(
         body: paused && shell.currentIndex == 0 ? const _PausedView() : shell,
-        bottomNavigationBar: _TabBar(
-          items: items,
-          badges: {items.length - 1: unread},
-          selected: shell.currentIndex,
-          onSelect: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Students see who is free from every tab (home has its own).
+            if (!teacher && !paused && shell.currentIndex != 0) const AvailabilityBar(),
+            _TabBar(
+              items: items,
+              badges: {items.length - 1: unread},
+              selected: shell.currentIndex,
+              onSelect: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+            ),
+          ],
         ),
       ),
     );

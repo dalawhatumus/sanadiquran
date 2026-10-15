@@ -37,7 +37,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'settings.v2':
           '{"locale":"en","signedIn":true,"role":"$role","gender":"female","name":"Fatima",'
-          '"permissionsDone":true,"tourDone":true,"teacherStatus":"approved","sessions":2}',
+          '"permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001","tourDone":true,"teacherStatus":"approved","sessions":2}',
     });
     final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
@@ -70,6 +70,10 @@ void main() {
 
     await tester.tap(find.text('Ahmad'));
     await tester.pumpAndSettle();
+    // Their details first (Ahmad hasn't given them yet), then Pause.
+    expect(find.text(s.notGivenYet), findsNWidgets(3));
+    await tester.tap(find.text(s.pauseAccount));
+    await tester.pumpAndSettle();
     expect(find.text(s.pauseQ('Ahmad')), findsOneWidget);
     await tester.enterText(find.byType(TextField).last, 'Unkind messages');
     await tester.tap(find.text(s.pauseAccount));
@@ -79,6 +83,8 @@ void main() {
     await tester.tap(find.text('Ahmad'));
     await tester.pumpAndSettle();
     await tester.tap(find.text(s.restoreAccount));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(s.restoreAccount).last);
     await tester.pumpAndSettle();
     expect(find.text(s.pausedTag), findsNothing);
     await tester.pump(const Duration(seconds: 5));

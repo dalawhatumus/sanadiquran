@@ -140,10 +140,13 @@ class _TopBar extends ConsumerWidget {
 /// and the recitation settings. Shown and hidden with the other bars (a tap
 /// on the page), so it never covers the ayahs being read.
 class _BottomBar extends ConsumerWidget {
-  const _BottomBar({required this.visible, required this.onPlay});
+  const _BottomBar({required this.visible, required this.onPlay, required this.onAuto});
 
   final bool visible;
   final VoidCallback onPlay;
+
+  /// Starts auto scroll.
+  final VoidCallback onAuto;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -194,6 +197,7 @@ class _BottomBar extends ConsumerWidget {
                                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: fg),
                                 ),
                               ),
+                              iconBtn(Icons.swipe_up_rounded, s.autoScroll, onAuto),
                               iconBtn(Icons.tune_rounded, s.recitationSettings, () => _showSettings(context)),
                               const SizedBox(width: 4),
                             ],
@@ -246,6 +250,132 @@ class _BottomBar extends ConsumerWidget {
                             const SizedBox(width: 4),
                           ],
                         ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Auto scroll controls: pause or go on, slower, faster and stop, with the
+/// time until the next page turns (mushaf pages). Shown and hidden with
+/// the other bars, so it never covers the text being read.
+class _AutoScrollBar extends ConsumerWidget {
+  const _AutoScrollBar({
+    required this.visible,
+    required this.paused,
+    required this.progress,
+    required this.onPause,
+    required this.onSlower,
+    required this.onFaster,
+    required this.onStop,
+  });
+
+  final bool visible;
+  final bool paused;
+  final ValueListenable<double>? progress;
+  final VoidCallback onPause;
+  final VoidCallback onSlower;
+  final VoidCallback onFaster;
+  final VoidCallback onStop;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = S.of(context);
+    const fg = Colors.white;
+    const sub = Color(0xFFDDE8E1);
+    final speed = ref.watch(autoScrollSpeedProvider);
+    Widget iconBtn(IconData icon, String tip, VoidCallback? onTap, {Key? key}) => IconButton(
+      key: key,
+      tooltip: tip,
+      onPressed: onTap,
+      icon: Icon(icon, color: onTap == null ? fg.withValues(alpha: 0.35) : fg, size: 32),
+      style: IconButton.styleFrom(minimumSize: const Size(kMinTap, kMinTap)),
+    );
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            key: const ValueKey('auto-scroll-bar'),
+            color: const Color(0xFF101C19),
+            child: SafeArea(
+              top: false,
+              child: MediaQuery.withClampedTextScaling(
+                maxScaleFactor: 1.3,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (progress != null)
+                      ValueListenableBuilder<double>(
+                        valueListenable: progress!,
+                        builder: (_, v, _) => LinearProgressIndicator(
+                          value: v,
+                          minHeight: 3,
+                          backgroundColor: Colors.white24,
+                          color: sub,
+                        ),
+                      ),
+                    SizedBox(
+                      height: 64,
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 4),
+                          iconBtn(
+                            paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                            paused ? s.play : s.pause,
+                            onPause,
+                            key: const ValueKey('auto-pause'),
+                          ),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Shrinks rather than cuts the words at large text sizes.
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: AlignmentDirectional.centerStart,
+                                  child: Text(
+                                    s.autoScroll,
+                                    maxLines: 1,
+                                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: fg),
+                                  ),
+                                ),
+                                Text(
+                                  s.speedN(speed),
+                                  maxLines: 1,
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: sub),
+                                ),
+                              ],
+                            ),
+                          ),
+                          iconBtn(
+                            Icons.remove_rounded,
+                            s.slower,
+                            speed > AutoScrollSpeed.min ? onSlower : null,
+                            key: const ValueKey('auto-slower'),
+                          ),
+                          iconBtn(
+                            Icons.add_rounded,
+                            s.faster,
+                            speed < AutoScrollSpeed.max ? onFaster : null,
+                            key: const ValueKey('auto-faster'),
+                          ),
+                          iconBtn(Icons.close_rounded, s.stopAutoScroll, onStop, key: const ValueKey('auto-stop')),
+                          const SizedBox(width: 4),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

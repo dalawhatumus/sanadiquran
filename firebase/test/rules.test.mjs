@@ -462,3 +462,67 @@ test('waiting: a student waits up to an hour; teachers of that gender see it', a
   await assertFails(getDocs(query(collection(db('t3'), 'waiting'), where('gender', '==', 'female'))));
   await assertSucceeds(deleteDoc(doc(db('s1'), 'waiting/s1')));
 });
+
+// ---- Sign-up details, own photos, sharing out calls ----
+
+test('profile: age group, nationality, phone and WhatsApp are checked', async () => {
+  const me = doc(db('s1'), 'users/s1');
+  const base = { name: 'Fatima', role: 'student', gender: 'female' };
+  await assertSucceeds(setDoc(me, { ...base, ageGroup: '25-34', nationality: 'SA', phone: '+966512345678', whatsapp: true }));
+  await assertFails(setDoc(me, { ...base, ageGroup: '12-17' }));
+  await assertFails(setDoc(me, { ...base, nationality: 'Saudi' }));
+  await assertFails(setDoc(me, { ...base, phone: '0512345678' }));
+  await assertFails(setDoc(me, { ...base, phone: '+966 512 345' }));
+  await assertFails(setDoc(me, { ...base, phone: '+1234567890123456' }));
+  await assertFails(setDoc(me, { ...base, whatsapp: 'yes' }));
+  await assertFails(setDoc(me, { ...base, email: 'x@y.z' }));
+  // The phone number is private: other users can't read the profile.
+  await assertFails(getDoc(doc(db('t1'), 'users/s1')));
+  await assertSucceeds(getDoc(doc(db('admin1'), 'users/s1')));
+});
+
+test('profile: the picture is a drawn avatar or the person\'s own photo', async () => {
+  const me = doc(db('s1'), 'users/s1');
+  const base = { name: 'Fatima', role: 'student', gender: 'female' };
+  await assertSucceeds(setDoc(me, { ...base, avatar: 'fs2' }));
+  await assertSucceeds(setDoc(me, { ...base, avatar: 'photo:s1:lq3k2j1a' }));
+  await assertFails(setDoc(me, { ...base, avatar: 'photo:s2:lq3k2j1a' })); // someone else's
+  await assertFails(setDoc(me, { ...base, avatar: 'photo:s1' }));
+  await assertFails(setDoc(me, { ...base, avatar: 'x'.repeat(21) }));
+  // Calls and the teacher list carry the same picture.
+  const call = doc(collection(db('s1'), 'calls'));
+  const c = { studentId: 's1', studentName: 'F', gender: 'female', status: 'searching', teacherId: null, tried: [], createdAt: serverTimestamp() };
+  await assertSucceeds(setDoc(call, { ...c, studentAvatar: 'photo:s1:abc' }));
+  await assertFails(setDoc(doc(collection(db('s1'), 'calls')), { ...c, studentAvatar: 'photo:t1:abc' }));
+  await assertSucceeds(setDoc(doc(db('t1'), 'presence/t1'), { available: true, gender: 'female', avatar: 'photo:t1:abc', updatedAt: serverTimestamp() }));
+  await assertFails(setDoc(doc(db('t1'), 'presence/t1'), { available: true, gender: 'female', avatar: 'photo:t2:abc', updatedAt: serverTimestamp() }));
+});
+
+test('photos: the owner saves a small one; the same gender and admins see it', async () => {
+  const small = Bytes.fromUint8Array(new Uint8Array(40000));
+  const big = Bytes.fromUint8Array(new Uint8Array(150001));
+  await assertSucceeds(setDoc(doc(db('s1'), 'photos/s1'), { data: small, updatedAt: serverTimestamp() }));
+  await assertFails(setDoc(doc(db('s1'), 'photos/s1'), { data: big, updatedAt: serverTimestamp() }));
+  await assertFails(setDoc(doc(db('s1'), 'photos/s1'), { data: 'not bytes', updatedAt: serverTimestamp() }));
+  await assertFails(setDoc(doc(db('s1'), 'photos/s1'), { data: small, caption: 'hi' }));
+  await assertFails(setDoc(doc(db('s2'), 'photos/s1'), { data: small }));
+  await assertSucceeds(getDoc(doc(db('t1'), 'photos/s1'))); // same gender
+  await assertFails(getDoc(doc(db('t2'), 'photos/s1'))); // other gender
+  await assertFails(getDoc(doc(db(null), 'photos/s1')));
+  await assertSucceeds(getDoc(doc(db('admin1'), 'photos/s1')));
+  await assertFails(deleteDoc(doc(db('t1'), 'photos/s1')));
+  await assertSucceeds(deleteDoc(doc(db('admin1'), 'photos/s1'))); // moderation
+  // A paused person can't put up a new photo.
+  await env.withSecurityRulesDisabled((c) => setDoc(doc(c.firestore(), 'suspensions/s2'), { reason: '', by: 'admin1', at: new Date() }));
+  await assertFails(setDoc(doc(db('s2'), 'photos/s2'), { data: small, updatedAt: serverTimestamp() }));
+  await assertSucceeds(deleteDoc(doc(db('s1'), 'photos/s1')));
+});
+
+test('presence: today\'s lesson count, for sharing out calls', async () => {
+  const p = doc(db('t1'), 'presence/t1');
+  await assertSucceeds(setDoc(p, { available: true, gender: 'female', updatedAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(p, { lessonsToday: 3, lessonsDay: '2026-10-15' }));
+  await assertFails(updateDoc(p, { lessonsToday: -1 }));
+  await assertFails(updateDoc(p, { lessonsToday: 'many' }));
+  await assertFails(updateDoc(p, { lessonsDay: 'x'.repeat(11) }));
+});

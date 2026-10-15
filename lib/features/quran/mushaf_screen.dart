@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,10 +8,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../backend/sessions.dart';
 import '../../core/connectivity.dart';
+import '../../core/screen.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
+import '../call/call_controller.dart';
 import 'easy_page_physics.dart';
 import 'large_text_view.dart';
 import 'mushaf_page.dart';
@@ -21,6 +24,29 @@ import 'surah_index_screen.dart';
 part 'mushaf_bars.dart';
 part 'mushaf_ayah_menu.dart';
 part 'mushaf_go_to.dart';
+
+/// Auto scroll speed, 1 (slowest) to 10. Kept on this phone.
+class AutoScrollSpeed extends Notifier<int> {
+  static const _key = 'autoScrollSpeed';
+  static const min = 1;
+  static const max = 10;
+
+  @override
+  int build() => (ref.read(sharedPreferencesProvider).getInt(_key) ?? 3).clamp(min, max);
+
+  void set(int v) {
+    state = v.clamp(min, max);
+    ref.read(sharedPreferencesProvider).setInt(_key, state);
+  }
+}
+
+final autoScrollSpeedProvider = NotifierProvider<AutoScrollSpeed, int>(AutoScrollSpeed.new);
+
+/// Large text: how far the text moves each second.
+double autoScrollPixels(int speed) => 6.0 + (speed - 1) * 4;
+
+/// Mushaf pages: how long each page stays before turning.
+Duration autoTurnAfter(int speed) => Duration(seconds: 150 - (speed - 1) * 12);
 
 /// 39 · The mushaf. Mushaf page mode shows the exact Madani 15-line pages
 /// (two side by side on wide landscape screens); Large text mode reflows the
@@ -49,6 +75,15 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   bool? _spreadMode;
   Timer? _hide;
 
+  // Auto scroll: the text moves (large text) or pages turn (mushaf pages)
+  // by themselves, at the chosen speed, until stopped.
+  bool _auto = false;
+  bool _autoPaused = false;
+  final _autoPx = ValueNotifier<double>(0);
+  final _autoProgress = ValueNotifier<double>(0);
+  Timer? _autoTimer;
+  int _autoMs = 0;
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +110,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   @override
   void dispose() {
+    _autoTimer?.cancel();
+    if (_auto) _keepScreenOn(false);
+    _autoPx.dispose();
+    _autoProgress.dispose();
     _hide?.cancel();
     _pc?.dispose();
     _page.dispose();
@@ -92,6 +131,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   void _onPage(int p) {
     if (p == _page.value) return;
+    // A new page gets its full time before the next turn.
+    _autoMs = 0;
+    _autoProgress.value = 0;
     _page.value = p;
     ref.read(lastPageProvider.notifier).set(p);
     if (_selAyah != null) _clearSelection();
@@ -128,10 +170,85 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     if (old != null) WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
   }
 
+  /// The screen stays on while auto scroll runs (and during a call, which
+  /// keeps it on by itself).
+  void _keepScreenOn(bool on) {
+    if (!on && ref.read(callControllerProvider).inCall) return;
+    Screen.keepOn(on);
+  }
+
+  void _startAuto() {
+    final r = ref.read(recitationProvider);
+    if (r.active) ref.read(recitationProvider.notifier).stop();
+    _clearSelection();
+    _hide?.cancel();
+    setState(() {
+      _auto = true;
+      _autoPaused = false;
+      // Out of the way of the text; a tap brings the controls back.
+      _chrome = false;
+    });
+    _autoMs = 0;
+    _keepScreenOn(true);
+    _applyAuto();
+  }
+
+  void _stopAuto() {
+    if (!_auto) return;
+    _autoTimer?.cancel();
+    _autoTimer = null;
+    _autoPx.value = 0;
+    _autoProgress.value = 0;
+    _keepScreenOn(false);
+    if (mounted) setState(() => _auto = false);
+  }
+
+  void _pauseAuto() {
+    setState(() => _autoPaused = !_autoPaused);
+    _applyAuto();
+  }
+
+  void _autoSpeed(int delta) {
+    final n = ref.read(autoScrollSpeedProvider.notifier);
+    n.set(ref.read(autoScrollSpeedProvider) + delta);
+    _applyAuto();
+  }
+
+  /// Sets the large text speed, or runs the page timer, for the mode and
+  /// speed now chosen.
+  void _applyAuto() {
+    final running = _auto && !_autoPaused;
+    final speed = ref.read(autoScrollSpeedProvider);
+    final large = ref.read(settingsProvider).mushafMode == MushafMode.large;
+    _autoPx.value = running && large ? autoScrollPixels(speed) : 0;
+    _autoTimer?.cancel();
+    _autoTimer = null;
+    if (!running || large) return;
+    const step = Duration(milliseconds: 250);
+    _autoTimer = Timer.periodic(step, (_) {
+      // Two pages side by side stay twice as long.
+      final total = autoTurnAfter(ref.read(autoScrollSpeedProvider)).inMilliseconds * ((_spreadMode ?? false) ? 2 : 1);
+      _autoMs += step.inMilliseconds;
+      _autoProgress.value = (_autoMs / total).clamp(0, 1);
+      if (_autoMs < total) return;
+      _autoMs = 0;
+      final last = (_spreadMode ?? false)
+          ? (_page.value - 1) ~/ 2 >= QuranData.pageCount ~/ 2 - 1
+          : _page.value >= QuranData.pageCount;
+      if (last) {
+        _stopAuto();
+      } else {
+        _turn(1);
+      }
+    });
+  }
+
   /// Recites from [from], or from the selected ayah, or from the top of
   /// the page on screen.
   Future<void> _play(QuranData q, {Ayah? from}) async {
     final s = S.of(context);
+    // Reciting turns the pages itself.
+    _stopAuto();
     final start = from ?? _selAyah ?? q.firstOn(_page.value);
     _clearSelection();
     // Show the player, so pause and stop are at hand; a tap hides it again.
@@ -208,6 +325,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   }
 
   Widget _body(BuildContext context, QuranData q) {
+    final t = context.t;
     final mode = ref.watch(settingsProvider.select((x) => x.mushafMode));
     final size = MediaQuery.sizeOf(context);
     final landscape = size.width > size.height;
@@ -227,6 +345,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         onAyah: _onAyah,
         onPage: _onPage,
         onTap: () => _onTapPage(),
+        autoScroll: _autoPx,
+        onAutoEnd: _stopAuto,
       );
     } else {
       _pc ??= PageController(initialPage: spread ? (_page.value - 1) ~/ 2 : _page.value - 1);
@@ -301,10 +421,41 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
             // The pages reopen where Large text was left.
             _dropController();
             setState(() => _jump++);
+            if (_auto) WidgetsBinding.instance.addPostFrameCallback((_) => _applyAuto());
           },
           onGoTo: () => _showGoTo(context, q),
         ),
-        _BottomBar(visible: _chrome && _selAyah == null, onPlay: () => _play(q)),
+        if (_auto) ...[
+          // A thin line showing when the page will turn, clear of the text.
+          if (!_chrome && mode == MushafMode.page)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                child: ValueListenableBuilder<double>(
+                  valueListenable: _autoProgress,
+                  builder: (_, v, _) => LinearProgressIndicator(
+                    value: v,
+                    minHeight: 3,
+                    backgroundColor: Colors.transparent,
+                    color: t.primary.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
+            ),
+          _AutoScrollBar(
+            visible: _chrome && _selAyah == null,
+            paused: _autoPaused,
+            progress: mode == MushafMode.page ? _autoProgress : null,
+            onPause: _pauseAuto,
+            onSlower: () => _autoSpeed(-1),
+            onFaster: () => _autoSpeed(1),
+            onStop: _stopAuto,
+          ),
+        ] else
+          _BottomBar(visible: _chrome && _selAyah == null, onPlay: () => _play(q), onAuto: _startAuto),
         if (_selAyah != null)
           _AyahToolbar(
             ayah: _selAyah!,

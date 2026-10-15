@@ -27,23 +27,39 @@ Large screens are split into `part` files next to them. For example,
 ## Backend
 
 `Backend` (in `backend/backend.dart`) is the one interface screens use. It
-combines `ChatApi`, `CallApi`, `LessonApi` and `AdminApi` (pausing
-accounts and the admin overview). There are two
+combines `ChatApi`, `CallApi`, `LessonApi`, `AdminApi` (pausing
+accounts and the admin overview), `TeacherDirectoryApi` (the teacher list)
+and `PhotoApi` (own profile photos). There are two
 implementations:
 
 - `DemoBackend`: in memory, used for demo mode (no Firebase settings) and
   all tests.
 - `FirebaseBackend`: Firestore and Firebase Auth. The chat, call and lesson
   parts are mixins in `firestore_chat.dart`, `firestore_calls.dart`,
-  `firestore_lessons.dart` and `firestore_admin.dart`.
+  `firestore_lessons.dart`, `firestore_admin.dart`, `firestore_teachers.dart`
+  and `firestore_photos.dart`.
 
 Live data for the signed-in user goes through `perUser`
 (`backend/user_stream.dart`). It switches immediately when someone signs in
 or out, and restarts a stream that fails, so changes made on another phone
 always arrive.
 
-Voice notes and recitation samples are stored as Firestore blobs (no paid
-Storage). Calls are WebRTC audio, signalled through Firestore.
+Voice notes, recitation samples and own profile photos are stored as
+Firestore blobs (no paid Storage). A photo's `avatar` value is
+`photo:{uid}:{version}`, so every place that shows a picture finds it and
+fetches it again only when it changes (`photoProvider`, cached on the
+phone). Calls are WebRTC audio, signalled through Firestore.
+
+**Matching.** "Recite now" rings free teachers of the student's gender one
+at a time (`rankCandidates` in `backend/calls.dart`): the teacher the
+student chose, then favourites, then teachers they had lessons with (most
+recent first), then those who have taught least today. The rules allow a
+call to ring only approved teachers whose application gender matches.
+
+**Ayah of the day** (`features/quran/ayah_of_day.dart`, data in
+`daily_ayahs.dart`): one ayah a day with a theme and meaning, on the home
+screens and as a notification. The next 30 days are scheduled on the phone
+each time the app opens (each day's text differs).
 
 ## Conventions
 

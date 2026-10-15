@@ -22,17 +22,33 @@ service cloud.firestore {
     function teacherGender(uid) {
       return get(/databases/$(db)/documents/teacherApplications/$(uid)).data.gender;
     }
+    // A picture: one of the drawn avatars (a short id), or the person's own
+    // photo ("photo:<their uid>:<version>", see /photos).
+    function validAvatar(v, uid) {
+      return v == null || (v is string
+        && ((v.size() <= 20 && !v.matches('photo:.*')) || v.matches('photo:' + uid + ':[a-z0-9]{1,12}')));
+    }
 
-    // Profile: name, role, gender, picture, language.
+    // Profile: name, role, gender, picture, language, and the details asked
+    // when signing up (age group, nationality, phone number, and whether
+    // they'd like to join the WhatsApp community). Only the person and
+    // admins can read it, so the phone number is never shown to others.
     match /users/{uid} {
       allow read: if isMe(uid) || isAdmin();
       allow create, update: if isMe(uid)
-        && request.resource.data.keys().hasOnly(['name', 'role', 'gender', 'avatar', 'locale', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['name', 'role', 'gender', 'avatar', 'locale', 'ageGroup',
+             'nationality', 'phone', 'whatsapp', 'updatedAt'])
         && text(request.resource.data.get('name', null), 80)
         && request.resource.data.get('role', null) in [null, 'student', 'teacher']
         && request.resource.data.get('gender', null) in [null, 'male', 'female']
-        && text(request.resource.data.get('avatar', null), 20)
+        && validAvatar(request.resource.data.get('avatar', null), uid)
         && request.resource.data.get('locale', null) in [null, 'ar', 'en']
+        && request.resource.data.get('ageGroup', null) in [null, '18-24', '25-34', '35-44', '45-54', '55-64', '65+']
+        && (request.resource.data.get('nationality', null) == null
+            || (request.resource.data.nationality is string && request.resource.data.nationality.matches('[A-Z]{2}')))
+        && (request.resource.data.get('phone', null) == null
+            || (request.resource.data.phone is string && request.resource.data.phone.matches('[+][1-9][0-9]{6,14}')))
+        && request.resource.data.get('whatsapp', false) is bool
         // Gender is chosen once: it decides who can call whom.
         && (resource == null || resource.data.get('gender', null) == null
             || request.resource.data.get('gender', null) == resource.data.gender);
@@ -85,9 +101,15 @@ service cloud.firestore {
       allow read: if isMe(uid) || isAdmin()
         || (signedIn() && (resource == null || resource.data.gender == userDoc(request.auth.uid).gender));
       allow create, update: if isMe(uid) && isApproved(uid) && !paused(uid)
-        && request.resource.data.keys().hasOnly(['available', 'gender', 'busy', 'name', 'avatar', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['available', 'gender', 'busy', 'name', 'avatar', 'lessonsToday',
+             'lessonsDay', 'updatedAt'])
         && text(request.resource.data.get('name', null), 80)
-        && text(request.resource.data.get('avatar', null), 20)
+        && validAvatar(request.resource.data.get('avatar', null), uid)
+        // Lessons given today, so calls are shared out among teachers.
+        && (request.resource.data.get('lessonsToday', 0) is int
+            && request.resource.data.get('lessonsToday', 0) >= 0
+            && request.resource.data.get('lessonsToday', 0) <= 200)
+        && text(request.resource.data.get('lessonsDay', null), 10)
         && request.resource.data.available is bool
         && request.resource.data.get('busy', false) is bool
         && request.resource.data.gender == teacherGender(uid);
@@ -191,7 +213,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['studentId', 'studentName', 'studentAvatar', 'gender', 'status',
              'teacherId', 'tried', 'createdAt'])
         && text(request.resource.data.get('studentName', null), 80)
-        && text(request.resource.data.get('studentAvatar', null), 20);
+        && validAvatar(request.resource.data.get('studentAvatar', null), request.auth.uid);
       // The student rings teachers (approved, same gender), cancels, hangs
       // up and sends the offer.
       allow update: if isStudent()
@@ -301,6 +323,19 @@ service cloud.firestore {
         && text(request.resource.data.reason, 500)
         && request.resource.data.by == request.auth.uid;
       allow delete: if isAdmin();
+    }
+
+    // A person's own profile photo: a small JPEG (the free plan has no file
+    // storage). Seen by people of the same gender (the only people they
+    // can meet in Sanadi) and admins; an admin can remove it.
+    match /photos/{uid} {
+      allow read: if isMe(uid) || isAdmin()
+        || (signedIn() && userDoc(uid).gender != null && userDoc(request.auth.uid).gender == userDoc(uid).gender);
+      allow create, update: if isMe(uid) && !paused(uid)
+        && request.resource.data.keys().hasOnly(['data', 'updatedAt'])
+        && request.resource.data.data is bytes
+        && request.resource.data.data.size() <= 150000;
+      allow delete: if isMe(uid) || isAdmin();
     }
 
     // Who can review applications. Added by hand in the console.

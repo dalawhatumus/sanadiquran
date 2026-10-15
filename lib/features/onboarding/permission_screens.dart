@@ -72,7 +72,7 @@ class PermissionScreen extends ConsumerWidget {
       PermKind.fullScreen => (const Icon(Icons.phone_in_talk_rounded), s.fsTitle, s.fsBody),
     };
     return StepScaffold(
-      step: kind == PermKind.fullScreen ? s.teacherSetup : s.stepOf(4, 4),
+      step: kind == PermKind.fullScreen ? s.teacherSetup : s.stepOf(5, 5),
       center: true,
       content: [
         Center(child: Illustration(size: 144, child: icon)),

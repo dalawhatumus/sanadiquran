@@ -13,6 +13,7 @@ import 'firestore_admin.dart';
 import 'firestore_calls.dart';
 import 'firestore_chat.dart';
 import 'firestore_lessons.dart';
+import 'firestore_photos.dart';
 import 'firestore_teachers.dart';
 import 'teachers.dart';
 import 'user_stream.dart';
@@ -20,14 +21,16 @@ import 'user_stream.dart';
 /// The real server: Google sign-in through Firebase Auth, data in Firestore.
 ///
 /// Collections (rules in firestore.rules):
-/// - users/{uid}: name, role, gender, avatar, locale. Only the user.
+/// - users/{uid}: name, role, gender, avatar, locale, age group,
+///   nationality, phone and WhatsApp choice. Only the user and admins.
 /// - teacherApplications/{uid}: answers and status. The user and admins;
 ///   only admins can approve.
 /// - presence/{uid}: an approved teacher's "available" switch and gender.
 ///   Any signed-in user can read it (to count available teachers).
+/// - photos/{uid}: the user's own profile photo (see firestore_photos.dart).
 /// - admins/{uid}: who can review applications. Added by hand in the console.
 class FirebaseBackend
-    with FirestoreChat, FirestoreCalls, FirestoreLessons, FirestoreAdmin, FirestoreTeachers
+    with FirestoreChat, FirestoreCalls, FirestoreLessons, FirestoreAdmin, FirestoreTeachers, FirestorePhotos
     implements Backend {
   FirebaseBackend();
 
@@ -87,6 +90,10 @@ class FirebaseBackend
         gender: Gender.values.where((g) => g.name == data['gender']).firstOrNull,
         avatar: data['avatar'] as String?,
         teacherStatus: _status(app.data()),
+        ageGroup: data['ageGroup'] as String?,
+        nationality: data['nationality'] as String?,
+        phone: data['phone'] as String?,
+        whatsapp: data['whatsapp'] == true,
       );
     }
     return SignedInUser(uid: user.uid, googleName: user.displayName ?? account.displayName, profile: profile);
@@ -115,6 +122,10 @@ class FirebaseBackend
       'gender': s.gender?.name,
       'avatar': s.avatar,
       'locale': s.locale?.languageCode,
+      'ageGroup': s.ageGroup,
+      'nationality': s.nationality,
+      'phone': s.phone,
+      'whatsapp': s.whatsapp,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
     // Keep the name and picture the other person sees in chats up to date.
@@ -198,7 +209,7 @@ class FirebaseBackend
       await user.reauthenticateWithCredential((await _google()).$2);
     }
     // Personal data next (the rules allow it only while signed in).
-    for (final c in ['presence', 'waiting', 'applicationSamples', 'teacherApplications', 'users']) {
+    for (final c in ['presence', 'waiting', 'photos', 'applicationSamples', 'teacherApplications', 'users']) {
       await _doc(c, uid).delete().catchError((Object e) => logIssue('Delete $c: $e'));
     }
     try {

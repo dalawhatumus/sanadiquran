@@ -54,7 +54,7 @@ class Reminders {
 
   static final instance = Reminders._();
   final _plugin = FlutterLocalNotificationsPlugin();
-  bool _ready = false;
+  Future<void>? _ready;
 
   /// Where a tapped reminder should take the user (while the app runs).
   void Function(String route)? onOpen;
@@ -82,6 +82,7 @@ class Reminders {
   static final _chatRoute = RegExp(r'^/chat/[A-Za-z0-9_-]{1,128}$');
   static final _notesRoute = RegExp(r'^/notes\?id=[A-Za-z0-9_-]{1,128}$');
   static final _incomingRoute = RegExp(r'^/call/incoming\?id=[A-Za-z0-9_-]{1,128}$');
+  static final _ayahRoute = RegExp(r'^/ayah\?day=[0-9]{1,6}$');
 
   /// "A teacher is free": opens the student's home.
   static const homeRoute = '/s/home';
@@ -97,13 +98,16 @@ class Reminders {
           (routes.contains(route) ||
               _chatRoute.hasMatch(route) ||
               _notesRoute.hasMatch(route) ||
-              _incomingRoute.hasMatch(route))
+              _incomingRoute.hasMatch(route) ||
+              _ayahRoute.hasMatch(route))
       ? route
       : null;
 
-  Future<void> _init() async {
-    if (_ready) return;
-    _ready = true;
+  /// Sets up the plugin once; every caller waits for the same set-up, so
+  /// nothing is scheduled before it is ready.
+  Future<void> _init() => _ready ??= _setUp();
+
+  Future<void> _setUp() async {
     try {
       tzdata.initializeTimeZones();
       try {
@@ -157,6 +161,54 @@ class Reminders {
       await daily(_eveningId, times.evening, s.eveningAthkar, s.eveningReminderBody, '/athkar/evening');
     } catch (e) {
       logIssue('Reminders not scheduled: $e');
+    }
+  }
+
+  /// "Ayah of the day": one notification a day for the next [_ayahDays]
+  /// days (each day's ayah is different, so they are scheduled one by one;
+  /// opening the app schedules the days after). [content] gives a day's
+  /// title, short text and full text.
+  static const _ayahFirstId = 3000;
+  static const _ayahDays = 30;
+
+  Future<void> applyAyahOfDay({
+    required bool on,
+    required int minutes,
+    required S s,
+    required (String, String, String) Function(int day) content,
+  }) async {
+    await _init();
+    try {
+      for (var i = 0; i < _ayahDays; i++) {
+        await _plugin.cancel(id: _ayahFirstId + i);
+      }
+      if (!on) return;
+      final first = _next(minutes);
+      for (var i = 0; i < _ayahDays; i++) {
+        final at = first.add(Duration(days: i));
+        final day = DateTime.utc(at.year, at.month, at.day).difference(DateTime.utc(2024)).inDays;
+        final (title, body, full) = content(day);
+        await _plugin.zonedSchedule(
+          id: _ayahFirstId + i,
+          title: title,
+          body: body,
+          scheduledDate: at,
+          notificationDetails: NotificationDetails(
+            android: AndroidNotificationDetails(
+              'ayah_of_day',
+              s.ayahChannel,
+              channelDescription: s.ayahChannelDesc,
+              importance: Importance.defaultImportance,
+              priority: Priority.defaultPriority,
+              styleInformation: BigTextStyleInformation(full, contentTitle: title),
+            ),
+          ),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          payload: '/ayah?day=$day',
+        );
+      }
+    } catch (e) {
+      logIssue('Ayah of the day not scheduled: $e');
     }
   }
 
