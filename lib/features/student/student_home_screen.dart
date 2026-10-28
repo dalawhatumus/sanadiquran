@@ -350,8 +350,7 @@ class _MyTeacherCard extends ConsumerWidget {
                   icon: Icons.chat_bubble_rounded,
                   kind: ButtonKind.outline,
                   compact: true,
-                  onPressed: () =>
-                      chat == null ? context.go(Routes.studentMessages) : context.push(Routes.chat(chat.id)),
+                  onPressed: () => chat == null ? context.push(Routes.messages) : context.push(Routes.chat(chat.id)),
                 ),
               ),
             ],

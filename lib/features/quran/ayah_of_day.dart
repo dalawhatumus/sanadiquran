@@ -57,6 +57,11 @@ String ayahPlainText(QuranData q, DailyAyah d) => [
     if (q.ayah(d.sura, a) case final x?) '${x.plain} ﴿${x.number}﴾',
 ].join(' ');
 
+/// The translation or tafsir text: in Arabic, the Naskh font (the tafsir
+/// uses marks such as ﷺ that the interface font lacks).
+TextStyle meaningStyle(BuildContext context, TextStyle base) =>
+    S.of(context).ar ? base.copyWith(fontFamily: SanadiFonts.naskh, height: 1.8) : base;
+
 /// Where the ayah is, e.g. "Al-Baqarah, ayah 153".
 String ayahReference(S s, QuranData q, DailyAyah d) => s.ayahRef(q.sura(d.sura).name(s.ar), d.from, d.to);
 
@@ -78,7 +83,7 @@ final ayahOfDaySyncProvider = Provider<void>((ref) {
       return (
         '${s.ayahOfDay} · ${d.theme(s.ar)}',
         d.meaning(s.ar),
-        '${ayahPlainText(q!, d)}\n\n${d.meaning(s.ar)}\n${ayahReference(s, q, d)}',
+        '${ayahPlainText(q!, d)}\n\n${d.meaning(s.ar)}\n\n${ayahReference(s, q, d)} · ${s.ayahSource}',
       );
     },
   );
@@ -129,9 +134,17 @@ class AyahOfDayCard extends ConsumerWidget {
             style: TextStyle(fontFamily: SanadiFonts.quran, letterSpacing: 0, fontSize: 24, height: 1.9, color: t.text),
           ),
           const SizedBox(height: 8),
-          Text(d.meaning(s.ar), maxLines: 3, overflow: TextOverflow.ellipsis, style: tt.bodyMedium),
+          Text(
+            d.meaning(s.ar),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: meaningStyle(context, tt.bodyMedium!),
+          ),
           const SizedBox(height: 4),
-          Text(ayahReference(s, q, d), style: nameFont(context, tt.bodySmall!.copyWith(color: t.muted))),
+          Text(
+            '${ayahReference(s, q, d)} · ${s.ayahSource}',
+            style: nameFont(context, tt.bodySmall!.copyWith(color: t.muted)),
+          ),
         ],
       ),
     );
@@ -188,9 +201,20 @@ class AyahOfDayScreen extends ConsumerWidget {
         const SizedBox(height: 20),
         WordSafeText(s.ayahMeaningL, style: tt.titleLarge),
         const SizedBox(height: 6),
-        Text(d.meaning(s.ar), style: tt.bodyLarge),
-        const SizedBox(height: 10),
-        Text(s.ayahMeaningNote, style: tt.bodySmall),
+        Text(d.meaning(s.ar), style: meaningStyle(context, tt.bodyLarge!)),
+        const SizedBox(height: 14),
+        // What this text is, and where it comes from.
+        SCard(
+          color: t.tint,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_rounded, color: t.primary, size: 26),
+              const SizedBox(width: 10),
+              Expanded(child: Text(s.ayahMeaningNote, style: tt.bodyMedium)),
+            ],
+          ),
+        ),
       ],
       bottom: [
         BigButton(

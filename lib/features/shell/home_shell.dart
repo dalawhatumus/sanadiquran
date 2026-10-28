@@ -11,8 +11,8 @@ import '../../widgets/ui.dart';
 import '../settings/more_screens.dart';
 import '../student/availability_bar.dart';
 
-/// Bottom tabs. Student: Home · Quran · Athkar · Messages, with the
-/// teacher availability bar above them away from home.
+/// Bottom tabs. Student: Home · Teachers (with Messages inside) · Quran ·
+/// Athkar, with the teacher availability bar above Quran and Athkar.
 /// Teacher: Home · Students · Quran · Messages (athkar is reached from Quran).
 /// Labels stay on one line (capped at 130% text size, then shrunk to fit).
 class HomeShell extends ConsumerWidget {
@@ -30,7 +30,7 @@ class HomeShell extends ConsumerWidget {
     final messages = (const Icon(Icons.chat_bubble_rounded), s.navMessages);
     final items = teacher
         ? [home, (const SIcon(SIcons.students), s.navStudents), quran, messages]
-        : [home, quran, (const SIcon(SIcons.misbaha), s.navAthkar), messages];
+        : [home, (const Icon(Icons.school_rounded), s.navTeachers), quran, (const SIcon(SIcons.misbaha), s.navAthkar)];
 
     // A paused account sees why on its home tab; the Quran, athkar and
     // messages stay open (the server refuses new messages and calls).
@@ -51,11 +51,13 @@ class HomeShell extends ConsumerWidget {
         bottomNavigationBar: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Students see who is free from every tab (home has its own).
-            if (!teacher && !paused && shell.currentIndex != 0) const AvailabilityBar(),
+            // Students see who is free from Quran and Athkar (Home and
+            // Teachers show it themselves).
+            if (!teacher && !paused && shell.currentIndex >= 2) const AvailabilityBar(),
             _TabBar(
               items: items,
-              badges: {items.length - 1: unread},
+              // Unread messages show on Messages (teachers) or Teachers (students).
+              badges: {teacher ? items.length - 1 : 1: unread},
               selected: shell.currentIndex,
               onSelect: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
             ),

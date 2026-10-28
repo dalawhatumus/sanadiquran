@@ -52,7 +52,7 @@ abstract final class Routes {
   static const studentHome = '/s/home';
   static const studentQuran = '/s/quran';
   static const studentAthkar = '/s/athkar';
-  static const studentMessages = '/s/messages';
+  static const studentTeachers = '/s/teachers';
 
   static const teacherHome = '/t/home';
   static const teacherStudents = '/t/students';
@@ -75,7 +75,7 @@ abstract final class Routes {
   static const adminReports = '/admin/reports';
   static const privacy = '/privacy';
   static const terms = '/terms';
-  static const teachers = '/teachers';
+  static const messages = '/messages';
   static const codeOfConduct = '/code-of-conduct';
   static const adminUsers = '/admin/users';
   static const adminStats = '/admin/stats';
@@ -158,7 +158,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: Routes.privacy, builder: (_, _) => const PrivacyScreen()),
       GoRoute(path: Routes.terms, builder: (_, _) => const TermsScreen()),
-      GoRoute(path: Routes.teachers, builder: (_, _) => const TeachersScreen()),
+      GoRoute(path: Routes.messages, builder: (_, _) => const MessagesScreen(standalone: true)),
       GoRoute(path: Routes.codeOfConduct, builder: (_, _) => const CodeOfConductScreen()),
       GoRoute(path: Routes.adminUsers, builder: (_, _) => const UsersScreen()),
       GoRoute(path: Routes.adminStats, builder: (_, _) => const StatsScreen()),
@@ -229,9 +229,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, shell) => HomeShell(shell: shell, teacher: false),
         branches: [
           _branch(Routes.studentHome, const StudentHomeScreen()),
+          _branch(Routes.studentTeachers, const TeachersScreen()),
           _branch(Routes.studentQuran, const SurahIndexScreen()),
           _branch(Routes.studentAthkar, const AthkarMenuScreen()),
-          _branch(Routes.studentMessages, const MessagesScreen()),
         ],
       ),
       StatefulShellRoute.indexedStack(

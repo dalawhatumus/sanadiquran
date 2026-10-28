@@ -12,9 +12,9 @@ import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
 
-/// A slim bar above the student's tabs (Quran, athkar, messages): how many
-/// teachers are free right now, with a Call button while any are. Tapping
-/// the words opens the teacher list. Hidden offline.
+/// A slim bar above the student's tabs (Quran, athkar): how many teachers
+/// are free right now, with a Call button while any are. Tapping the words
+/// opens the Teachers tab. Hidden offline.
 class AvailabilityBar extends ConsumerWidget {
   const AvailabilityBar({super.key});
 
@@ -33,7 +33,7 @@ class AvailabilityBar extends ConsumerWidget {
         key: const ValueKey('availability-bar'),
         color: on ? t.tint : t.surface,
         child: InkWell(
-          onTap: () => context.push(Routes.teachers),
+          onTap: () => context.go(Routes.studentTeachers),
           child: Container(
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: t.line)),

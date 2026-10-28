@@ -11,7 +11,7 @@ The server is Firebase (Auth + Firestore) on the free Spark plan.
 | `lib/main.dart`, `lib/app.dart` | Start-up: Firebase (if configured), settings, theme, router. |
 | `lib/core/` | App-wide pieces with no screens: settings, strings (Arabic/English), theme, router, input limits, reminders, local files, logging, connectivity, version. |
 | `lib/backend/` | Everything that talks to the server. See "Backend" below. |
-| `lib/features/<area>/` | One folder per area of the app: `onboarding`, `student`, `teacher`, `quran`, `athkar`, `messages`, `call`, `lessons`, `settings`, `admin`, `shell` (the tab bar). |
+| `lib/features/<area>/` | Student tabs: Home · Teachers (Messages opens from it) · Quran · Athkar. Teacher tabs: Home · Students · Quran · Messages. One folder per area of the app: `onboarding`, `student`, `teacher`, `quran`, `athkar`, `messages`, `call`, `lessons`, `settings`, `admin`, `shell` (the tab bar). |
 | `lib/widgets/` | Shared widgets. Import `widgets/ui.dart` to get them all (buttons, cards, text, layout, dialogs, toasts, icons). |
 | `assets/` | Quran text and page layout, athkar, fonts, icons, avatars. |
 | `firebase/` | Firestore security rules, indexes and their emulator tests. |
@@ -57,8 +57,10 @@ recent first), then those who have taught least today. The rules allow a
 call to ring only approved teachers whose application gender matches.
 
 **Ayah of the day** (`features/quran/ayah_of_day.dart`, data in
-`daily_ayahs.dart`): one ayah a day with a theme and meaning, on the home
-screens and as a notification. The next 30 days are scheduled on the phone
+`daily_ayahs.dart`): one ayah a day with a theme, on the home screens and as
+a notification. English shows the Saheeh International translation and
+Arabic al-Tafsir al-Muyassar (King Fahd Complex), unchanged, with their
+source and a note that a translation is not the Quran. The next 30 days are scheduled on the phone
 each time the app opens (each day's text differs).
 
 ## Conventions

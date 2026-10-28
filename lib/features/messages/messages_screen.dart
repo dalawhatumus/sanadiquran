@@ -12,9 +12,12 @@ import '../../core/theme.dart';
 import '../../widgets/ui.dart';
 
 /// 48 · Messages: conversations with teachers (or students), newest first,
-/// with unread counts.
+/// with unread counts. A tab for teachers; for students it opens from the
+/// Teachers tab ([standalone], with Back).
 class MessagesScreen extends ConsumerWidget {
-  const MessagesScreen({super.key});
+  const MessagesScreen({super.key, this.standalone = false});
+
+  final bool standalone;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,6 +33,14 @@ class MessagesScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (standalone)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: BackPill(onTap: () => context.canPop() ? context.pop() : context.go(Routes.studentTeachers)),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: WordSafeText(s.navMessages, style: tt.headlineMedium),

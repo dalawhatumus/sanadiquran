@@ -15,8 +15,8 @@ import 'package:sanadi/features/quran/mushaf_screen.dart';
 import 'package:sanadi/features/quran/quran_data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Auto scroll in the mushaf: the text moves by itself in large text, pages
-/// turn by themselves in mushaf pages, at the chosen speed.
+/// Auto scroll in the mushaf: in large text the text moves by itself at the
+/// chosen speed; mushaf pages (which don't scroll) don't have it.
 void main() {
   final quran = QuranData.parse((
     File('assets/quran/hafs.json').readAsStringSync(),
@@ -114,25 +114,23 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('mushaf pages turn by themselves at the chosen speed', (tester) async {
-    final (container, _) = await open(tester, 'page', speed: 10);
+  testWidgets('mushaf pages have no auto scroll; switching to them stops it', (tester) async {
+    await open(tester, 'page');
+    // Pages don't scroll, so the button isn't there.
+    expect(find.byTooltip(s.autoScroll), findsNothing);
+
+    // In large text it runs; switching to mushaf pages stops it.
+    await tester.tap(find.text(s.segLarge));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(s.autoScroll));
     await tester.pump();
-    // (Opening at a page doesn't count as reading it until it changes.)
-    expect(container.read(lastPageProvider), isNot(78));
-    await run(tester, autoTurnAfter(10) - const Duration(seconds: 2));
-    expect(container.read(lastPageProvider), isNot(78));
-    await run(tester, const Duration(seconds: 3));
-    await tester.pumpAndSettle();
-    expect(container.read(lastPageProvider), 78);
-
-    // Once stopped, the page stays.
+    expect(find.byKey(const ValueKey('auto-scroll-bar')), findsOneWidget);
     await tester.tapAt(const Offset(180, 400));
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.byKey(const ValueKey('auto-stop')));
-    await tester.pump(const Duration(milliseconds: 300));
-    await run(tester, autoTurnAfter(10) + const Duration(seconds: 2));
+    await tester.tap(find.text(s.segPage));
     await tester.pumpAndSettle();
-    expect(container.read(lastPageProvider), 78);
+    expect(find.byKey(const ValueKey('auto-scroll-bar')), findsNothing);
+    expect(find.byTooltip(s.autoScroll), findsNothing);
+    await tester.pump(const Duration(seconds: 6));
   });
 }

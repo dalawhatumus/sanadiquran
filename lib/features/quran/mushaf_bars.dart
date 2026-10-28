@@ -145,8 +145,8 @@ class _BottomBar extends ConsumerWidget {
   final bool visible;
   final VoidCallback onPlay;
 
-  /// Starts auto scroll.
-  final VoidCallback onAuto;
+  /// Starts auto scroll (large text only; null hides the button).
+  final VoidCallback? onAuto;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -197,7 +197,7 @@ class _BottomBar extends ConsumerWidget {
                                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: fg),
                                 ),
                               ),
-                              iconBtn(Icons.swipe_up_rounded, s.autoScroll, onAuto),
+                              if (onAuto != null) iconBtn(Icons.swipe_up_rounded, s.autoScroll, onAuto!),
                               iconBtn(Icons.tune_rounded, s.recitationSettings, () => _showSettings(context)),
                               const SizedBox(width: 4),
                             ],
@@ -260,14 +260,12 @@ class _BottomBar extends ConsumerWidget {
   }
 }
 
-/// Auto scroll controls: pause or go on, slower, faster and stop, with the
-/// time until the next page turns (mushaf pages). Shown and hidden with
-/// the other bars, so it never covers the text being read.
+/// Auto scroll controls: pause or go on, slower, faster and stop. Shown and
+/// hidden with the other bars, so it never covers the text being read.
 class _AutoScrollBar extends ConsumerWidget {
   const _AutoScrollBar({
     required this.visible,
     required this.paused,
-    required this.progress,
     required this.onPause,
     required this.onSlower,
     required this.onFaster,
@@ -276,7 +274,6 @@ class _AutoScrollBar extends ConsumerWidget {
 
   final bool visible;
   final bool paused;
-  final ValueListenable<double>? progress;
   final VoidCallback onPause;
   final VoidCallback onSlower;
   final VoidCallback onFaster;
@@ -314,16 +311,6 @@ class _AutoScrollBar extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (progress != null)
-                      ValueListenableBuilder<double>(
-                        valueListenable: progress!,
-                        builder: (_, v, _) => LinearProgressIndicator(
-                          value: v,
-                          minHeight: 3,
-                          backgroundColor: Colors.white24,
-                          color: sub,
-                        ),
-                      ),
                     SizedBox(
                       height: 64,
                       child: Row(

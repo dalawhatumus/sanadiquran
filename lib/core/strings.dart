@@ -57,6 +57,7 @@ class S {
   String get navQuran => t('Quran', 'المصحف');
   String get navAthkar => t('Athkar', 'الأذكار');
   String get navMessages => t('Messages', 'الرسائل');
+  String get navTeachers => t('Teachers', 'المعلّمات', 'المعلّمون');
   String get navStudents => t('Students', 'طالباتي', 'طلابي');
 
   // ---- 2 Language ----
@@ -764,6 +765,13 @@ class S {
       ),
     ),
     (
+      t('Ayah of the day', 'آية اليوم'),
+      t(
+        'English translation of the meanings: Saheeh International (Dar Abul-Qasim, Jeddah). Arabic explanation: al-Tafsir al-Muyassar, King Fahd Glorious Quran Printing Complex.',
+        'ترجمة المعاني بالإنجليزية: صحيح إنترناشيونال (دار أبي القاسم، جدة). والتفسير بالعربية: التفسير الميسّر، مجمع الملك فهد لطباعة المصحف الشريف.',
+      ),
+    ),
+    (
       t('Countries and phone codes', 'الدول ورموز الهواتف'),
       t(
         'Country names from the Unicode CLDR project; calling codes and number lengths from Google\'s phone number data.',
@@ -1213,10 +1221,13 @@ class S {
 
   // ---- Ayah of the day ----
   String get ayahOfDay => t('Ayah of the day', 'آية اليوم');
-  String get ayahMeaningL => t('Meaning', 'المعنى');
+  String get ayahMeaningL => t('Translation of the meaning', 'التفسير الميسّر');
+
+  /// Where the translation (English) or explanation (Arabic) comes from.
+  String get ayahSource => t('Saheeh International', 'التفسير الميسّر، مجمع الملك فهد');
   String get ayahMeaningNote => t(
-    'The English is an approximate translation of the meaning; only the Arabic is the Quran.',
-    'المعنى بأسلوب مبسّط، وليس تفسيرًا كاملًا.',
+    'This is a translation of the meaning of the ayah, not the Quran itself. The Quran is the Arabic words revealed by Allah, and no translation can carry their full meaning.\n\nTranslation: Saheeh International (Dar Abul-Qasim, Jeddah).',
+    'هذا تفسير مختصر يبيّن معنى الآية، وليس من القرآن الكريم؛ فالقرآن هو كلام الله بلفظه العربي المنزّل.\n\nالمصدر: التفسير الميسّر، تأليف نخبة من العلماء، مجمع الملك فهد لطباعة المصحف الشريف بالمدينة المنورة.',
   );
   String ayahOfDaySub(String time) => t('Every day at $time', 'كل يوم الساعة ${n(time)}');
   String get ayahOfDayOff => t('Off', 'متوقّفة');
@@ -1230,6 +1241,15 @@ class S {
   String ayahRef(String sura, int from, int to) => from == to
       ? t('$sura, ayah $from', '$sura، الآية ${n(from)}')
       : t('$sura, ayahs $from–$to', '$sura، الآيات ${n(from)}–${n(to)}');
+
+  // ---- Surah search ----
+  String get searchSurah => t('Search for a surah', 'ابحثي عن سورة', 'ابحث عن سورة');
+  String get clear => t('Clear', 'مسح');
+  String get noSurahFound => t(
+    'No surah found. Try another spelling, or the surah\'s number.',
+    'لم نجد سورة بهذا الاسم. جرّبي كتابة أخرى أو رقم السورة.',
+    'لم نجد سورة بهذا الاسم. جرّب كتابة أخرى أو رقم السورة.',
+  );
 
   // ---- Auto scroll in the mushaf ----
   String get autoScroll => t('Auto scroll', 'التمرير التلقائي');

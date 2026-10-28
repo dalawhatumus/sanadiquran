@@ -166,7 +166,7 @@ class _Header extends ConsumerWidget {
           children: [
             IconButton(
               tooltip: s.back,
-              onPressed: () => context.canPop() ? context.pop() : context.go(Routes.studentMessages),
+              onPressed: () => context.canPop() ? context.pop() : context.go(Routes.splash),
               icon: Icon(Arrows.back, size: 30, color: t.text),
               style: IconButton.styleFrom(minimumSize: const Size(kMinTap, kMinTap)),
             ),

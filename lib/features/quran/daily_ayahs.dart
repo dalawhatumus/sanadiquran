@@ -1,9 +1,18 @@
-/// One "Ayah of the day": a short passage about everyday life, with its
-/// meaning in plain words. The meanings were written for Sanadi in simple
-/// language (not copied from a published translation); only the Arabic,
-/// shown from the bundled mushaf text, is the Quran.
+/// One "Ayah of the day": a short passage about everyday life, with a
+/// translation of its meaning.
+///
+/// - English: the Saheeh International translation (Dar Abul-Qasim, Jeddah),
+///   as distributed by Tanzil.net and checked word for word against a second
+///   copy. Kept unchanged except for the closing punctuation of each ayah,
+///   which that copy leaves off.
+/// - Arabic: al-Tafsir al-Muyassar, by a committee of scholars at the King
+///   Fahd Glorious Quran Printing Complex (the same institution as the mushaf
+///   text), unchanged.
+///
+/// The themes are Sanadi's own short labels. Only the Arabic ayah, shown from
+/// the mushaf text, is the Quran.
 class DailyAyah {
-  const DailyAyah(this.sura, this.from, this.to, this.themeEn, this.themeAr, this.meaningEn, this.meaningAr);
+  const DailyAyah(this.sura, this.from, this.to, this.themeEn, this.themeAr, this.translationEn, this.tafsirAr);
 
   final int sura;
   final int from;
@@ -12,11 +21,16 @@ class DailyAyah {
   /// The everyday situation it speaks to.
   final String themeEn;
   final String themeAr;
-  final String meaningEn;
-  final String meaningAr;
+
+  /// Saheeh International (each ayah's number in brackets when there are
+  /// several).
+  final String translationEn;
+
+  /// al-Tafsir al-Muyassar.
+  final String tafsirAr;
 
   String theme(bool ar) => ar ? themeAr : themeEn;
-  String meaning(bool ar) => ar ? meaningAr : meaningEn;
+  String meaning(bool ar) => ar ? tafsirAr : translationEn;
 }
 
 /// The day number used to pick the ayah (the same all day, whatever the
@@ -32,8 +46,8 @@ const dailyAyahs = <DailyAyah>[
     28,
     'When you feel anxious',
     'عند القلق',
-    'Those who believe and whose hearts find peace in the remembrance of Allah. Truly, it is in the remembrance of Allah that hearts find peace.',
-    'المؤمنون تسكن قلوبهم وتطمئن بذكر الله، وبذكر الله وحده تهدأ القلوب وترتاح.',
+    'Those who have believed and whose hearts are assured by the remembrance of Allah. Unquestionably, by the remembrance of Allah hearts are assured.',
+    'ويهدي الذين تسكن قلوبهم بتوحيد الله وذكره فتطمئن، ألا بطاعة الله وذكره وثوابه تسكن القلوب وتستأنس.',
   ),
   DailyAyah(
     94,
@@ -41,8 +55,8 @@ const dailyAyahs = <DailyAyah>[
     6,
     'When life feels hard',
     'حين تشتدّ الأمور',
-    'So truly, with hardship comes ease. Truly, with hardship comes ease.',
-    'مع كل شدّة يأتي فرج وتيسير، وأكّد الله ذلك مرتين لتطمئن القلوب.',
+    'For indeed, with hardship [will be] ease. (5) Indeed, with hardship [will be] ease. (6)',
+    'فلا يَثْنِكَ أذى أعدائك عن نشر الرسالة؛ فإن مع الضيق فرجًا، إن مع الضيق فرجًا.',
   ),
   DailyAyah(
     17,
@@ -50,8 +64,8 @@ const dailyAyahs = <DailyAyah>[
     24,
     'Your parents',
     'الوالدان',
-    'And lower to them the wing of humility out of mercy, and say: My Lord, have mercy on them, as they raised me when I was small.',
-    'التواضع للوالدين رحمةً بهما، والدعاء لهما: ربِّ ارحمهما كما ربّياني صغيرًا.',
+    'And lower to them the wing of humility out of mercy and say, "My Lord, have mercy upon them as they brought me up [when I was] small."',
+    'وكُنْ لأمك وأبيك ذليلًا متواضعًا رحمة بهما، واطلب من ربك أن يرحمهما برحمته الواسعة أحياءً وأمواتًا، كما صبرا على تربيتك طفلًا ضعيف الحول والقوة.',
   ),
   DailyAyah(
     49,
@@ -59,8 +73,8 @@ const dailyAyahs = <DailyAyah>[
     6,
     'Before you share news',
     'قبل نشر الأخبار',
-    'O you who believe, if someone untrustworthy brings you news, verify it, so that you do not harm people out of ignorance and then regret what you have done.',
-    'إذا جاءكم خبر من شخص غير موثوق فتأكّدوا منه قبل تصديقه ونشره، حتى لا تؤذوا أحدًا بغير علم فتندموا.',
+    'O you who have believed, if there comes to you a disobedient one with information, investigate, lest you harm a people out of ignorance and become, over what you have done, regretful.',
+    'يا أيها الذين صدَّقوا الله ورسوله وعملوا بشرعه، إن جاءكم فاسق بخبر فتثبَّتوا من خبره قبل تصديقه ونقله حتى تعرفوا صحته؛ خشية أن تصيبوا قومًا برآء بجناية منكم، فتندموا على ذلك.',
   ),
   DailyAyah(
     2,
@@ -68,8 +82,8 @@ const dailyAyahs = <DailyAyah>[
     186,
     'When you feel alone',
     'حين الشعور بالوحدة',
-    'When My servants ask you about Me, I am near. I answer the call of the one who calls upon Me. So let them respond to Me and believe in Me, so that they may be rightly guided.',
-    'الله قريب من عباده، يسمع دعاءهم ويجيب من يدعوه، فليستجيبوا له ويؤمنوا به لعلهم يهتدون.',
+    'And when My servants ask you, [O Muhammad], concerning Me - indeed I am near. I respond to the invocation of the supplicant when he calls upon Me. So let them respond to Me [by obedience] and believe in Me that they may be [rightly] guided.',
+    'وإذا سألك -أيها النبي- عبادي عني فقل لهم: إني قريب منهم، أُجيب دعوة الداعي إذا دعاني، فليطيعوني فيما أمرتهم به ونهيتهم عنه، وليؤمنوا بي، لعلهم يهتدون إلى مصالح دينهم ودنياهم. وفي هذه الآية إخبار منه سبحانه عن قربه من عباده، القربَ اللائق بجلاله.',
   ),
   DailyAyah(
     43,
@@ -77,8 +91,8 @@ const dailyAyahs = <DailyAyah>[
     67,
     'Choosing friends',
     'اختيار الأصدقاء',
-    'Close friends, on that Day, will be enemies to one another, except the righteous.',
-    'يوم القيامة ينقلب الأصدقاء أعداءً بعضهم لبعض، إلا الأتقياء الذين اجتمعوا على طاعة الله.',
+    'Close friends, that Day, will be enemies to each other, except for the righteous.',
+    'الأصدقاء على معاصي الله في الدنيا يتبرأ بعضهم من بعض يوم القيامة، لكن الذين تصادقوا على تقوى الله، فإن صداقتهم دائمة في الدنيا والآخرة.',
   ),
   DailyAyah(
     39,
@@ -86,8 +100,8 @@ const dailyAyahs = <DailyAyah>[
     53,
     'After a mistake',
     'بعد الخطأ',
-    'Say: O My servants who have wronged themselves, do not lose hope in the mercy of Allah. Indeed, Allah forgives all sins. He is the Forgiving, the Merciful.',
-    'يا من أكثرتم من الذنوب، لا تيأسوا من رحمة الله، فإن الله يغفر الذنوب جميعًا لمن تاب، وهو الغفور الرحيم.',
+    'Say, "O My servants who have transgressed against themselves [by sinning], do not despair of the mercy of Allah. Indeed, Allah forgives all sins. Indeed, it is He who is the Forgiving, the Merciful."',
+    'قل -أيها الرسول- لعبادي الذين تمادَوا في المعاصي، وأسرفوا على أنفسهم بإتيان ما تدعوهم إليه نفوسهم من الذنوب: لا تَيْئسوا من رحمة الله؛ لكثرة ذنوبكم، إن الله يغفر الذنوب جميعًا لمن تاب منها ورجع عنها مهما كانت، إنه هو الغفور لذنوب التائبين من عباده، الرحيم بهم.',
   ),
   DailyAyah(
     2,
@@ -95,8 +109,8 @@ const dailyAyahs = <DailyAyah>[
     153,
     'Patience',
     'الصبر',
-    'O you who believe, seek help through patience and prayer. Indeed, Allah is with those who are patient.',
-    'يا أيها المؤمنون، استعينوا على أموركم بالصبر والصلاة، فإن الله مع الصابرين بعونه وتوفيقه.',
+    'O you who have believed, seek help through patience and prayer. Indeed, Allah is with the patient.',
+    'يا أيها المؤمنون اطلبوا العون من الله في كل أموركم: بالصبر على النوائب والمصائب، وبالصبر على تركِ المعاصي والذنوب، وبالصبر على الطاعات والقربات، وبالصلاة التي تطمئن بها النفس، وتنهى عن الفحشاء والمنكر. إن الله مع الصابرين بعونه وتوفيقه وتسديده. وفي الآية إثبات معيَّة الله الخاصة بالمؤمنين، المقتضية لما سلف ذكره؛ أما المعية العامة المقتضية للعلم والإحاطة، فهي لجميع الخلق.',
   ),
   DailyAyah(
     17,
@@ -104,8 +118,8 @@ const dailyAyahs = <DailyAyah>[
     36,
     'What you watch and hear',
     'ما نسمعه ونشاهده',
-    'Do not follow what you have no knowledge of. Indeed, the hearing, the sight and the heart, each of these will be questioned.',
-    'لا يتّبع المسلم ما لا يعلم صحّته؛ فكلٌّ مسؤول عن سمعه وبصره وقلبه.',
+    'And do not pursue that of which you have no knowledge. Indeed, the hearing, the sight and the heart - about all those [one] will be questioned.',
+    'ولا تتبع -أيها الإنسان- ما لا تعلم، بل تأكَّد وتثبَّت. إن الإنسان مسؤول عما استعمَل فيه سمعه وبصره وفؤاده، فإذا استعمَلها في الخير نال الثواب، وإذا استعملها في الشر نال العقاب.',
   ),
   DailyAyah(
     14,
@@ -113,8 +127,8 @@ const dailyAyahs = <DailyAyah>[
     7,
     'Gratitude',
     'الشكر',
-    'And remember when your Lord declared: If you are grateful, I will surely give you more; but if you are ungrateful, My punishment is severe.',
-    'وعد الله الشاكرين بالزيادة من فضله، وحذّر من جحود النعم بأن عذابه شديد.',
+    'And [remember] when your Lord proclaimed, \'If you are grateful, I will surely increase you [in favor]; but if you deny, indeed, My punishment is severe.\'',
+    'وقال لهم موسى: واذكروا حين أعلم ربكم إعلامًا مؤكَّدًا: لئن شكرتموه على نعمه ليزيدنكم من فضله، ولئن جحدتم نعمة الله ليعذبنَّكم عذابًا شديدًا.',
   ),
   DailyAyah(
     3,
@@ -122,8 +136,8 @@ const dailyAyahs = <DailyAyah>[
     134,
     'When you are angry',
     'عند الغضب',
-    'Those who give in times of ease and hardship, who hold back their anger and forgive people. And Allah loves those who do good.',
-    'من صفات المتقين: الإنفاق في اليسر والعسر، وكتم الغيظ، والعفو عن الناس، والله يحب المحسنين.',
+    'Who spend [in the cause of Allah] during ease and hardship and who restrain anger and who pardon the people - and Allah loves the doers of good.',
+    'الذين ينفقون أموالهم في اليسر والعسر، والذين يمسكون ما في أنفسهم من الغيظ بالصبر، وإذا قَدَروا عَفَوا عمَّن ظلمهم. وهذا هو الإحسان الذي يحب الله أصحابه.',
   ),
   DailyAyah(
     4,
@@ -131,8 +145,8 @@ const dailyAyahs = <DailyAyah>[
     32,
     'Comparing yourself to others',
     'مقارنة النفس بالآخرين',
-    'Do not wish for what Allah has given some of you over others. Men have a share of what they have earned, and women have a share of what they have earned. And ask Allah of His bounty. Indeed, Allah knows all things.',
-    'لا تتمنّوا ما فضّل الله به غيركم، فلكلٍّ من الرجال والنساء نصيب مما عمل، واسألوا الله من فضله، فهو عليم بكل شيء.',
+    'And do not wish for that by which Allah has made some of you exceed others. For men is a share of what they have earned, and for women is a share of what they have earned. And ask Allah of his bounty. Indeed Allah is ever, of all things, Knowing.',
+    'ولا تتمنوا ما فضَّل الله به بعضكم على بعض، في المواهب والأرزاق وغير ذلك، فقد جعل الله للرجال نصيبًا مقدَّرًا من الجزاء بحسب عملهم، وجعل للنساء نصيبًا مما عملن، واسألوا الله الكريم الوهاب يُعْطِكم مِن فضله بدلًا من التمني. إن الله كان بكل شيء عليمًا، وهو أعلم بما يصلح عباده فيما قسمه لهم من خير.',
   ),
   DailyAyah(
     104,
@@ -140,8 +154,8 @@ const dailyAyahs = <DailyAyah>[
     1,
     'Speaking ill of others',
     'الطعن في الناس',
-    'Woe to everyone who mocks others and speaks ill of them.',
-    'هلاك وعذاب لكل من يعيب الناس ويطعن فيهم بالقول أو بالإشارة.',
+    'Woe to every scorner and mocker.',
+    'شر وهلاك لكل مغتاب للناسِ، طعّان فيهم.',
   ),
   DailyAyah(
     17,
@@ -149,8 +163,8 @@ const dailyAyahs = <DailyAyah>[
     70,
     'Your worth',
     'كرامة الإنسان',
-    'We have honoured the children of Adam, carried them on land and sea, provided them with good things, and favoured them greatly over much of what We have created.',
-    'كرّم الله بني آدم، وسخّر لهم البرّ والبحر، ورزقهم من الطيبات، وفضّلهم على كثير من خلقه.',
+    'And We have certainly honored the children of Adam and carried them on the land and sea and provided for them of the good things and preferred them over much of what We have created, with [definite] preference.',
+    'ولقد كرَّمنا ذرية آدم بالعقل وإرسال الرسل، وسَخَّرنا لهم جميع ما في الكون، وسَخَّرنا لهم الدواب في البر والسفن في البحر لحملهم، ورزقناهم من طيبات المطاعم والمشارب، وفضَّلناهم على كثير من المخلوقات تفضيلًا عظيمًا.',
   ),
   DailyAyah(
     53,
@@ -158,8 +172,8 @@ const dailyAyahs = <DailyAyah>[
     39,
     'Effort',
     'السعي والاجتهاد',
-    'And that a person will have nothing but what they strive for.',
-    'ليس للإنسان إلا ثمرة سعيه وعمله.',
+    'And that there is not for man except that [good] for which he strives.',
+    'أنه لا تؤخذ نفس بمأثم غيرها، ووزرها لا يحمله عنها أحد، وأنه لا يحصل للإنسان من الأجر إلّا ما كسب هو لنفسه بسعيه.',
   ),
   DailyAyah(
     11,
@@ -167,8 +181,8 @@ const dailyAyahs = <DailyAyah>[
     6,
     'Worrying about the future',
     'القلق من المستقبل',
-    'There is no creature on earth whose provision is not with Allah. He knows where it lives and where it is laid to rest. All is in a clear Record.',
-    'رزق كل مخلوق على الأرض قد تكفّل الله به، وهو يعلم مكان استقراره ومكان موته، وكل ذلك مكتوب في كتاب واضح.',
+    'And there is no creature on earth but that upon Allah is its provision, and He knows its place of dwelling and place of storage. All is in a clear register.',
+    'لقد تكفَّل الله برزق جميع ما دبَّ على وجه الأرض، تفضلًا منه، ويعلم مكان استقراره في حياته وبعد موته، ويعلم الموضع الذي يموت فيه، كل ذلك مكتوب في كتاب عند الله مبين عن جميع ذلك.',
   ),
   DailyAyah(
     20,
@@ -176,8 +190,8 @@ const dailyAyahs = <DailyAyah>[
     114,
     'Studying',
     'طلب العلم',
-    'So exalted is Allah, the True King. Do not rush with the Quran before its revelation to you is complete, and say: My Lord, increase me in knowledge.',
-    'تعالى الله الملك الحق. وأمر الله نبيّه ألّا يستعجل بالقرآن قبل تمام وحيه، وأن يقول: ربِّ زدني علمًا.',
+    'So high [above all] is Allah, the Sovereign, the Truth. And, [O Muhammad], do not hasten with [recitation of] the Qur\'an before its revelation is completed to you, and say, "My Lord, increase me in knowledge."',
+    'فتنزَّه الله -سبحانه- وارتفع، وتقدَّس عن كل نقص، الملِكُ الذي قهر سلطانُه كل ملك وجبار، المتصرف بكل شيء، الذي هو حق، ووعده حق، ووعيده حق، وكل شيء منه حق. ولا تعجل -أيها الرسول- بمسابقة جبريل في تَلَقِّي القرآن قبل أن يَفْرَغ منه، وقل: ربِّ زدني علمًا إلى ما علمتني.',
   ),
   DailyAyah(
     31,
@@ -185,8 +199,8 @@ const dailyAyahs = <DailyAyah>[
     18,
     'Humility',
     'التواضع',
-    'Do not turn your face away from people in arrogance, and do not walk proudly on the earth. Indeed, Allah does not love anyone who is arrogant and boastful.',
-    'من وصية لقمان لابنه: لا تُعرض عن الناس تكبّرًا، ولا تمشِ في الأرض مختالًا، فإن الله لا يحب كل متكبّر متفاخر.',
+    'And do not turn your cheek [in contempt] toward people and do not walk through the earth exultantly. Indeed, Allah does not like everyone self-deluded and boastful.',
+    'ولا تُمِلْ وجهك عن الناس إذا كلَّمتهم أو كلموك؛ احتقارًا منك لهم واستكبارًا عليهم، ولا تمش في الأرض بين الناس مختالًا متبخترًا، إن الله لا يحب كل متكبر متباهٍ في نفسه وهيئته وقوله.',
   ),
   DailyAyah(
     3,
@@ -194,8 +208,8 @@ const dailyAyahs = <DailyAyah>[
     139,
     'When you feel sad',
     'عند الحزن',
-    'Do not lose heart and do not grieve, for you will have the upper hand, if you are believers.',
-    'لا تضعفوا ولا تحزنوا، فأنتم الأعلى ما دمتم مؤمنين.',
+    'So do not weaken and do not grieve, and you will be superior if you are [true] believers.',
+    'ولا تَضْعُفوا -أيها المؤمنون- عن قتال عدوكم، ولا تحزنوا لما أصابكم في «أُحد»، وأنتم الغالبون والعاقبة لكم، إن كنتم مصدقين بالله ورسوله، متَّبعين شرعه.',
   ),
   DailyAyah(
     99,
@@ -203,8 +217,8 @@ const dailyAyahs = <DailyAyah>[
     8,
     'Small deeds count',
     'العمل الصغير',
-    'So whoever does an atom\'s weight of good will see it, and whoever does an atom\'s weight of evil will see it.',
-    'كل عمل، ولو كان بوزن ذرّة من خير أو شر، سيراه صاحبه ويُجزى به.',
+    'So whoever does an atom\'s weight of good will see it. (7) And whoever does an atom\'s weight of evil will see it. (8)',
+    'فمن يعمل وزن نملة صغيرة خيرًا، ير ثوابه في الآخرة، ومن يعمل وزن نملة صغيرة شرًّا، ير عقابه في الآخرة.',
   ),
   DailyAyah(
     49,
@@ -212,8 +226,8 @@ const dailyAyahs = <DailyAyah>[
     11,
     'Mocking others',
     'السخرية من الآخرين',
-    'O you who believe, let no people mock another people; they may be better than them. Nor let women mock other women; they may be better than them. Do not find fault with one another or call each other by offensive nicknames. How bad it is to be called wicked after having faith! And whoever does not repent, it is they who are the wrongdoers.',
-    'نهى الله المؤمنين رجالًا ونساءً عن السخرية من غيرهم، فقد يكونون خيرًا منهم، وعن العيب والتنابز بالألقاب السيئة، ومن لم يتب من ذلك فهو من الظالمين.',
+    'O you who have believed, let not a people ridicule [another] people; perhaps they may be better than them; nor let women ridicule [other] women; perhaps they may be better than them. And do not insult one another and do not call each other by [offensive] nicknames. Wretched is the name of disobedience after [one\'s] faith. And whoever does not repent - then it is those who are the wrongdoers.',
+    'يا أيها الذين صدَّقوا الله ورسوله وعملوا بشريعته لا يهزأ قوم مؤمنون من قوم مؤمنين؛ عسى أن يكون المهزوء به منهم خيرًا من الهازئين، ولا يهزأ نساء مؤمنات من نساء مؤمنات؛ عسى أن يكون المهزوء به منهنَّ خيرًا من الهازئات، ولا يَعِبْ بعضكم بعضًا، ولا يَدْعُ بعضكم بعضًا بما يكره من الألقاب، بئس الصفة والاسم الفسوق، وهو السخرية واللمز والتنابز بالألقاب، بعد ما دخلتم في الإسلام وعقلتموه، ومن لم يتب من هذه السخرية واللمز والتنابز والفسوق فأولئك هم الذين ظلموا أنفسهم بارتكاب هذه المناهي.',
   ),
   DailyAyah(
     2,
@@ -221,8 +235,8 @@ const dailyAyahs = <DailyAyah>[
     45,
     'Prayer',
     'الصلاة',
-    'And seek help through patience and prayer. It is indeed hard, except for those who are humble before Allah.',
-    'استعينوا على أموركم بالصبر والصلاة، وهي ثقيلة إلا على الخاشعين لله.',
+    'And seek help through patience and prayer, and indeed, it is difficult except for the humbly submissive [to Allah].',
+    'واستعينوا في كل أموركم بالصبر بجميع أنواعه، وكذلك الصلاة. وإنها لشاقة إلا على الخاشعين، الذين يخشون الله ويرجون ما عنده، ويوقنون أنهم ملاقو ربِّهم جلَّ وعلا بعد الموت، وأنهم إليه راجعون يوم القيامة للحساب والجزاء.',
   ),
   DailyAyah(
     103,
@@ -230,8 +244,8 @@ const dailyAyahs = <DailyAyah>[
     3,
     'Your time',
     'قيمة الوقت',
-    'By time, indeed, mankind is in loss, except those who believe, do good deeds, and urge one another to the truth and to patience.',
-    'أقسم الله بالزمن أن كل إنسان في خسارة، إلا من آمن وعمل الصالحات، وأوصى غيره بالحق والصبر.',
+    'By time. (1) Indeed, mankind is in loss. (2) Except for those who have believed and done righteous deeds and advised each other to truth and advised each other to patience. (3)',
+    'أقسم الله بالدهر؛ لما فيه من عجائب قدرة الله الدالَّة على عظمته، على أن بني آدم لفي هَلَكة ونقصان. ولا يجوز للعبد أن يقسم إلا بالله؛ فإن القسم بغير الله شرك. إلا الذين آمنوا بالله وعملوا عملًا صالحًا، وأوصى بعضهم بعضًا بالاستمساك بالحق، والعمل بطاعة الله، والصبر على ذلك.',
   ),
   DailyAyah(
     33,
@@ -239,8 +253,8 @@ const dailyAyahs = <DailyAyah>[
     3,
     'Trusting Allah',
     'التوكّل على الله',
-    'And put your trust in Allah. Allah is enough as a Guardian.',
-    'الاعتماد على الله في كل الأمور، وكفى به وكيلًا يدبّرها.',
+    'And rely upon Allah; and sufficient is Allah as Disposer of affairs.',
+    'واعتمد على ربك، وفَوِّضْ جميع أمورك إليه، وحسبك به حافظًا لمن توكل عليه وأناب إليه.',
   ),
   DailyAyah(
     51,
@@ -248,8 +262,8 @@ const dailyAyahs = <DailyAyah>[
     56,
     'Your purpose',
     'غاية الحياة',
-    'I did not create jinn and humans except to worship Me.',
-    'خلق الله الجن والإنس لغاية واحدة: أن يعبدوه.',
+    'And I did not create the jinn and mankind except to worship Me.',
+    'وما خلقت الجن والإنس وبعثت جميع الرسل إلا لغاية سامية، هي عبادتي وحدي دون مَن سواي.',
   ),
   DailyAyah(
     25,
@@ -257,8 +271,8 @@ const dailyAyahs = <DailyAyah>[
     63,
     'When people are rude',
     'مع من يسيء الكلام',
-    'The servants of the Most Merciful are those who walk on the earth gently, and when the ignorant speak to them harshly, they reply with words of peace.',
-    'عباد الرحمن يمشون بسكينة وتواضع، وإذا خاطبهم الجاهلون بسوء ردّوا عليهم بكلام سليم من الأذى.',
+    'And the servants of the Most Merciful are those who walk upon the earth easily, and when the ignorant address them [harshly], they say [words of] peace.',
+    'وعباد الرحمن الصالحون يمشون على الأرض بسكينة متواضعين، وإذا خاطبهم الجهلة السفهاء بالأذى أجابوهم بالمعروف من القول، وخاطبوهم خطابًا يَسْلَمون فيه من الإثم، ومن مقابلة الجاهل بجهله.',
   ),
   DailyAyah(
     23,
@@ -266,8 +280,8 @@ const dailyAyahs = <DailyAyah>[
     8,
     'Keeping promises',
     'الوفاء بالوعد',
-    'And those who are faithful to their trusts and their promises.',
-    'من صفات المؤمنين المفلحين أنهم يحفظون الأمانات ويوفون بالعهود.',
+    'And they who are to their trusts and their promises attentive.',
+    'والذين هم حافظون لكل ما اؤتمنوا عليه، موفُّون بكل عهودهم.',
   ),
   DailyAyah(
     41,
@@ -275,8 +289,8 @@ const dailyAyahs = <DailyAyah>[
     34,
     'Answering bad with good',
     'الردّ بالإحسان',
-    'Good and evil are not equal. Respond to evil with what is better, and then the one with whom you had enmity will become like a close friend.',
-    'لا يستوي الخير والشر. ادفع الإساءة بالإحسان، فيصبح من بينك وبينه عداوة كأنه صديق قريب.',
+    'And not equal are the good deed and the bad. Repel [evil] by that [deed] which is better; and thereupon the one whom between you and him is enmity [will become] as though he was a devoted friend.',
+    'ولا تستوي حسنة الذين آمنوا بالله واستقاموا على شرعه، وأحسنوا إلى خلقه، وسيئة الذين كفروا به وخالفوا أمره، وأساؤوا إلى خلقه. ادفع -أيها الرسول- بعفوك وحلمك وإحسانك مَن أساء إليك، وقابِل إساءته لك بالإحسان إليه، فبذلك يصير المسيء إليك الذي بينك وبينه عداوة كأنه محبٌّ مناصر لك وقريب شفيق عليك. وما يُوفَّق لهذه الخَصْلة الحميدة إلا الذين صبروا على المكاره والأذى، وحملوا أنفسَهم على ما يحبه الله، وما يُوفَّق لها إلا ذو نصيب وافر من السعادة في الدنيا والآخرة.',
   ),
   DailyAyah(
     9,
@@ -284,8 +298,8 @@ const dailyAyahs = <DailyAyah>[
     51,
     'Worrying about results',
     'القلق من النتائج',
-    'Say: Nothing will happen to us except what Allah has decreed for us. He is our Protector. And in Allah let the believers put their trust.',
-    'لن يصيبنا إلا ما كتبه الله لنا، فهو مولانا، وعليه يتوكّل المؤمنون.',
+    'Say, "Never will we be struck except by what Allah has decreed for us; He is our protector." And upon Allah let the believers rely.',
+    'قل -أيها النبي- لهؤلاء المتخاذلين زجرًا لهم وتوبيخًا: لن يصيبنا إلا ما قدَّره الله علينا وكتبه في اللوح المحفوظ، هو ناصرنا على أعدائنا، وعلى الله وحده فليعتمد المؤمنون به.',
   ),
   DailyAyah(
     33,
@@ -293,8 +307,8 @@ const dailyAyahs = <DailyAyah>[
     70,
     'Honest words',
     'القول الصادق',
-    'O you who believe, be mindful of Allah and speak words that are right.',
-    'يا أيها المؤمنون، اتقوا الله وقولوا قولًا صادقًا مستقيمًا.',
+    'O you who have believed, fear Allah and speak words of appropriate justice.',
+    'يا أيها الذين صدَّقوا الله ورسوله وعملوا بشرعه، اعملوا بطاعته، واجتنبوا معصيته؛ لئلا تستحقوا بذلك العقاب، وقولوا في جميع أحوالكم وشؤونكم قولًا مستقيمًا موافقًا للصواب خاليًا من الكذب والباطل.',
   ),
   DailyAyah(
     7,
@@ -302,8 +316,8 @@ const dailyAyahs = <DailyAyah>[
     31,
     'Not wasting',
     'عدم الإسراف',
-    'O children of Adam, wear your good clothing at every place of prayer, and eat and drink, but do not waste. Indeed, He does not love those who waste.',
-    'يا بني آدم، البسوا أحسن ثيابكم عند كل صلاة، وكلوا واشربوا دون إسراف، فإن الله لا يحب المسرفين.',
+    'O children of Adam, take your adornment at every masjid, and eat and drink, but be not excessive. Indeed, He likes not those who commit excess.',
+    'يا بني آدم كونوا عند أداء كل صلاة على حالة من الزينة المشروعة، من ثياب ساترة لعوراتكم ونظافة وطهارة ونحو ذلك، وكلوا واشربوا من طيبات ما رزقكم الله، ولا تتجاوزوا حدود الاعتدال في ذلك. إن الله لا يحب المتجاوزين المسرفين في الطعام والشراب، وغير ذلك.',
   ),
   DailyAyah(
     4,
@@ -311,8 +325,8 @@ const dailyAyahs = <DailyAyah>[
     110,
     'Asking forgiveness',
     'الاستغفار',
-    'Whoever does wrong or wrongs themselves and then asks Allah for forgiveness will find Allah Forgiving and Merciful.',
-    'من عمل سوءًا أو ظلم نفسه ثم استغفر الله، وجد الله غفورًا رحيمًا.',
+    'And whoever does a wrong or wrongs himself but then seeks forgiveness of Allah will find Allah Forgiving and Merciful.',
+    'ومن يُقْدِمْ على عمل سيِّئ قبيح، أو يظلم نفسه بارتكاب ما يخالف حكم الله وشرعه، ثم يرجع إلى الله نادمًا على ما عمل، راجيًا مغفرته وستر ذنبه، يجد الله تعالى غفورًا له، رحيمًا به.',
   ),
   DailyAyah(
     50,
@@ -320,8 +334,8 @@ const dailyAyahs = <DailyAyah>[
     16,
     'Allah knows your heart',
     'الله يعلم ما في القلب',
-    'We created man, and We know what his soul whispers to him, and We are closer to him than his jugular vein.',
-    'خلق الله الإنسان ويعلم ما تحدّثه به نفسه، وهو أقرب إليه من حبل الوريد بعلمه.',
+    'And We have already created man and know what his soul whispers to him, and We are closer to him than [his] jugular vein.',
+    'ولقد خلقنا الإنسان، ونعلم ما تُحَدِّث به نفسه، ونحن أقرب إليه من حبل الوريد، وهو عِرْق في العنق متصل بالقلب.',
   ),
   DailyAyah(
     1,
@@ -330,7 +344,7 @@ const dailyAyahs = <DailyAyah>[
     'When you feel lost',
     'حين الحيرة',
     'Guide us to the straight path.',
-    'دعاء نكرّره في كل صلاة: أن يدلّنا الله على الطريق المستقيم ويثبّتنا عليه.',
+    'دُلَّنا وأرشدنا، ووفقنا إلى الطريق المستقيم، وثبتنا عليه حتى نلقاك، وهو الإسلام الذي هو الطريق الواضح الموصل إلى رضوان الله وإلى جنته، الذي دلَّ عليه خاتم رسله وأنبيائه محمد ﷺ، فلا سبيل إلى سعادة العبد إلا بالاستقامة عليه.',
   ),
   DailyAyah(
     67,
@@ -338,8 +352,8 @@ const dailyAyahs = <DailyAyah>[
     2,
     'Life\'s tests',
     'اختبارات الحياة',
-    'He is the One who created death and life to test you, as to which of you is best in deeds. And He is the Almighty, the Forgiving.',
-    'خلق الله الموت والحياة ليختبرنا: أيّنا أحسن عملًا، وهو العزيز الغفور.',
+    '[He] who created death and life to test you [as to] which of you is best in deed - and He is the Exalted in Might, the Forgiving.',
+    'الذي خلق الموت والحياة؛ ليختبركم -أيها الناس-: أيكم خيرٌ عملًا وأخلصه؟ وهو العزيز الذي لا يعجزه شيء، الغفور لمن تاب من عباده. وفي الآية ترغيب في فعل الطاعات، وزجر عن اقتراف المعاصي.',
   ),
   DailyAyah(
     49,
@@ -347,8 +361,8 @@ const dailyAyahs = <DailyAyah>[
     10,
     'Making peace',
     'الإصلاح بين الناس',
-    'The believers are but brothers, so make peace between your brothers, and be mindful of Allah so that you may receive mercy.',
-    'المؤمنون إخوة، فأصلحوا بين المتخاصمين منهم، واتقوا الله لعلكم تُرحمون.',
+    'The believers are but brothers, so make settlement between your brothers. And fear Allah that you may receive mercy.',
+    'إنما المؤمنون إخوة في الدِّين، فأصلحوا بين أخويكم إذا اقتتلا، وخافوا الله في جميع أموركم؛ رجاء أن تُرحموا.',
   ),
   DailyAyah(
     2,
@@ -356,8 +370,8 @@ const dailyAyahs = <DailyAyah>[
     201,
     'A dua for every day',
     'دعاء لكل يوم',
-    'And among them are those who say: Our Lord, give us good in this world and good in the Hereafter, and protect us from the punishment of the Fire.',
-    'من الناس من يدعو: ربنا أعطنا خير الدنيا وخير الآخرة، وأنقذنا من عذاب النار.',
+    'But among them is he who says, "Our Lord, give us in this world [that which is] good and in the Hereafter [that which is] good and protect us from the punishment of the Fire."',
+    'ومن الناس فريق مؤمن يقول في دعائه: ربنا آتنا في الدنيا عافية ورزقًا وعلمًا نافعًا، وعملًا صالحًا، وغير ذلك من أمور الدين والدنيا، وفي الآخرة الجنة، واصرف عنّا عذاب النار. وهذا الدعاء من أجمع الأدعية، ولهذا كان أكثر دعاء النبي ﷺ، كما ثبت في الصحيحين.',
   ),
   DailyAyah(
     29,
@@ -365,8 +379,8 @@ const dailyAyahs = <DailyAyah>[
     69,
     'Keep trying',
     'المثابرة',
-    'As for those who strive hard for Our sake, We will surely guide them to Our ways. And indeed, Allah is with those who do good.',
-    'الذين يجتهدون في سبيل الله يهديهم الله إلى طرق الخير، والله مع المحسنين.',
+    'And those who strive for Us - We will surely guide them to Our ways. And indeed, Allah is with the doers of good.',
+    'والمؤمنون الذين جاهدوا أعداء الله، والنفس، والشيطان، وصبروا على الفتن والأذى في سبيل الله، سيهديهم الله سبل الخير، ويثبتهم على الصراط المستقيم، ومَن هذه صفته فهو محسن إلى نفسه وإلى غيره. وإن الله سبحانه وتعالى لمع مَن أحسن مِن خَلْقِه بالنصرة والتأييد والحفظ والهداية.',
   ),
   DailyAyah(
     9,
@@ -374,8 +388,8 @@ const dailyAyahs = <DailyAyah>[
     119,
     'Honesty',
     'الصدق',
-    'O you who believe, be mindful of Allah and be with those who are truthful.',
-    'يا أيها المؤمنون، اتقوا الله وكونوا مع الصادقين في أقوالهم وأفعالهم.',
+    'O you who have believed, fear Allah and be with those who are true.',
+    'يا أيها الذين صدَّقوا الله ورسوله وعملوا بشرعه امتثلوا أوامر الله واجتنبوا نواهيه في كل ما تفعلون وتتركون، وكونوا مع الصادقين في أَيمانهم وعهودهم، وفي كل شأن من شؤونهم.',
   ),
   DailyAyah(
     17,
@@ -383,8 +397,8 @@ const dailyAyahs = <DailyAyah>[
     82,
     'The Quran heals',
     'القرآن شفاء',
-    'And We send down in the Quran what is healing and mercy for the believers, while it only increases the wrongdoers in loss.',
-    'في القرآن شفاء للقلوب ورحمة للمؤمنين، ولا يزيد الظالمين إلا خسارة.',
+    'And We send down of the Qur\'an that which is healing and mercy for the believers, but it does not increase the wrongdoers except in loss.',
+    'وننزل من آيات القرآن العظيم ما يشفي القلوب مِنَ الأمراض، كالشك والنفاق والجهالة، وما يشفي الأبدان برُقْيتها به، وما يكون سببًا للفوز برحمة الله بما فيه من الإيمان، ولا يزيد هذا القرآن الكفار عند سماعه إلا كفرًا وضلالًا؛ لتكذيبهم به وعدم إيمانهم.',
   ),
   DailyAyah(
     17,
@@ -392,8 +406,8 @@ const dailyAyahs = <DailyAyah>[
     53,
     'Choosing your words',
     'اختيار الكلمات',
-    'And tell My servants to say what is best. Indeed, Satan sows discord among them. Indeed, Satan is to man a clear enemy.',
-    'أمر الله عباده أن يقولوا أحسن الكلام، لأن الشيطان يفسد بينهم، وهو عدو واضح للإنسان.',
+    'And tell My servants to say that which is best. Indeed, Satan induces [dissension] among them. Indeed Satan is ever, to mankind, a clear enemy.',
+    'وقل لعبادي المؤمنين يقولوا في تخاطبهم وتحاورهم الكلام الحسن الطيب؛ فإنهم إن لم يفعلوا ذلك ألقى الشيطان بينهم العداوة والفساد والخصام. إن الشيطان كان للإنسان عدوًّا ظاهر العداوة.',
   ),
   DailyAyah(
     2,
@@ -401,8 +415,8 @@ const dailyAyahs = <DailyAyah>[
     152,
     'Remembering Allah',
     'ذكر الله',
-    'So remember Me; I will remember you. And be grateful to Me, and do not be ungrateful.',
-    'اذكروا الله يذكركم، واشكروه على نعمه ولا تجحدوها.',
+    'So remember Me; I will remember you. And be grateful to Me and do not deny Me.',
+    'أمر تعالى المؤمنين بذكره، ووعد عليه أفضل الجزاء، وهو الثناء في الملأ الأعلى على مَن ذكره، وخُصُّوني -أيها المؤمنون- بالشكر قولًا وعملًا، ولا تجحدوا نعميَ عليكم.',
   ),
   DailyAyah(
     11,
@@ -410,8 +424,8 @@ const dailyAyahs = <DailyAyah>[
     114,
     'Starting again',
     'بداية جديدة',
-    'And establish prayer at the two ends of the day and in some hours of the night. Indeed, good deeds wipe away bad deeds. That is a reminder for those who remember.',
-    'أقم الصلاة في أول النهار وآخره وفي ساعات من الليل، فإن الحسنات تمحو السيئات، وهذه موعظة للمتّعظين.',
+    'And establish prayer at the two ends of the day and at the approach of the night. Indeed, good deeds do away with misdeeds. That is a reminder for those who remember.',
+    'وأدِّ الصلاة -أيها النبي- على أتمِّ وجه، طَرَفَي النهار في الصباح والمساء، وفي ساعات من الليل. إنَّ فِعْلَ الخيرات يكفِّر الذنوب السالفة ويمحو آثارها، والأمر بإقامة الصلاة وبيان أن الحسنات يذهبن السيئات، موعظة لمن اتعظ بها وتذكر.',
   ),
   DailyAyah(
     21,
@@ -419,7 +433,7 @@ const dailyAyahs = <DailyAyah>[
     107,
     'Mercy to everyone',
     'الرحمة بالجميع',
-    'And We have not sent you except as a mercy to all the worlds.',
-    'أرسل الله نبيّه محمدًا صلى الله عليه وسلم رحمةً للعالمين جميعًا.',
+    'And We have not sent you, [O Muhammad], except as a mercy to the worlds.',
+    'وما أرسلناك -أيها الرسول- إلا رحمة لجميع الناس، فمن آمن بك سَعِد ونجا، ومن لم يؤمن خاب وخسر.',
   ),
 ];

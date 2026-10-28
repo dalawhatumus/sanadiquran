@@ -118,7 +118,7 @@ class TeachersRow extends ConsumerWidget {
           children: [
             Expanded(child: WordSafeText(s.teachersTitle, style: tt.titleLarge)),
             TextButton(
-              onPressed: () => context.push(Routes.teachers),
+              onPressed: () => context.go(Routes.studentTeachers),
               style: TextButton.styleFrom(minimumSize: const Size(kMinTap, kMinTap)),
               child: Text(
                 s.seeAll,
@@ -159,7 +159,7 @@ class _TeacherCard extends ConsumerWidget {
     return SizedBox(
       width: 172,
       child: SCard(
-        onTap: () => context.push(Routes.teachers),
+        onTap: () => context.go(Routes.studentTeachers),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,9 +44,6 @@ final autoScrollSpeedProvider = NotifierProvider<AutoScrollSpeed, int>(AutoScrol
 /// Large text: how far the text moves each second.
 double autoScrollPixels(int speed) => 6.0 + (speed - 1) * 4;
 
-/// Mushaf pages: how long each page stays before turning.
-Duration autoTurnAfter(int speed) => Duration(seconds: 150 - (speed - 1) * 12);
-
 /// 39 · The mushaf. Mushaf page mode shows the exact Madani 15-line pages
 /// (two side by side on wide landscape screens); Large text mode reflows the
 /// text in big type. Tap the page to show or hide the bars; long-press an
@@ -75,14 +71,11 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   bool? _spreadMode;
   Timer? _hide;
 
-  // Auto scroll: the text moves (large text) or pages turn (mushaf pages)
-  // by themselves, at the chosen speed, until stopped.
+  // Auto scroll (large text only, where the text scrolls): the text moves
+  // by itself at the chosen speed until stopped.
   bool _auto = false;
   bool _autoPaused = false;
   final _autoPx = ValueNotifier<double>(0);
-  final _autoProgress = ValueNotifier<double>(0);
-  Timer? _autoTimer;
-  int _autoMs = 0;
 
   @override
   void initState() {
@@ -110,10 +103,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   @override
   void dispose() {
-    _autoTimer?.cancel();
     if (_auto) _keepScreenOn(false);
     _autoPx.dispose();
-    _autoProgress.dispose();
     _hide?.cancel();
     _pc?.dispose();
     _page.dispose();
@@ -131,9 +122,6 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   void _onPage(int p) {
     if (p == _page.value) return;
-    // A new page gets its full time before the next turn.
-    _autoMs = 0;
-    _autoProgress.value = 0;
     _page.value = p;
     ref.read(lastPageProvider.notifier).set(p);
     if (_selAyah != null) _clearSelection();
@@ -188,17 +176,13 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       // Out of the way of the text; a tap brings the controls back.
       _chrome = false;
     });
-    _autoMs = 0;
     _keepScreenOn(true);
     _applyAuto();
   }
 
   void _stopAuto() {
     if (!_auto) return;
-    _autoTimer?.cancel();
-    _autoTimer = null;
     _autoPx.value = 0;
-    _autoProgress.value = 0;
     _keepScreenOn(false);
     if (mounted) setState(() => _auto = false);
   }
@@ -214,33 +198,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     _applyAuto();
   }
 
-  /// Sets the large text speed, or runs the page timer, for the mode and
-  /// speed now chosen.
+  /// Sets the text's speed for the speed now chosen (still while paused).
   void _applyAuto() {
     final running = _auto && !_autoPaused;
-    final speed = ref.read(autoScrollSpeedProvider);
-    final large = ref.read(settingsProvider).mushafMode == MushafMode.large;
-    _autoPx.value = running && large ? autoScrollPixels(speed) : 0;
-    _autoTimer?.cancel();
-    _autoTimer = null;
-    if (!running || large) return;
-    const step = Duration(milliseconds: 250);
-    _autoTimer = Timer.periodic(step, (_) {
-      // Two pages side by side stay twice as long.
-      final total = autoTurnAfter(ref.read(autoScrollSpeedProvider)).inMilliseconds * ((_spreadMode ?? false) ? 2 : 1);
-      _autoMs += step.inMilliseconds;
-      _autoProgress.value = (_autoMs / total).clamp(0, 1);
-      if (_autoMs < total) return;
-      _autoMs = 0;
-      final last = (_spreadMode ?? false)
-          ? (_page.value - 1) ~/ 2 >= QuranData.pageCount ~/ 2 - 1
-          : _page.value >= QuranData.pageCount;
-      if (last) {
-        _stopAuto();
-      } else {
-        _turn(1);
-      }
-    });
+    _autoPx.value = running ? autoScrollPixels(ref.read(autoScrollSpeedProvider)) : 0;
   }
 
   /// Recites from [from], or from the selected ayah, or from the top of
@@ -325,7 +286,6 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   }
 
   Widget _body(BuildContext context, QuranData q) {
-    final t = context.t;
     final mode = ref.watch(settingsProvider.select((x) => x.mushafMode));
     final size = MediaQuery.sizeOf(context);
     final landscape = size.width > size.height;
@@ -421,41 +381,27 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
             // The pages reopen where Large text was left.
             _dropController();
             setState(() => _jump++);
-            if (_auto) WidgetsBinding.instance.addPostFrameCallback((_) => _applyAuto());
+            // Mushaf pages don't scroll, so auto scroll stops there.
+            _stopAuto();
           },
           onGoTo: () => _showGoTo(context, q),
         ),
-        if (_auto) ...[
-          // A thin line showing when the page will turn, clear of the text.
-          if (!_chrome && mode == MushafMode.page)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: SafeArea(
-                top: false,
-                child: ValueListenableBuilder<double>(
-                  valueListenable: _autoProgress,
-                  builder: (_, v, _) => LinearProgressIndicator(
-                    value: v,
-                    minHeight: 3,
-                    backgroundColor: Colors.transparent,
-                    color: t.primary.withValues(alpha: 0.6),
-                  ),
-                ),
-              ),
-            ),
+        if (_auto)
           _AutoScrollBar(
             visible: _chrome && _selAyah == null,
             paused: _autoPaused,
-            progress: mode == MushafMode.page ? _autoProgress : null,
             onPause: _pauseAuto,
             onSlower: () => _autoSpeed(-1),
             onFaster: () => _autoSpeed(1),
             onStop: _stopAuto,
+          )
+        else
+          _BottomBar(
+            visible: _chrome && _selAyah == null,
+            onPlay: () => _play(q),
+            // Only large text scrolls; mushaf pages are turned by hand.
+            onAuto: mode == MushafMode.large ? _startAuto : null,
           ),
-        ] else
-          _BottomBar(visible: _chrome && _selAyah == null, onPlay: () => _play(q), onAuto: _startAuto),
         if (_selAyah != null)
           _AyahToolbar(
             ayah: _selAyah!,

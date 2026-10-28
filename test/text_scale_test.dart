@@ -50,7 +50,8 @@ void main() {
     Routes.studentHome,
     Routes.studentQuran,
     Routes.studentAthkar,
-    Routes.studentMessages,
+    Routes.studentTeachers,
+    Routes.messages,
     '/chat/demo-chat',
     '${Routes.athkar}/morning',
     '${Routes.athkar}/tasbeeh',
@@ -65,7 +66,6 @@ void main() {
     Routes.about,
     Routes.blocked,
     Routes.terms,
-    Routes.teachers,
     Routes.codeOfConduct,
     Routes.mushafAt(sura: 67, ayah: 1),
     Routes.welcome,
@@ -164,7 +164,7 @@ void main() {
             }
           }
           // Leave no pending timers behind.
-          router.go(role == 'student' ? Routes.studentMessages : Routes.teacherStudents);
+          router.go(role == 'student' ? Routes.studentAthkar : Routes.teacherStudents);
           await tester.pump(const Duration(seconds: 6));
         });
       }

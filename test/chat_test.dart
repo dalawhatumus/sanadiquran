@@ -53,12 +53,15 @@ void main() {
       await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const SanadiApp()));
       await tester.pump(const Duration(milliseconds: 1400));
       final router = GoRouter.of(tester.element(find.byType(Navigator).first));
-      router.go(Routes.studentMessages);
+      router.go(Routes.studentTeachers);
       await tester.pumpAndSettle();
 
-      // One unread message: badge on the tab and on the conversation.
+      // One unread message: a badge on the Teachers tab and on its Messages
+      // button, which opens the conversations.
       expect(container.read(unreadTotalProvider), 1);
-      expect(find.byType(Badge), findsOneWidget);
+      expect(find.byType(Badge), findsNWidgets(2));
+      await tester.tap(find.byKey(const ValueKey('messages-button')));
+      await tester.pumpAndSettle();
       expect(find.text('Aisha Rahman'), findsOneWidget);
       expect(overlappingText(tester), isEmpty);
 

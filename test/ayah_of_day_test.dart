@@ -36,13 +36,38 @@ void main() {
       }
       expect(d.themeEn.trim(), isNotEmpty);
       expect(d.themeAr.trim(), isNotEmpty);
-      expect(d.meaningEn.trim(), isNotEmpty);
-      expect(d.meaningAr.trim(), isNotEmpty);
+      expect(d.translationEn.trim(), isNotEmpty);
+      expect(d.tafsirAr.trim(), isNotEmpty);
+      // Only the tafsir itself (no surah introductions from the copy it came from).
+      expect(d.tafsirAr, isNot(contains('تسمية السورة')), reason: key);
+      expect(d.tafsirAr, isNot(contains('[التفسير]')), reason: key);
       // Arabic meanings are in Arabic, English ones in English.
-      expect(RegExp('[a-zA-Z]').hasMatch(d.meaningAr), isFalse, reason: key);
-      expect(RegExp('[ء-ي]').hasMatch(d.meaningEn), isFalse, reason: key);
+      expect(RegExp('[a-zA-Z]').hasMatch(d.tafsirAr), isFalse, reason: key);
+      expect(RegExp('[ء-ي]').hasMatch(d.translationEn), isFalse, reason: key);
+      // Each ayah ends as Saheeh International prints it.
+      expect(d.translationEn, matches(RegExp(r'''[.!?"')]$''')), reason: key);
       expect(ayahText(quran, d), isNotEmpty);
     }
+  });
+
+  test('the translations are the trusted ones, with their source named', () {
+    final hearts = dailyAyahs.firstWhere((d) => d.sura == 13 && d.from == 28);
+    expect(
+      hearts.translationEn,
+      'Those who have believed and whose hearts are assured by the remembrance of Allah. '
+      'Unquestionably, by the remembrance of Allah hearts are assured.',
+    );
+    expect(hearts.tafsirAr, startsWith('ويهدي الذين تسكن قلوبهم بتوحيد الله وذكره'));
+    final ease = dailyAyahs.firstWhere((d) => d.sura == 94);
+    expect(
+      ease.translationEn,
+      'For indeed, with hardship [will be] ease. (5) Indeed, with hardship [will be] ease. (6)',
+    );
+    // A joint explanation of two ayahs is shown once.
+    expect(ease.tafsirAr, 'فلا يَثْنِكَ أذى أعدائك عن نشر الرسالة؛ فإن مع الضيق فرجًا، إن مع الضيق فرجًا.');
+    expect(const S(ar: false, female: true).ayahMeaningNote, contains('Saheeh International'));
+    expect(const S(ar: true, female: true).ayahMeaningNote, contains('التفسير الميسّر'));
+    expect(const S(ar: true, female: true).ayahMeaningNote, contains('مجمع الملك فهد'));
   });
 
   test('one ayah a day, the same all day, a different one tomorrow', () {

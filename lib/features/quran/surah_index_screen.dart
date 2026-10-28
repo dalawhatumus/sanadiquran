@@ -8,13 +8,28 @@ import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
 import 'quran_data.dart';
+import 'surah_search.dart';
 
-/// Quran tab: Surahs (with juz' markers), Juz' and Bookmarks.
-class SurahIndexScreen extends ConsumerWidget {
+/// Quran tab: a surah search, then Surahs (with juz' markers), Juz' and
+/// Bookmarks.
+class SurahIndexScreen extends ConsumerStatefulWidget {
   const SurahIndexScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SurahIndexScreen> createState() => _SurahIndexScreenState();
+}
+
+class _SurahIndexScreenState extends ConsumerState<SurahIndexScreen> {
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final s = S.of(context);
     final t = context.t;
     final tt = Theme.of(context).textTheme;
@@ -48,45 +63,117 @@ class SurahIndexScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              MediaQuery.withClampedTextScaling(
-                maxScaleFactor: 1.3,
-                child: TabBar(
-                  labelColor: t.primary,
-                  unselectedLabelColor: t.muted,
-                  indicatorColor: t.primary,
-                  indicatorWeight: 3,
-                  labelStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  tabs: [
-                    Tab(height: kMinTap, child: WordSafeText(s.surahs, maxLines: 1)),
-                    Tab(height: kMinTap, child: WordSafeText(s.juzTab, maxLines: 1)),
-                    Tab(
-                      height: kMinTap,
-                      child: Semantics(
-                        label: s.bookmarks,
-                        excludeSemantics: true,
-                        child: const Icon(Icons.bookmarks_rounded, size: 28),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: quran.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text('$e')),
-                  data: (q) => TabBarView(
-                    children: [
-                      _SurahList(q: q),
-                      _JuzList(q: q),
-                      _BookmarkList(q: q),
-                    ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: TextField(
+                  key: const ValueKey('surah-search'),
+                  controller: _search,
+                  onChanged: (_) => setState(() {}),
+                  textInputAction: TextInputAction.search,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: t.text),
+                  decoration: InputDecoration(
+                    hintText: s.searchSurah,
+                    prefixIcon: Icon(Icons.search_rounded, color: t.muted, size: 28),
+                    suffixIcon: _search.text.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: s.clear,
+                            icon: Icon(Icons.close_rounded, color: t.muted, size: 26),
+                            onPressed: () => setState(_search.clear),
+                          ),
                   ),
                 ),
               ),
+              if (_search.text.trim().isNotEmpty)
+                Expanded(
+                  child: quran.when(
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(child: Text('$e')),
+                    data: (q) => _SearchResults(q: q, query: _search.text),
+                  ),
+                )
+              else ...[
+                MediaQuery.withClampedTextScaling(
+                  maxScaleFactor: 1.3,
+                  child: TabBar(
+                    labelColor: t.primary,
+                    unselectedLabelColor: t.muted,
+                    indicatorColor: t.primary,
+                    indicatorWeight: 3,
+                    labelStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    tabs: [
+                      Tab(height: kMinTap, child: WordSafeText(s.surahs, maxLines: 1)),
+                      Tab(height: kMinTap, child: WordSafeText(s.juzTab, maxLines: 1)),
+                      Tab(
+                        height: kMinTap,
+                        child: Semantics(
+                          label: s.bookmarks,
+                          excludeSemantics: true,
+                          child: const Icon(Icons.bookmarks_rounded, size: 28),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: quran.when(
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(child: Text('$e')),
+                    data: (q) => TabBarView(
+                      children: [
+                        _SurahList(q: q),
+                        _JuzList(q: q),
+                        _BookmarkList(q: q),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Surahs matching the search, best first, and the page with that number
+/// when a number is typed.
+class _SearchResults extends StatelessWidget {
+  const _SearchResults({required this.q, required this.query});
+
+  final QuranData q;
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final t = context.t;
+    final tt = Theme.of(context).textTheme;
+    final found = searchSurahs(q, query);
+    final digits = query.trim().replaceAllMapped(RegExp('[٠-٩]'), (m) => '${m[0]!.codeUnitAt(0) - 0x0660}');
+    final page = RegExp(r'^[0-9]{1,3}$').hasMatch(digits) ? int.parse(digits) : null;
+    final showPage = page != null && page >= 1 && page <= QuranData.pageCount;
+    if (found.isEmpty && !showPage) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(s.noSurahFound, style: tt.bodyLarge, textAlign: TextAlign.center),
+      );
+    }
+    return ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.only(bottom: 24),
+      children: [
+        for (final sura in found) SurahTile(sura: sura),
+        if (showPage)
+          ListTile(
+            minTileHeight: kMinTap + 8,
+            leading: Icon(Icons.menu_book_rounded, color: t.primary, size: 30),
+            title: WordSafeText(s.page(page), style: tt.titleMedium!.copyWith(color: t.heading)),
+            trailing: Icon(Arrows.next, color: t.primary, size: 30),
+            onTap: () => context.push(Routes.mushafAt(page: page)),
+          ),
+      ],
     );
   }
 }
