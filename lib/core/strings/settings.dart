@@ -1,7 +1,29 @@
 part of '../strings.dart';
 
-/// Settings, help, the privacy policy and profile pictures.
+/// Settings (language, appearance, account), help, the privacy policy and profile pictures.
 extension SettingsStrings on S {
+  // ---- Settings: language, appearance, account, testing ----
+  String get language => t('Language', 'اللغة');
+  String get appearance => t('Appearance', 'المظهر');
+  String get themeSystem => t('Same as phone', 'مثل الهاتف');
+  String get themeLight => t('Light', 'فاتح');
+  String get themeDark => t('Dark', 'داكن');
+  String get account => t('Account', 'الحساب');
+  String get signOut => t('Sign out', 'تسجيل الخروج');
+  String get signOutQ => t('Sign out of Sanadi?', 'تسجيل الخروج من سَنَدي؟');
+  String get testing => t('Testing tools', 'أدوات التجربة');
+  String get testingNote => t(
+    'Only in test builds. These let you try every screen before the backend is ready.',
+    'في النسخ التجريبية فقط، لتجربة كل الشاشات قبل تجهيز الخادم.',
+  );
+  String get switchRole => t('Switch to teacher / student', 'التبديل بين معلّم وطالب');
+  String get approveApp => t('Approve my application', 'الموافقة على طلبي');
+  String get rejectApp => t('Reject my application', 'رفض طلبي');
+  String get resetApp => t('Start again from the beginning', 'البدء من جديد');
+  String get version => t('Version', 'الإصدار');
+  String get serverLive => t('Connected: your profile is saved online', 'متصل: ملفك محفوظ على الإنترنت');
+  String get serverDemo => t('Demo mode: nothing is saved online yet', 'وضع التجربة: لا يُحفظ شيء على الإنترنت بعد');
+
   // ---- Settings: profile, help, privacy ----
   String get changeName => t('Change name', 'تغيير الاسم');
   String get save => t('Save', 'حفظ');
@@ -29,7 +51,7 @@ extension SettingsStrings on S {
   String get deleteForever => t('Delete for good', 'حذف نهائي');
   String get accountDeleted => t('Your account was deleted', 'تم حذف حسابكِ', 'تم حذف حسابك');
   String get remindersOnSub => t('Morning and evening, on this phone', 'صباحًا ومساءً، على هذا الهاتف');
-  String get remindersOffSub => t('Off', 'متوقف');
+  String get remindersOffSub => t('Off', 'متوقّف');
 
   String get aboutBody => t(
     'Sanadi is free, and always will be. It connects learners of every age, from children learning to recite to elders memorising, with volunteer teachers of the same gender, over a simple voice call.',
@@ -151,7 +173,7 @@ extension SettingsStrings on S {
       t('Your choice', 'قراركِ', 'قرارك'),
       t(
         'You can change your name, picture or details in Settings, and delete your account at any time. For any question, tap Contact us below.',
-        'يمكنكِ تغيير اسمكِ أو صورتكِ أو بياناتكِ من الإعدادات، وحذف حسابكِ في أي وقت. لأي سؤال اضغطي «تواصل معنا» في الأسفل.',
+        'يمكنكِ تغيير اسمكِ أو صورتكِ أو بياناتكِ من الإعدادات، وحذف حسابكِ في أي وقت. لأي سؤال اضغطي «تواصلي معنا» في الأسفل.',
         'يمكنك تغيير اسمك أو صورتك أو بياناتك من الإعدادات، وحذف حسابك في أي وقت. لأي سؤال اضغط «تواصل معنا» في الأسفل.',
       ),
     ),

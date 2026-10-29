@@ -48,7 +48,7 @@ extension LegalStrings on S {
       ),
     ),
   ];
-  String get codeTitle => t('Teacher code of conduct', 'ميثاق المعلّم');
+  String get codeTitle => t('Teacher code of conduct', 'قواعد السلوك للمعلّمين');
   List<(String, String)> get codeSections => [
     (
       t('Sincerity', 'الإخلاص'),
@@ -103,7 +103,7 @@ extension LegalStrings on S {
       t('Reporting concerns', 'الإبلاغ عن المخاوف'),
       t(
         'If a student or anyone else behaves badly, block and report them. Admins may pause any account that breaks this code.',
-        'عند إساءة أي شخص: حظره والإبلاغ عنه. ويجوز للمشرفين إيقاف أي حساب يخالف هذا الميثاق.',
+        'عند إساءة أي شخص: حظره والإبلاغ عنه. ويجوز للمشرفين إيقاف أي حساب يخالف هذه القواعد.',
       ),
     ),
   ];

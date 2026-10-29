@@ -25,8 +25,8 @@ extension AdminStrings on S {
   String get statTeachersOn => t('Teachers switched on', 'معلّمون متاحون الآن');
   String get statPending => t('Applications waiting', 'طلبات بانتظار المراجعة');
   String get statReports => t('Open reports', 'بلاغات مفتوحة');
-  String get statLessons => t('Lessons in the last 7 days', 'دروس آخر 7 أيام');
-  String get statMinutes => t('Minutes taught in the last 7 days', 'دقائق التدريس آخر 7 أيام');
+  String get statLessons => t('Lessons in the last 7 days', 'دروس آخر ${n(7)} أيام');
+  String get statMinutes => t('Minutes taught in the last 7 days', 'دقائق التدريس آخر ${n(7)} أيام');
   String get refresh => t('Refresh', 'تحديث');
 
   // ---- Admin: connect and reports ----
@@ -48,35 +48,6 @@ extension AdminStrings on S {
   String get noReports => t('No open reports', 'لا توجد بلاغات مفتوحة');
   String reportedBy(String a, String b) => t('$a reported $b', 'أبلغ $a عن $b');
 
-  String mmss(int sec) => n(S._mmss(sec));
-
-  String get studentsSoonTitle => t('Your students will appear here', 'ستظهر طالباتكِ هنا', 'سيظهر طلابك هنا');
-  String get studentsSoonBody => t(
-    'After your first sessions, you can see each student\'s progress here.',
-    'بعد أولى جلساتكِ، سترين تقدّم كل طالبة هنا.',
-    'بعد أولى جلساتك، سترى تقدّم كل طالب هنا.',
-  );
-  String get language => t('Language', 'اللغة');
-  String get appearance => t('Appearance', 'المظهر');
-  String get themeSystem => t('Same as phone', 'مثل الهاتف');
-  String get themeLight => t('Light', 'فاتح');
-  String get themeDark => t('Dark', 'داكن');
-  String get account => t('Account', 'الحساب');
-  String get signOut => t('Sign out', 'تسجيل الخروج');
-  String get signOutQ => t('Sign out of Sanadi?', 'تسجيل الخروج من سَنَدي؟');
-  String get testing => t('Testing tools', 'أدوات التجربة');
-  String get testingNote => t(
-    'Only in test builds. These let you try every screen before the backend is ready.',
-    'في النسخ التجريبية فقط، لتجربة كل الشاشات قبل تجهيز الخادم.',
-  );
-  String get switchRole => t('Switch to teacher / student', 'التبديل بين معلّم وطالب');
-  String get approveApp => t('Approve my application', 'الموافقة على طلبي');
-  String get rejectApp => t('Reject my application', 'رفض طلبي');
-  String get resetApp => t('Start again from the beginning', 'البدء من جديد');
-  String get version => t('Version', 'الإصدار');
-  String get serverLive => t('Connected: your profile is saved online', 'متصل: ملفك محفوظ على الإنترنت');
-  String get serverDemo => t('Demo mode: nothing is saved online yet', 'وضع التجربة: لا يُحفظ شيء على الإنترنت بعد');
-
   // ---- Admin: teacher applications ----
   String get adminTitle => t('Teacher applications', 'طلبات المعلّمين');
   String get adminSub => t('Review volunteers and approve them', 'مراجعة المتطوعين والموافقة عليهم');
@@ -87,6 +58,9 @@ extension AdminStrings on S {
   String get declineApp => t('Not approved', 'عدم الموافقة');
   String get declineQ => t('Turn down this application?', 'رفض هذا الطلب؟');
   String get declineReason => t('Reason (the applicant will see it)', 'السبب (سيظهر لصاحب الطلب)');
-  String get decisionFailed =>
-      t("Couldn't save. Check the internet and try again.", 'تعذّر الحفظ. تحقّق من الإنترنت وحاول مجددًا.');
+  String get decisionFailed => t(
+    "Couldn't save. Check the internet and try again.",
+    'تعذّر الحفظ. تحقّقي من الإنترنت وحاولي مجددًا.',
+    'تعذّر الحفظ. تحقّق من الإنترنت وحاول مجددًا.',
+  );
 }

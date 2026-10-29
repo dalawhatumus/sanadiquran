@@ -41,6 +41,13 @@ extension HomeStrings on S {
   String get waitingOff => t('Turn on to help them', 'فعّلي حالتكِ لمساعدتهن', 'فعّل حالتك لمساعدتهم');
   String get simulateCall => t('Try a practice call', 'جرّبي مكالمة تجريبية', 'جرّب مكالمة تجريبية');
 
+  String get studentsSoonTitle => t('Your students will appear here', 'ستظهر طالباتكِ هنا', 'سيظهر طلابك هنا');
+  String get studentsSoonBody => t(
+    'After your first sessions, you can see each student\'s progress here.',
+    'بعد أولى جلساتكِ، سترين تقدّم كل طالبة هنا.',
+    'بعد أولى جلساتك، سترى تقدّم كل طالب هنا.',
+  );
+
   // ---- Teacher list, alerts, continue reading ----
   String get teachersTitle => t('Teachers', 'المعلّمات', 'المعلّمون');
   String get seeAll => t('See all', 'عرض الكل');

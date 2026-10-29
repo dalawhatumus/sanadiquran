@@ -15,11 +15,8 @@ extension CallStrings on S {
   String get speaker => t('Speaker', 'مكبّر الصوت');
   String get openQuran => t('Open Quran', 'افتحي المصحف', 'افتح المصحف');
   String get endCall => t('End call', 'إنهاء المكالمة');
-  String get mutedBanner => t(
-    g("Muted. Your teacher can't hear you.", "Muted. Your teacher can't hear you."),
-    'الصوت مكتوم. معلّمتكِ لا تسمعكِ.',
-    'الصوت مكتوم. معلّمك لا يسمعك.',
-  );
+  String get mutedBanner =>
+      t("Muted. Your teacher can't hear you.", 'الصوت مكتوم. معلّمتكِ لا تسمعكِ.', 'الصوت مكتوم. معلّمك لا يسمعك.');
   String get mutedBannerTeacher =>
       t("Muted. Your student can't hear you.", 'الصوت مكتوم. الطالبة لا تسمعكِ.', 'الصوت مكتوم. الطالب لا يسمعك.');
   String get endTitle => t('End this session?', 'إنهاء هذه الجلسة؟');
@@ -110,8 +107,8 @@ extension CallStrings on S {
     'تحقّقي من الإنترنت وحاولي مرة أخرى.',
     'تحقّق من الإنترنت وحاول مرة أخرى.',
   );
-  String sEndSubName(int min, String name) => t('$min minutes with $name', '${n(min)} دقيقة مع $name');
-  String tEndSubName(int min, String name) => t('$name · $min minutes', '$name · ${n(min)} دقيقة');
+  String sEndSubName(int min, String name) => t('${minutesCount(min)} with $name', '${minutesCount(min)} مع $name');
+  String tEndSubName(int min, String name) => '$name · ${minutesCount(min)}';
   String missedBodyName(String name) => t(
     g(
       "$name was connected to another teacher, so she isn't left waiting.",
@@ -146,17 +143,19 @@ extension CallStrings on S {
 
   // ---- Ringing in the background, and other notifications ----
   String get callsChannel => t('Incoming calls', 'المكالمات الواردة');
-  String get callsChannelDesc => t('A student calling you', 'اتصال من طالب');
+  String get callsChannelDesc => t('Someone calling you on Sanadi', 'اتصال يصلكِ في سَنَدي', 'اتصال يصلك في سَنَدي');
   String get missedChannel => t('Missed calls', 'المكالمات الفائتة');
-  String get missedChannelDesc => t('Calls you couldn\'t answer', 'مكالمات لم تتمكّن من الرد عليها');
+  String get missedChannelDesc =>
+      t('Calls you couldn\'t answer', 'مكالمات لم تتمكّني من الرد عليها', 'مكالمات لم تتمكّن من الرد عليها');
   String get notesChannel => t('Lesson notes', 'ملاحظات الدروس');
-  String get notesChannelDesc => t('When your teacher adds notes', 'عند إضافة المعلّم ملاحظات');
+  String get notesChannelDesc =>
+      t('When your teacher adds notes', 'عند إضافة المعلّمة ملاحظات', 'عند إضافة المعلّم ملاحظات');
   String get notesTapToRead => t('Tap to read them', 'اضغطي لقراءتها', 'اضغط لقراءتها');
   String get accountChannel => t('Your account', 'حسابك');
   String get accountChannelDesc => t('News about your teacher application', 'مستجدات طلب التدريس');
   String get approvedTitle => t('You\'re approved to teach', 'تم اعتمادكِ للتدريس', 'تم اعتمادك للتدريس');
   String get approvedBody => t(
-    'Jazakum Allahu khayran. Switch on "available" when you\'re ready.',
+    'JazakAllahu khairan. Switch on "available" when you\'re ready.',
     'جزاكِ الله خيرًا. فعّلي الإتاحة حين تكونين مستعدة.',
     'جزاك الله خيرًا. فعّل الإتاحة حين تكون مستعدًا.',
   );
@@ -183,15 +182,24 @@ extension CallStrings on S {
   String get textSizePreview => t('This is how text looks in Sanadi.', 'هكذا يبدو الخط في سَنَدي.');
   String percent(double x) => ar ? '${n((x * 100).round())}\u066A' : '${(x * 100).round()}%';
   String get messagesChannel => t('Messages', 'الرسائل');
-  String get messagesChannelDesc => t('New messages from your teacher or student', 'رسائل جديدة من المعلّم أو الطالب');
+  String get messagesChannelDesc => t(
+    'New messages from your teacher or student',
+    'رسائل جديدة من المعلّمة أو الطالبة',
+    'رسائل جديدة من المعلّم أو الطالب',
+  );
   String get messageAlertsL => t('Message notifications', 'إشعارات الرسائل');
   String get messageAlertsSub => t('While Sanadi is open or in the background', 'ما دام سَنَدي مفتوحًا أو في الخلفية');
-  String get teacherAlertsChannel => t('Teacher alerts', 'تنبيهات المعلّمين');
-  String get teacherAlertsChannelDesc =>
-      t('When a teacher becomes free (if you asked)', 'عند توفّر معلّم (إن طلبت ذلك)');
+  String get teacherAlertsChannel => t('Teacher alerts', 'تنبيهات المعلّمات', 'تنبيهات المعلّمين');
+  String get teacherAlertsChannelDesc => t(
+    'When a teacher becomes free (if you asked)',
+    'عند توفّر معلّمة (إن طلبتِ ذلك)',
+    'عند توفّر معلّم (إن طلبت ذلك)',
+  );
   String waitingCount(int k) => switch (k) {
     0 => t('No students waiting right now', 'لا طالبات ينتظرن الآن', 'لا طلاب ينتظرون الآن'),
     1 => t('1 student waiting for a teacher', 'طالبة واحدة تنتظر معلّمة', 'طالب واحد ينتظر معلّمًا'),
-    _ => t('${n(k)} students waiting for a teacher', '${n(k)} طالبات ينتظرن معلّمة', '${n(k)} طلاب ينتظرون معلّمًا'),
+    2 => t('2 students waiting for a teacher', 'طالبتان تنتظران معلّمة', 'طالبان ينتظران معلّمًا'),
+    <= 10 => t('$k students waiting for a teacher', '${n(k)} طالبات ينتظرن معلّمة', '${n(k)} طلاب ينتظرون معلّمًا'),
+    _ => t('$k students waiting for a teacher', '${n(k)} طالبةً ينتظرن معلّمة', '${n(k)} طالبًا ينتظرون معلّمًا'),
   };
 }

@@ -18,7 +18,7 @@ extension LessonStrings on S {
     'بعد أول جلسة سترين ما حفظتِه، جزءًا بعد جزء.',
     'بعد أول جلسة سترى ما حفظته، جزءًا بعد جزء.',
   );
-  String juz(int k) => t("Juz' $k", 'الجزء ${n(k)}');
+  String juz(int k) => t('Juz $k', 'الجزء ${n(k)}');
 
   // ---- Lessons and progress ----
   String notesFromName(String name) => t('Notes from $name', 'ملاحظات من $name');

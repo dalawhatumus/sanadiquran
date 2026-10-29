@@ -60,9 +60,9 @@ class S {
   String get change => t('Change', 'تغيير');
   String get settings => t('Settings', 'الإعدادات');
   String get tryAgain => t('Try again', 'المحاولة مرة أخرى');
-  String get comingSoon => t('Coming soon, in sha Allah', 'قريبًا بإذن الله');
   String stepOf(int a, int b) => t('Step $a of $b', 'الخطوة ${n(a)} من ${n(b)}');
   String get reportProblem => t('Report a problem', 'الإبلاغ عن مشكلة');
+  String mmss(int sec) => n(_mmss(sec));
 
   // ---- Navigation ----
   String get navHome => t('Home', 'الرئيسية');

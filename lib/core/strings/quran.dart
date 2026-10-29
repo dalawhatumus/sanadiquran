@@ -22,7 +22,7 @@ extension QuranStrings on S {
 
   // ---- 37/39/40 Quran ----
   String get surahs => t('Surahs', 'السور');
-  String get juzTab => t("Juz'", 'الأجزاء');
+  String get juzTab => t('Juz', 'الأجزاء');
   String get makki => t('Makki', 'مكية');
   String get madani => t('Madani', 'مدنية');
   String get currentPage => t('Current page', 'الصفحة الحالية');
@@ -41,7 +41,10 @@ extension QuranStrings on S {
   String get continueReading => t('Continue reading', 'متابعة القراءة');
   String page(int p) => t('Page $p', 'صفحة ${n(p)}');
   String juzPage(int j, int p) => t('Juz $j · Page $p', 'الجزء ${n(j)} · صفحة ${n(p)}');
-  String ayahsCount(int k) => t('$k ayahs', '${n(k)} آية');
+  String ayahsCount(int k) => switch (k) {
+    <= 10 => t('$k ayahs', '${n(k)} آيات'),
+    _ => t('$k ayahs', '${n(k)} آيةً'),
+  };
   String get segLarge => t('Large text', 'نص كبير');
   String get segPage => t('Mushaf page', 'المصحف');
   String get play => t('Play', 'تشغيل');
@@ -78,8 +81,8 @@ extension QuranStrings on S {
   String get nextPortionSet => t('Set as your next portion', 'صار وِردكِ القادم', 'صار وِردك القادم');
 
   // ---- Reminders ----
-  String get remindersL => t('Athkar reminders', 'تذكير الأذكار');
-  String get remindersChannel => t('Athkar reminders', 'تذكير الأذكار');
+  String get remindersL => t('Athkar reminders', 'تذكيرات الأذكار');
+  String get remindersChannel => t('Athkar reminders', 'تذكيرات الأذكار');
   String get remindersChannelDesc => t('Morning and evening athkar reminders', 'تذكير بأذكار الصباح والمساء');
   String get morningAthkar => t('Morning athkar', 'أذكار الصباح');
   String get eveningAthkar => t('Evening athkar', 'أذكار المساء');

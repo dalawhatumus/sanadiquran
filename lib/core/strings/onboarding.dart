@@ -192,7 +192,7 @@ extension OnboardingStrings on S {
       t("Leave it empty if you don't have one.", 'اتركيه فارغًا إن لم يكن لديكِ.', 'اتركه فارغًا إن لم يكن لديك.');
   String get sampleTitle => t('Record a short sample', 'سجّلي مقطعًا قصيرًا', 'سجّل مقطعًا قصيرًا');
   String get sampleSub => t(
-    'Recite any ayat you like, so we can hear your recitation.',
+    'Recite any ayahs you like, so we can hear your recitation.',
     'اقرئي ما شئتِ من الآيات لنستمع إلى تلاوتكِ.',
     'اقرأ ما شئت من الآيات لنستمع إلى تلاوتك.',
   );
@@ -204,7 +204,6 @@ extension OnboardingStrings on S {
   String yourSample(String len) => t('Your sample · $len', 'مقطعكِ · ${n(len)}', 'مقطعك · ${n(len)}');
   String get recordAgain => t('Record again', 'سجّلي من جديد', 'سجّل من جديد');
   String get sendSample => t('Send sample', 'أرسلي المقطع', 'أرسل المقطع');
-  String get sampleNote => t('Test build: the recording is simulated.', 'نسخة تجريبية: التسجيل للعرض فقط.');
   String get pledgeTitle => t('Our promise to students', 'عهدنا مع الطالبات', 'عهدنا مع الطلاب');
   List<String> get pledges => [
     t('I teach for the sake of Allah, and never ask for money.', 'أُعلّم لوجه الله، ولا أطلب مالًا.'),

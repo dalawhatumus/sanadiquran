@@ -287,7 +287,7 @@ class Reminders {
         payload: '/chat/$conversationId',
       );
 
-  /// A student is calling: full screen over the lock screen (where Android
+  /// Someone is calling: full screen over the lock screen (where Android
   /// allows it; otherwise a high-priority alert). Cleared when answered,
   /// declined or missed, and by itself after the ringing time.
   Future<void> incomingCall({required S s, required String callId, required String callerName}) => _show(

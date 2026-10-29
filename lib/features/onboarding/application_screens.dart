@@ -413,8 +413,6 @@ class _SampleRecorderState extends State<_SampleRecorder> {
           ],
           BigButton(label: s.recordAgain, icon: Icons.mic_rounded, kind: ButtonKind.outline, onPressed: _toggle),
         ],
-        const SizedBox(height: 20),
-        Text(s.sampleNote, style: tt.bodySmall, textAlign: TextAlign.center),
       ],
     );
   }
