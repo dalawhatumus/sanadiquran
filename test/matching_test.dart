@@ -3,18 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
-import 'package:sanadi/app.dart';
 import 'package:sanadi/backend/backend.dart';
 import 'package:sanadi/backend/calls.dart';
 import 'package:sanadi/backend/sessions.dart';
-import 'package:sanadi/core/connectivity.dart';
 import 'package:sanadi/core/router.dart';
 import 'package:sanadi/core/settings.dart';
 import 'package:sanadi/core/strings.dart';
 import 'package:sanadi/features/call/call_controller.dart';
 import 'package:sanadi/features/call/call_screens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'helpers.dart';
 
 /// A demo server with chosen free teachers and lesson history, which
 /// records who is rung (and never answers).
@@ -137,31 +136,14 @@ void main() {
   });
 
   testWidgets('away from home, a bar shows who is free, with Call', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2340);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
-    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
-    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
-    SharedPreferences.setMockInitialValues({
-      'settings.v2':
-          '{"locale":"en","signedIn":true,"role":"student","gender":"female","name":"Fatima",'
-          '"permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001","tourDone":true,'
-          '"sessions":2}',
-    });
-    final prefs = await SharedPreferences.getInstance();
     final server = _Server();
-    final c = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        onlineCheckProvider.overrideWithValue(() async => true),
-        backendProvider.overrideWithValue(server),
-      ],
+    await startApp(
+      tester,
+      prefs: {'settings.v2': userSettings(teacherStatus: null)},
+      overrides: [backendProvider.overrideWithValue(server)],
     );
-    addTearDown(c.dispose);
-    await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const SanadiApp()));
-    await tester.pump(const Duration(milliseconds: 1400));
     await tester.pumpAndSettle();
-    final router = GoRouter.of(tester.element(find.byType(Navigator).first));
+    final router = routerOf(tester);
     final bar = find.byKey(const ValueKey('availability-bar'));
     server.count.add(2);
     await tester.pumpAndSettle();

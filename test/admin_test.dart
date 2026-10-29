@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sanadi/app.dart';
 import 'package:sanadi/backend/backend.dart';
-import 'package:sanadi/core/connectivity.dart';
 import 'package:sanadi/core/router.dart';
 import 'package:sanadi/core/settings.dart';
 import 'package:sanadi/core/strings.dart';
 import 'package:sanadi/features/admin/users_screen.dart';
 import 'package:sanadi/features/call/missed_calls.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'helpers.dart';
 
 /// A demo server whose user is paused.
 class _PausedBackend extends DemoBackend {
@@ -29,29 +29,13 @@ void main() {
     Backend? backend,
     bool settle = true,
   }) async {
-    tester.view.physicalSize = const Size(1080, 2340);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
-    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
-    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
-    SharedPreferences.setMockInitialValues({
-      'settings.v2':
-          '{"locale":"en","signedIn":true,"role":"$role","gender":"female","name":"Fatima",'
-          '"permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001","tourDone":true,"teacherStatus":"approved","sessions":2}',
-    });
-    final prefs = await SharedPreferences.getInstance();
-    final container = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        onlineCheckProvider.overrideWithValue(() async => true),
-        if (backend != null) backendProvider.overrideWithValue(backend),
-      ],
+    final (container, _) = await startApp(
+      tester,
+      prefs: {'settings.v2': userSettings(role: role)},
+      overrides: [if (backend != null) backendProvider.overrideWithValue(backend)],
     );
-    addTearDown(container.dispose);
-    await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const SanadiApp()));
-    await tester.pump(const Duration(milliseconds: 1400));
     if (settle) await tester.pumpAndSettle();
-    return (container, GoRouter.of(tester.element(find.byType(Navigator).first)));
+    return (container, routerOf(tester));
   }
 
   testWidgets('an admin pauses and restores an account', (tester) async {

@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sanadi/core/strings.dart';
 import 'package:sanadi/core/theme.dart';
@@ -10,19 +9,14 @@ import 'package:sanadi/features/quran/large_text_view.dart';
 import 'package:sanadi/features/quran/mushaf_page.dart';
 import 'package:sanadi/features/quran/quran_data.dart';
 
+import 'helpers.dart';
+
 /// Opens every one of the 604 mushaf pages, and every page in Large text,
 /// with the real fonts on common phone sizes, and checks that:
 /// - no line spills past the page edges or overlaps another line,
 /// - every full line is justified edge to edge, and no line is squeezed
 ///   so much that it looks distorted,
 /// - nothing overflows (any overflow fails the test).
-Future<void> _loadFont(String family, List<String> files) async {
-  final loader = FontLoader(family);
-  for (final f in files) {
-    loader.addFont(rootBundle.load(f));
-  }
-  await loader.load();
-}
 
 void main() {
   final q = QuranData.parse((
@@ -30,11 +24,7 @@ void main() {
     File('assets/quran/layout.json').readAsStringSync(),
   ))..attachWidths(File('assets/quran/line_widths.json').readAsStringSync());
 
-  setUpAll(() async {
-    await _loadFont('Tajawal', ['assets/fonts/Tajawal-Medium.ttf', 'assets/fonts/Tajawal-Bold.ttf']);
-    await _loadFont('NotoNaskhArabic', ['assets/fonts/NotoNaskhArabic-Medium.ttf']);
-    await _loadFont(SanadiFonts.quran, ['assets/fonts/quran/UthmanicHafs1Ver18.ttf']);
-  });
+  setUpAll(loadAppFonts);
 
   Widget host(Widget child, {double textScale = 1}) => MaterialApp(
     theme: buildTheme(const Locale('ar'), Brightness.light),

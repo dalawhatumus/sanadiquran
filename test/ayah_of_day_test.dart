@@ -1,28 +1,19 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
-import 'package:sanadi/app.dart';
-import 'package:sanadi/core/connectivity.dart';
 import 'package:sanadi/core/reminders.dart';
 import 'package:sanadi/core/router.dart';
-import 'package:sanadi/core/settings.dart';
 import 'package:sanadi/core/strings.dart';
 import 'package:sanadi/features/quran/ayah_of_day.dart';
 import 'package:sanadi/features/quran/daily_ayahs.dart';
 import 'package:sanadi/features/quran/mushaf_screen.dart';
 import 'package:sanadi/features/quran/quran_data.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import 'helpers.dart';
 
 /// Ayah of the day: the chosen ayahs, the home card, its page, the
 /// notification's link and its setting.
 void main() {
-  final quran = QuranData.parse((
-    File('assets/quran/hafs.json').readAsStringSync(),
-    File('assets/quran/layout.json').readAsStringSync(),
-  ))..attachWidths(File('assets/quran/line_widths.json').readAsStringSync());
+  final quran = testQuran;
 
   test('every daily ayah exists, with a theme and meaning in both languages', () {
     expect(dailyAyahs.length, greaterThanOrEqualTo(40));
@@ -87,32 +78,14 @@ void main() {
 
   for (final locale in ['en', 'ar']) {
     testWidgets('the home card opens the ayah, then the mushaf ($locale)', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2340);
-      tester.view.devicePixelRatio = 3;
-      addTearDown(tester.view.reset);
-      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
-        disableAnimations: true,
+      final (container, prefs) = await startApp(
+        tester,
+        prefs: {'settings.v2': userSettings(locale: locale, teacherStatus: null)},
+        overrides: [quranProvider.overrideWith((ref) async => quran)],
       );
-      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
-      SharedPreferences.setMockInitialValues({
-        'settings.v2':
-            '{"locale":"$locale","signedIn":true,"role":"student","gender":"female","name":"Fatima",'
-            '"permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001","tourDone":true,"sessions":2}',
-      });
-      final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          onlineCheckProvider.overrideWithValue(() async => true),
-          quranProvider.overrideWith((ref) async => quran),
-        ],
-      );
-      addTearDown(container.dispose);
       final s = S(ar: locale == 'ar', female: true);
-      await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const SanadiApp()));
-      await tester.pump(const Duration(milliseconds: 1400));
       await tester.pumpAndSettle();
-      final router = GoRouter.of(tester.element(find.byType(Navigator).first));
+      final router = routerOf(tester);
       expect(router.state.matchedLocation, Routes.studentHome);
 
       final today = ayahForDay(dayNumber(DateTime.now()));

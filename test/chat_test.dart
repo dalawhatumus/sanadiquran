@@ -1,58 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
-import 'package:sanadi/app.dart';
 import 'package:sanadi/backend/chat.dart';
-import 'package:sanadi/core/connectivity.dart';
 import 'package:sanadi/core/router.dart';
-import 'package:sanadi/core/settings.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/layout_checks.dart';
 
+import 'helpers.dart';
+
 /// Uses chat the way a person would, on the demo backend: unread badge,
 /// opening a chat, sending, deleting, reporting, blocking and unblocking.
-Future<void> _loadFont(String family, List<String> files) async {
-  final loader = FontLoader(family);
-  for (final f in files) {
-    loader.addFont(rootBundle.load(f));
-  }
-  await loader.load();
-}
 
 void main() {
-  setUpAll(() async {
-    await _loadFont('Tajawal', ['assets/fonts/Tajawal-Medium.ttf', 'assets/fonts/Tajawal-Bold.ttf']);
-    await _loadFont('Montserrat', ['assets/fonts/Montserrat-Medium.ttf', 'assets/fonts/Montserrat-Bold.ttf']);
-  });
+  setUpAll(loadAppFonts);
 
   for (final locale in ['en', 'ar']) {
     testWidgets('chat works from start to finish ($locale)', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2340);
-      tester.view.devicePixelRatio = 3;
-      addTearDown(tester.view.reset);
-      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
-        disableAnimations: true,
+      final (container, prefs) = await startApp(
+        tester,
+        prefs: {'settings.v2': userSettings(locale: locale, teacherStatus: null)},
       );
-      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
-      SharedPreferences.setMockInitialValues({
-        'settings.v2':
-            '{"locale":"$locale","signedIn":true,"role":"student","gender":"female","name":"Fatima",'
-            '"permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001","tourDone":true,"sessions":2}',
-      });
-      final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          onlineCheckProvider.overrideWithValue(() async => true),
-        ],
-      );
-      addTearDown(container.dispose);
-      await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const SanadiApp()));
-      await tester.pump(const Duration(milliseconds: 1400));
-      final router = GoRouter.of(tester.element(find.byType(Navigator).first));
+      final router = routerOf(tester);
       router.go(Routes.studentTeachers);
       await tester.pumpAndSettle();
 

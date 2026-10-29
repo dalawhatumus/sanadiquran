@@ -1,15 +1,11 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sanadi/app.dart';
 import 'package:sanadi/backend/backend.dart';
 import 'package:sanadi/backend/teachers.dart';
-import 'package:sanadi/core/connectivity.dart';
 import 'package:sanadi/core/router.dart';
 import 'package:sanadi/core/settings.dart';
 import 'package:sanadi/core/strings.dart';
@@ -18,6 +14,8 @@ import 'package:sanadi/features/quran/quran_data.dart';
 import 'package:sanadi/features/student/teacher_alert.dart';
 import 'package:sanadi/features/student/teachers_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'helpers.dart';
 
 /// A demo server where the number of free teachers and waiting students
 /// can be changed by the test, and "waiting" calls are recorded.
@@ -36,26 +34,12 @@ class _Server extends DemoBackend {
   Stream<int> waitingStudents(Gender gender) => Stream.value(waitingStudentsNow);
 }
 
-Future<void> _loadFont(String family, List<String> files) async {
-  final loader = FontLoader(family);
-  for (final f in files) {
-    loader.addFont(rootBundle.load(f));
-  }
-  await loader.load();
-}
-
 /// The teacher list, calling a chosen teacher, favourites, continue
 /// reading, "Alert me when a teacher is free", and students waiting.
 void main() {
   const s = S(ar: false, female: true);
-  final quran = QuranData.parse((
-    File('assets/quran/hafs.json').readAsStringSync(),
-    File('assets/quran/layout.json').readAsStringSync(),
-  ))..attachWidths(File('assets/quran/line_widths.json').readAsStringSync());
 
-  setUpAll(() async {
-    await _loadFont('KFGQPC', ['assets/fonts/quran/UthmanicHafs1Ver18.ttf']);
-  });
+  setUpAll(loadAppFonts);
 
   Future<(ProviderContainer, GoRouter, SharedPreferences)> open(
     WidgetTester tester, {
@@ -63,32 +47,20 @@ void main() {
     Backend? backend,
     Map<String, Object> extra = const {},
   }) async {
-    tester.view.physicalSize = const Size(1080, 2340);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
-    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
-    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
-    SharedPreferences.setMockInitialValues({
-      'settings.v2':
-          '{"locale":"en","signedIn":true,"role":"$role","gender":"female","name":"Fatima",'
-          '"permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001","tourDone":true,"teacherStatus":"approved","sessions":2}',
-      ...extra,
-    });
-    final prefs = await SharedPreferences.getInstance();
-    final container = ProviderContainer(
+    final (container, prefs) = await startApp(
+      tester,
+      prefs: {
+        'settings.v2': userSettings(role: role),
+        ...extra,
+      },
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        onlineCheckProvider.overrideWithValue(() async => true),
         micPermissionProvider.overrideWithValue(() async => true),
-        quranProvider.overrideWith((ref) async => quran),
+        quranProvider.overrideWith((ref) async => testQuran),
         if (backend != null) backendProvider.overrideWithValue(backend),
       ],
     );
-    addTearDown(container.dispose);
-    await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const SanadiApp()));
-    await tester.pump(const Duration(milliseconds: 1400));
     await tester.pumpAndSettle();
-    return (container, GoRouter.of(tester.element(find.byType(Navigator).first)), prefs);
+    return (container, routerOf(tester), prefs);
   }
 
   Finder onHome(Finder f) => find.descendant(of: find.byType(Scrollable).first, matching: f);
@@ -97,6 +69,9 @@ void main() {
     final (_, router, _) = await open(tester, extra: {'lastPage': 41});
     final card = find.text(s.readingAt('Al-Baqarah', 41));
     await tester.scrollUntilVisible(card, 300, scrollable: find.byType(Scrollable).first);
+    // Brought clear of the bottom bar, which the real fonts can leave it under.
+    await tester.ensureVisible(card);
+    await tester.pumpAndSettle();
     await tester.tap(card);
     await tester.pumpAndSettle();
     expect(router.state.uri.toString(), Routes.mushafAt(page: 41));

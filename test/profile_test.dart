@@ -5,17 +5,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sanadi/app.dart';
 import 'package:sanadi/backend/backend.dart';
 import 'package:sanadi/backend/photos.dart';
-import 'package:sanadi/core/connectivity.dart';
 import 'package:sanadi/core/router.dart';
 import 'package:sanadi/core/settings.dart';
 import 'package:sanadi/core/strings.dart';
 import 'package:sanadi/features/admin/users_screen.dart';
 import 'package:sanadi/features/onboarding/details_screen.dart';
 import 'package:sanadi/widgets/avatars.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import 'helpers.dart';
 
 /// The details given when signing up (changed from Settings), a person's
 /// own photo, and what admins see of them.
@@ -27,29 +26,13 @@ void main() {
   const s = S(ar: false, female: true);
 
   Future<(ProviderContainer, GoRouter)> open(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1080, 2340);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
-    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
-    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
-    SharedPreferences.setMockInitialValues({
-      'settings.v2':
-          '{"locale":"en","signedIn":true,"role":"student","gender":"female","name":"Fatima",'
-          '"permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001","tourDone":true,"sessions":2}',
-    });
-    final prefs = await SharedPreferences.getInstance();
-    final container = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        onlineCheckProvider.overrideWithValue(() async => true),
-        photoPickerProvider.overrideWithValue(({required camera}) async => png),
-      ],
+    final (container, _) = await startApp(
+      tester,
+      prefs: {'settings.v2': userSettings(teacherStatus: null)},
+      overrides: [photoPickerProvider.overrideWithValue(({required camera}) async => png)],
     );
-    addTearDown(container.dispose);
-    await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const SanadiApp()));
-    await tester.pump(const Duration(milliseconds: 1400));
     await tester.pumpAndSettle();
-    return (container, GoRouter.of(tester.element(find.byType(Navigator).first)));
+    return (container, routerOf(tester));
   }
 
   Future<void> tapText(WidgetTester tester, String text) async {

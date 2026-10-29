@@ -16,13 +16,14 @@ The server is Firebase (Auth + Firestore) on the free Spark plan.
 | `assets/` | Quran text and page layout, athkar, fonts, icons, avatars. |
 | `firebase/` | Firestore security rules, indexes and their emulator tests. |
 | `site/` | The public web pages for Google Play (privacy policy, terms, account deletion), published to GitHub Pages by `.github/workflows/pages.yml`. |
-| `test/` | Widget and unit tests (`flutter test`). |
+| `test/` | Widget and unit tests (`flutter test`). `test/helpers.dart` has what they share: `startApp` (the app on a typical phone, past the splash), `userSettings` (saved settings for a signed-in person), `testQuran` and `loadAppFonts`. |
 | `tools/` | One-off generators (e.g. the mushaf line widths). |
 
 Large screens are split into `part` files next to them. For example,
 `mushaf_screen.dart` has `mushaf_bars.dart`, `mushaf_ayah_menu.dart` and
-`mushaf_go_to.dart`, and `chat_screen.dart` has `chat_bubbles.dart` and
-`chat_composer.dart`.
+`mushaf_go_to.dart`, `chat_screen.dart` has `chat_bubbles.dart` and
+`chat_composer.dart`, and `call/call_screens.dart` has one part per call
+screen (connecting, in call, incoming, ended).
 
 ## Backend
 
@@ -68,9 +69,11 @@ each time the app opens (each day's text differs).
 
 ## Conventions
 
-- **Text:** every string the user sees lives in `core/strings.dart` as
-  `S.of(context).name`, with Arabic in feminine and masculine forms where
-  needed.
+- **Text:** every string the user sees is reached as `S.of(context).name`,
+  with Arabic in feminine and masculine forms where needed. `core/strings.dart`
+  holds the shared words; each area's text is in its own part under
+  `core/strings/` (onboarding, home, calls, lessons, quran, messages,
+  settings, legal, admin).
 - **Layout rules:** no word is ever broken across lines (`WordSafeText`).
   An arrow pointing right means "proceed" in both languages (`Arrows`).
 - **Input limits:** what people can type is limited by `core/limits.dart`,

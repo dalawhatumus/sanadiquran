@@ -1,18 +1,15 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sanadi/app.dart';
 import 'package:sanadi/backend/backend.dart';
 import 'package:sanadi/backend/calls.dart';
-import 'package:sanadi/core/connectivity.dart';
 import 'package:sanadi/core/router.dart';
 import 'package:sanadi/core/settings.dart';
 import 'package:sanadi/features/call/call_controller.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import 'helpers.dart';
 
 /// Teachers who answer (or not) as a test says: [answers] maps a teacher to
 /// what they do when rung.
@@ -101,44 +98,19 @@ class _TeacherCalls extends DemoBackend {
   }
 }
 
-Future<void> _loadFont(String family, List<String> files) async {
-  final loader = FontLoader(family);
-  for (final f in files) {
-    loader.addFont(rootBundle.load(f));
-  }
-  await loader.load();
-}
-
 void main() {
-  setUpAll(() async {
-    await _loadFont('Tajawal', ['assets/fonts/Tajawal-Medium.ttf', 'assets/fonts/Tajawal-Bold.ttf']);
-    await _loadFont('Montserrat', ['assets/fonts/Montserrat-Medium.ttf', 'assets/fonts/Montserrat-Bold.ttf']);
-  });
+  setUpAll(loadAppFonts);
 
   Future<(ProviderContainer, GoRouter)> open(WidgetTester tester, {String role = 'student', Backend? backend}) async {
-    tester.view.physicalSize = const Size(1080, 2340);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
-    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
-    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
-    SharedPreferences.setMockInitialValues({
-      'settings.v2':
-          '{"locale":"en","signedIn":true,"role":"$role","gender":"female","name":"Fatima",'
-          '"permissionsDone":true,"ageGroup":"25-34","nationality":"SA","phone":"+966500000001","tourDone":true,"teacherStatus":"approved","sessions":0}',
-    });
-    final prefs = await SharedPreferences.getInstance();
-    final container = ProviderContainer(
+    final (container, _) = await startApp(
+      tester,
+      prefs: {'settings.v2': userSettings(role: role, sessions: 0)},
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        onlineCheckProvider.overrideWithValue(() async => true),
         micPermissionProvider.overrideWithValue(() async => true),
         if (backend != null) backendProvider.overrideWithValue(backend),
       ],
     );
-    addTearDown(container.dispose);
-    await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const SanadiApp()));
-    await tester.pump(const Duration(milliseconds: 1400));
-    final router = GoRouter.of(tester.element(find.byType(Navigator).first));
+    final router = routerOf(tester);
     router.go(role == 'student' ? Routes.studentHome : Routes.teacherHome);
     await tester.pumpAndSettle();
     return (container, router);

@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -16,34 +13,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/layout_checks.dart';
 
+import 'helpers.dart';
+
 /// Goes through the whole Quran section (every surah and juz' in the lists,
 /// bookmarks) and every dhikr of every athkar set, in English and Arabic at
 /// 100% and 200% text, checking that nothing overflows, no word is split
 /// across lines and no text sits on top of other text.
-Future<void> _loadFont(String family, List<String> files) async {
-  final loader = FontLoader(family);
-  for (final f in files) {
-    loader.addFont(rootBundle.load(f));
-  }
-  await loader.load();
-}
 
 void main() {
-  final quran = QuranData.parse((
-    File('assets/quran/hafs.json').readAsStringSync(),
-    File('assets/quran/layout.json').readAsStringSync(),
-  ))..attachWidths(File('assets/quran/line_widths.json').readAsStringSync());
+  final quran = testQuran;
 
-  setUpAll(() async {
-    await _loadFont('Tajawal', ['assets/fonts/Tajawal-Medium.ttf', 'assets/fonts/Tajawal-Bold.ttf']);
-    await _loadFont('Montserrat', ['assets/fonts/Montserrat-Medium.ttf', 'assets/fonts/Montserrat-Bold.ttf']);
-    await _loadFont('NotoNaskhArabic', [
-      'assets/fonts/NotoNaskhArabic-Regular.ttf',
-      'assets/fonts/NotoNaskhArabic-Medium.ttf',
-      'assets/fonts/NotoNaskhArabic-Bold.ttf',
-    ]);
-    await _loadFont('KFGQPC', ['assets/fonts/quran/UthmanicHafs1Ver18.ttf']);
-  });
+  setUpAll(loadAppFonts);
 
   Future<GoRouter> open(WidgetTester tester, String locale, double scale) async {
     tester.view.physicalSize = const Size(1080, 2400);
@@ -72,7 +52,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 1400));
     await tester.pump(const Duration(milliseconds: 500));
-    return GoRouter.of(tester.element(find.byType(Navigator).first));
+    return routerOf(tester);
   }
 
   void check(WidgetTester tester, String where) {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/layout_checks.dart';
 
+import 'helpers.dart';
+
 /// Material arrows and chevrons that mirror in right-to-left languages.
 final _arrowCodes = {
   Icons.arrow_back_rounded.codePoint,
@@ -25,26 +26,10 @@ final _arrowCodes = {
 
 /// Opens every screen at 100% and 200% text, in English and Arabic, on a
 /// 360x800 phone. Any layout overflow fails the test.
-Future<void> _loadFont(String family, List<String> files) async {
-  final loader = FontLoader(family);
-  for (final f in files) {
-    loader.addFont(rootBundle.load(f));
-  }
-  await loader.load();
-}
 
 void main() {
   // Real fonts, so text measures as it does on a phone.
-  setUpAll(() async {
-    await _loadFont('Tajawal', ['assets/fonts/Tajawal-Medium.ttf', 'assets/fonts/Tajawal-Bold.ttf']);
-    await _loadFont('Montserrat', ['assets/fonts/Montserrat-Medium.ttf', 'assets/fonts/Montserrat-Bold.ttf']);
-    await _loadFont('NotoNaskhArabic', [
-      'assets/fonts/NotoNaskhArabic-Regular.ttf',
-      'assets/fonts/NotoNaskhArabic-Medium.ttf',
-      'assets/fonts/NotoNaskhArabic-Bold.ttf',
-    ]);
-    await _loadFont('KFGQPC', ['assets/fonts/quran/UthmanicHafs1Ver18.ttf']);
-  });
+  setUpAll(loadAppFonts);
 
   final student = [
     Routes.studentHome,
