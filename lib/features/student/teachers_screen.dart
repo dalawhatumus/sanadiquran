@@ -16,11 +16,8 @@ import '../messages/messages_screen.dart';
 
 /// Calls [teacher] (or, if they can't answer, another free teacher), after
 /// checking the internet.
-Future<void> callTeacher(BuildContext context, WidgetRef ref, TeacherEntry teacher) async {
-  if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
-    unawaited(context.push('${Routes.connecting}?teacher=${teacher.uid}'));
-  }
-}
+Future<void> callTeacher(BuildContext context, WidgetRef ref, TeacherEntry teacher) =>
+    pushWhenOnline(context, ref, '${Routes.connecting}?teacher=${teacher.uid}');
 
 /// The student's Teachers tab: every teacher of their gender with a search,
 /// All / Available now / Favourites, a Call button for those who are free,

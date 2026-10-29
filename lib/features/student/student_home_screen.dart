@@ -42,11 +42,7 @@ class StudentHomeScreen extends ConsumerWidget {
     final offline = ref.watch(offlineProvider);
 
     // Calling needs internet; everything else on this screen works offline.
-    Future<void> startCall() async {
-      if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
-        context.push(Routes.connecting);
-      }
-    }
+    Future<void> startCall() => pushWhenOnline(context, ref, Routes.connecting);
 
     return Scaffold(
       body: SafeArea(
@@ -297,15 +293,7 @@ class _MyTeacherCard extends ConsumerWidget {
                     FullName(name, style: tt.titleLarge!),
                     Row(
                       children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: available ? t.primary : Colors.transparent,
-                            border: Border.all(color: available ? t.primary : t.muted, width: 2),
-                          ),
-                        ),
+                        StatusDot(on: available, size: 10),
                         const SizedBox(width: 6),
                         Flexible(
                           child: WordSafeText(
@@ -335,11 +323,7 @@ class _MyTeacherCard extends ConsumerWidget {
                     compact: true,
                     onPressed: chat == null
                         ? startCall
-                        : () async {
-                            if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
-                              unawaited(context.push('${Routes.connecting}?teacher=${chat!.otherUid}'));
-                            }
-                          },
+                        : () => pushWhenOnline(context, ref, '${Routes.connecting}?teacher=${chat!.otherUid}'),
                   ),
                 ),
                 const SizedBox(width: 10),

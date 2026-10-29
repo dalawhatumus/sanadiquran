@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -41,15 +39,7 @@ class AvailabilityBar extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
             child: Row(
               children: [
-                Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: on ? t.primary : Colors.transparent,
-                    border: Border.all(color: on ? t.primary : t.muted, width: 2.5),
-                  ),
-                ),
+                StatusDot(on: on),
                 const SizedBox(width: 10),
                 Expanded(
                   child: WordSafeText(
@@ -62,11 +52,7 @@ class AvailabilityBar extends ConsumerWidget {
                   const SizedBox(width: 10),
                   FilledButton.icon(
                     key: const ValueKey('bar-call'),
-                    onPressed: () async {
-                      if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
-                        unawaited(context.push(Routes.connecting));
-                      }
-                    },
+                    onPressed: () => pushWhenOnline(context, ref, Routes.connecting),
                     icon: const Icon(Icons.call_rounded, size: 24),
                     label: Text(s.call, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                     style: FilledButton.styleFrom(

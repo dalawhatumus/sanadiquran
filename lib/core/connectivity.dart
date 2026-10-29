@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 /// Checks whether the internet is reachable. Overridden in tests.
 ///
@@ -32,3 +35,9 @@ class OfflineNotifier extends Notifier<bool> {
 }
 
 final offlineProvider = NotifierProvider<OfflineNotifier, bool>(OfflineNotifier.new);
+
+/// Opens [route] (a call, for example) once a fresh check finds the
+/// internet; otherwise the screens show that it's needed.
+Future<void> pushWhenOnline(BuildContext context, WidgetRef ref, String route) async {
+  if (await ref.read(offlineProvider.notifier).check() && context.mounted) unawaited(context.push(route));
+}

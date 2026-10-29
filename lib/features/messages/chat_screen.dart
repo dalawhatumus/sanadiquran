@@ -185,15 +185,7 @@ class _Header extends ConsumerWidget {
                     if (available != null)
                       Row(
                         children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: available ? t.primary : Colors.transparent,
-                              border: Border.all(color: available ? t.primary : t.muted, width: 2),
-                            ),
-                          ),
+                          StatusDot(on: available, size: 10),
                           const SizedBox(width: 6),
                           Flexible(
                             child: WordSafeText(
@@ -213,11 +205,7 @@ class _Header extends ConsumerWidget {
               if (student && available == true && !c.blocked)
                 IconButton.filled(
                   tooltip: s.call,
-                  onPressed: () async {
-                    if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
-                      unawaited(context.push('${Routes.connecting}?teacher=${c.otherUid}'));
-                    }
-                  },
+                  onPressed: () => pushWhenOnline(context, ref, '${Routes.connecting}?teacher=${c.otherUid}'),
                   icon: const Icon(Icons.call_rounded, size: 28),
                   style: IconButton.styleFrom(
                     backgroundColor: t.primary,
@@ -229,11 +217,7 @@ class _Header extends ConsumerWidget {
               if (!student && teacherApproved && !c.blocked)
                 IconButton.filled(
                   tooltip: s.call,
-                  onPressed: () async {
-                    if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
-                      unawaited(context.push(Routes.callStudent(c.otherUid)));
-                    }
-                  },
+                  onPressed: () => pushWhenOnline(context, ref, Routes.callStudent(c.otherUid)),
                   icon: const Icon(Icons.call_rounded, size: 28),
                   style: IconButton.styleFrom(
                     backgroundColor: t.primary,

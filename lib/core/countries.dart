@@ -1,3 +1,5 @@
+import 'digits.dart';
+
 part 'countries_data.dart';
 
 /// A country: for nationality, and the calling code of a phone number.
@@ -61,10 +63,7 @@ final phonePattern = RegExp(r'^\+[1-9][0-9]{6,14}$');
 String? fullPhone(Country country, String typed) {
   var digits = typed.replaceAll(RegExp(r'[\s\-().]'), '');
   // Arabic-Indic and Persian digits count too.
-  digits = digits.replaceAllMapped(RegExp('[٠-٩۰-۹]'), (m) {
-    final c = m[0]!.codeUnitAt(0);
-    return '${c >= 0x06F0 ? c - 0x06F0 : c - 0x0660}';
-  });
+  digits = westernDigits(digits);
   if (digits.startsWith('+')) {
     // Typed with the calling code already.
     final full = digits;

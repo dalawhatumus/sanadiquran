@@ -15,11 +15,8 @@ import '../messages/messages_screen.dart';
 import '../quran/quran_data.dart';
 
 /// Rings [studentId] from the teacher's phone, after checking the internet.
-Future<void> callStudent(BuildContext context, WidgetRef ref, String studentId) async {
-  if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
-    unawaited(context.push(Routes.callStudent(studentId)));
-  }
-}
+Future<void> callStudent(BuildContext context, WidgetRef ref, String studentId) =>
+    pushWhenOnline(context, ref, Routes.callStudent(studentId));
 
 /// A student this teacher has taught, from the lesson history.
 class TaughtStudent {

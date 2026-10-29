@@ -298,15 +298,7 @@ class StatusLine extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 6),
-          child: Container(
-            width: 14,
-            height: 14,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: on ? t.primary : Colors.transparent,
-              border: Border.all(color: on ? t.primary : t.muted, width: 2.5),
-            ),
-          ),
+          child: StatusDot(on: on),
         ),
         const SizedBox(width: 10),
         Flexible(
@@ -317,6 +309,29 @@ class StatusLine extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A small round light: filled green when someone is available, an empty
+/// grey ring when not.
+class StatusDot extends StatelessWidget {
+  const StatusDot({super.key, required this.on, this.size = 14});
+
+  final bool on;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.t;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: on ? t.primary : Colors.transparent,
+        border: Border.all(color: on ? t.primary : t.muted, width: size <= 10 ? 2 : 2.5),
+      ),
     );
   }
 }

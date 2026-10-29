@@ -1,3 +1,4 @@
+import '../../core/digits.dart';
 import 'quran_data.dart';
 
 /// Finding a surah however its name is typed: in English or Arabic, with
@@ -10,7 +11,7 @@ List<Sura> searchSurahs(QuranData q, String query) {
   if (raw.isEmpty) return const [];
   final scored = <(int, Sura)>[];
 
-  final number = int.tryParse(_westernDigits(raw).replaceAll(RegExp(r'[^0-9]'), ''));
+  final number = int.tryParse(westernDigits(raw).replaceAll(RegExp(r'[^0-9]'), ''));
   final onlyDigits = RegExp(r'^[0-9٠-٩۰-۹\s]+$').hasMatch(raw);
 
   if (onlyDigits) {
@@ -195,12 +196,6 @@ Iterable<String> _arabicKeys(String s) {
   if (x.startsWith('ال') && x.length > 3) keys.add(x.substring(2));
   return keys;
 }
-
-/// Western digits for Arabic-Indic and Persian ones.
-String _westernDigits(String s) => s.replaceAllMapped(RegExp('[٠-٩۰-۹]'), (m) {
-  final c = m[0]!.codeUnitAt(0);
-  return '${c >= 0x06F0 ? c - 0x06F0 : c - 0x0660}';
-});
 
 /// Other names surahs are widely known by.
 const _otherNames = <int, List<String>>{
