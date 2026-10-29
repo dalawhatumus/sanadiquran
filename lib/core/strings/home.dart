@@ -36,8 +36,9 @@ extension HomeStrings on S {
   String get availOffSub =>
       t('Tap to start receiving calls', 'اضغطي لتبدئي استقبال المكالمات', 'اضغط لتبدأ استقبال المكالمات');
   String get today => t('Today', 'اليوم');
-  String get sessionsL => t('sessions', 'جلسات');
-  String get minutesL => t('minutes', 'دقيقة');
+  // Labels under a number: the Arabic noun follows it (plural for 3–10).
+  String sessionsL(int k) => t(k == 1 ? 'session' : 'sessions', k >= 3 && k <= 10 ? 'جلسات' : 'جلسة');
+  String minutesL(int k) => t(k == 1 ? 'minute' : 'minutes', k >= 3 && k <= 10 ? 'دقائق' : 'دقيقة');
   String get waitingOff => t('Turn on to help them', 'فعّلي حالتكِ لمساعدتهن', 'فعّل حالتك لمساعدتهم');
   String get simulateCall => t('Try a practice call', 'جرّبي مكالمة تجريبية', 'جرّب مكالمة تجريبية');
 

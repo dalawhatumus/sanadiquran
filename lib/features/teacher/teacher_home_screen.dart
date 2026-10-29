@@ -126,6 +126,7 @@ class TeacherHomeScreen extends ConsumerWidget {
       for (final l in ref.watch(lessonsProvider).value ?? const <Lesson>[])
         if (DateUtils.isSameDay(l.at, now)) l,
     ];
+    final minutes = today.fold<int>(0, (m, l) => m + l.minutes);
     final tt = Theme.of(context).textTheme;
     final on = settings.available;
     void toggle() {
@@ -230,11 +231,11 @@ class TeacherHomeScreen extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: _Stat(value: s.n(today.length), label: s.sessionsL),
+                  child: _Stat(value: s.n(today.length), label: s.sessionsL(today.length)),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: _Stat(value: s.n(today.fold<int>(0, (m, l) => m + l.minutes)), label: s.minutesL),
+                  child: _Stat(value: s.n(minutes), label: s.minutesL(minutes)),
                 ),
               ],
             ),
