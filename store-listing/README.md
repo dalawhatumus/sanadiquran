@@ -10,6 +10,7 @@ Everything for the Sanadi Quran store page, in English (default, en-US) and Arab
 | `icon-512.png` | App icon (512×512, 32-bit PNG) | — |
 | `en/feature-graphic.png`, `ar/feature-graphic.png` | Feature graphic (1024×500, no transparency) | — |
 | `en/screenshot-01…08.png`, `ar/screenshot-01…08.png` | Phone screenshots (1080×1920), in this order | 2–8 |
+| `en/promo-video.mp4`, `ar/promo-video.mp4` | Promo video, to upload to YouTube (see below) | — |
 
 ## Strategy
 
@@ -28,7 +29,7 @@ Everything for the Sanadi Quran store page, in English (default, en-US) and Arab
 **How the listing tells that story**
 - **First three screenshots: the core promise.** A real teacher, of your own gender, by phone-style call. Most people decide from the first two or three images.
 - **Mixed genders.** Screenshots alternate the brothers' and sisters' versions, so both see themselves and the same-gender matching is visible.
-- **The rest show everyday value:** the large-text mushaf, messages, athkar and Ayah of the day.
+- **The middle screenshots sell the Quran features:** the complete mushaf with night mode, hands-free auto scroll, ayah-by-ayah recitation with a choice of reciters, and athkar for the whole day.
 - **The last screenshot recruits teachers.**
 - **Search words** (people search these in English and Arabic) appear naturally in the short and full descriptions:
   - English: *Quran, recite, memorize, hifz, tajweed, talqeen, teacher, mushaf, athkar / adhkar, Hisn al-Muslim, Ayah of the day, offline, large text*.
@@ -53,15 +54,31 @@ Everything for the Sanadi Quran store page, in English (default, en-US) and Arab
 
 ## Screenshot captions
 
-| # | Screen | English | Arabic |
+| # | Screens | English | Arabic |
 | --- | --- | --- | --- |
-| 1 | Home (brothers) | Recite to a real teacher | سمّع القرآن لمعلم حقيقي |
-| 2 | Teachers (sisters) | Teachers of your own gender | معلمون من الجنس نفسه |
-| 3 | In a call (brothers) | Just like a phone call | مثل مكالمة الهاتف تمامًا |
-| 4 | Large-text mushaf | The full mushaf, in large clear text | المصحف كاملًا بخط كبير واضح |
-| 5 | Chat (sisters) | Messages and voice notes | رسائل نصية وصوتية |
-| 6 | Athkar | Morning and evening athkar | أذكار الصباح والمساء |
-| 7 | Ayah of the day | An ayah for everyday life | آية لحياتك اليومية |
-| 8 | Teacher home (brothers) | Teach for the sake of Allah | علّم القرآن لوجه الله |
+| 1 | Home (Abdalla) | Recite to a real teacher | سمّع القرآن لمعلم حقيقي |
+| 2 | Teachers (Amal) | Teachers of your own gender | معلمون من الجنس نفسه |
+| 3 | Call + chat (Abdalla) | Call, then keep in touch | اتصل، وابقَ على تواصل |
+| 4 | Quran tab + mushaf page at night | The complete mushaf | المصحف الشريف كاملًا |
+| 5 | Auto scroll running | Hands-free reading | قراءة دون لمس |
+| 6 | Recitation playing + its settings | Listen ayah by ayah | استمع آية بآية |
+| 7 | Athkar menu + tasbeeh counter (Amal) | Athkar for the whole day | أذكار يومك كله |
+| 8 | Teacher home (Abdalla) | Teach for the sake of Allah | علّم القرآن لوجه الله |
 
-The screenshots come from the app's own screens (demo data), framed with the brand colours and fonts.
+The screenshots come from the app's own screens (demo data), framed with the brand colours and fonts. The brothers' screens use the name Abdalla (عبدالله) and the sisters' screens use Amal (أمل).
+
+## Promo video
+
+`en/promo-video.mp4` and `ar/promo-video.mp4` (1920×1080, 40 seconds, no sound) show the app in motion:
+1. Recite now
+2. Teachers
+3. A call
+4. Auto scroll
+5. Ayah-by-ayah recitation
+6. The tasbeeh counter
+7. Ayah of the day
+8. Volunteering to teach
+
+Google Play only takes a YouTube link for the promo video:
+1. Upload each video to YouTube on the Sanadi Google account, as **Public** or **Unlisted**, with ads turned off.
+2. Paste the English link in the English listing and the Arabic link in the Arabic listing.

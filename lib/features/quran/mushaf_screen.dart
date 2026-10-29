@@ -98,12 +98,13 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     // Leaving the mushaf stops the recitation.
     final r = ref.read(recitationProvider);
     if (r.active) ref.read(recitationProvider.notifier).stop();
+    // Here rather than in dispose, where providers can no longer be read.
+    if (_auto) _keepScreenOn(false);
     super.deactivate();
   }
 
   @override
   void dispose() {
-    if (_auto) _keepScreenOn(false);
     _autoPx.dispose();
     _hide?.cancel();
     _pc?.dispose();

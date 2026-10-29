@@ -149,6 +149,7 @@ class RecitationController extends Notifier<RecitationState> {
   Future<void> stop() async {
     _token++;
     await _player?.stop();
+    if (!ref.mounted) return;
     state = state.copyWith(clearAyah: true, playing: false, loading: false, failed: false);
   }
 

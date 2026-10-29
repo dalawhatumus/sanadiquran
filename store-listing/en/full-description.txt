@@ -18,12 +18,18 @@ RECITE TO A TEACHER
 
 THE COMPLETE MUSHAF, WORKS OFFLINE
 • All 604 pages of the Madani mushaf, in the Hafs script of the King Fahd Complex
-• Large text mode for easy reading, with optional auto scroll
-• Ayah-by-ayah recitation by well-known reciters (audio needs internet)
-• Bookmarks, surah search, and quick jumps to any page or juz
+• Two ways to read: the real mushaf page, or large clear text
+• Hands-free auto scroll, at the speed you choose
+• Listen ayah by ayah from 6 well-known reciters, repeat each ayah and set the speed (audio needs internet)
+• The ayah being recited is highlighted, and the pages turn by themselves
+• Press and hold an ayah to copy it, bookmark it or play from there
+• Surah search that understands different spellings, and quick jumps to any page or juz
+• Page and ayah bookmarks, and "Continue reading" from where you stopped
+• Night mode, and text sizes up to 200%
 
 ATHKAR AND AYAH OF THE DAY
-• Morning, evening and daily athkar (adhkar) from Hisn al-Muslim, with a counter
+• Athkar (adhkar) for the whole day from Hisn al-Muslim: morning, evening, after salah, before sleep, on waking, and tasbeeh
+• A large counter, the virtue and source of each dhikr, and transliteration
 • Gentle reminders at the times you choose
 • An ayah for everyday life each day, with the Saheeh International translation
 
