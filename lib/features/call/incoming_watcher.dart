@@ -14,7 +14,7 @@ import '../../core/strings.dart';
 import 'call_controller.dart';
 
 /// Shows the incoming-call screen when a student's call rings for this
-/// teacher. While a teacher is available (and online), a background service
+/// teacher, or a teacher's call rings for this student. While a teacher is available (and online), a background service
 /// keeps Sanadi running so this also works with the app in the background
 /// or the phone locked: then a full-screen call alert brings the app up. A
 /// second call while one is in progress is declined, so that student is put
@@ -108,7 +108,34 @@ class _IncomingCallWatcherState extends ConsumerState<IncomingCallWatcher> with 
           Reminders.instance.incomingCall(
             s: S(ar: me.locale?.languageCode == 'ar', female: me.female),
             callId: c.id,
-            studentName: c.studentName,
+            callerName: c.studentName,
+          );
+        }
+        ref.read(routerProvider).push('${Routes.incoming}?id=${c.id}');
+        break;
+      }
+    }
+  }
+
+  /// A student's teacher is calling them. Rings while Sanadi is open (or
+  /// still running in the background); a second call while one is in
+  /// progress is declined.
+  void _onTeacherCalls(List<CallInfo> calls) {
+    final me = ref.read(settingsProvider);
+    if (!me.signedIn || me.role != UserRole.student) return;
+    final controller = ref.read(callControllerProvider.notifier);
+    final busy = ref.read(callControllerProvider).phase != CallPhase.idle;
+    for (final c in calls) {
+      if (!_shown.add(c.id)) continue;
+      if (busy) {
+        controller.declineFromTeacher(c);
+      } else {
+        if (!_foreground) {
+          Background.overLockScreen(true);
+          Reminders.instance.incomingCall(
+            s: S(ar: me.locale?.languageCode == 'ar', female: me.female),
+            callId: c.id,
+            callerName: c.teacherName,
           );
         }
         ref.read(routerProvider).push('${Routes.incoming}?id=${c.id}');
@@ -120,6 +147,7 @@ class _IncomingCallWatcherState extends ConsumerState<IncomingCallWatcher> with 
   @override
   Widget build(BuildContext context) {
     ref.listen(incomingCallsProvider, (_, next) => _onCalls(next.value ?? const []));
+    ref.listen(callsFromTeachersProvider, (_, next) => _onTeacherCalls(next.value ?? const []));
     ref.listen(
       settingsProvider.select((s) => (s.signedIn, s.role, s.teacherStatus, s.available)),
       (_, _) => _syncService(),

@@ -58,7 +58,7 @@ class S {
   String get navAthkar => t('Athkar', 'الأذكار');
   String get navMessages => t('Messages', 'الرسائل');
   String get navTeachers => t('Teachers', 'المعلّمات', 'المعلّمون');
-  String get navStudents => t('Students', 'طالباتي', 'طلابي');
+  String get navStudents => t('Students', 'الطلاب');
 
   // ---- 2 Language ----
   // Shown in both languages at once, so these are fixed.
@@ -618,6 +618,19 @@ class S {
     'تم توصيل $name بمعلّمة أخرى حتى لا تنتظر.',
     'تم توصيل $name بمعلّم آخر حتى لا ينتظر.',
   );
+  // ---- A teacher calls their student ----
+  String callingName(String name) => t('Calling $name…', 'جارٍ الاتصال: $name');
+  String get callStudentSub => t(
+    g('She hears it ring if Sanadi is open on her phone.', 'He hears it ring if Sanadi is open on his phone.'),
+    'يرنّ الاتصال عندها إذا كان سَنَدي مفتوحًا على هاتفها.',
+    'يرنّ الاتصال عنده إذا كان سَنَدي مفتوحًا على هاتفه.',
+  );
+  String noAnswerTitle(String name) => t("$name didn't answer", 'لم تُجب $name', 'لم يُجب $name');
+  String get noAnswerBody =>
+      t('Try again later, or send a message.', 'حاولي لاحقًا، أو أرسلي رسالة.', 'حاول لاحقًا، أو أرسل رسالة.');
+  String missedFromName(String name) =>
+      t('You missed a call from $name.', 'فاتتكِ مكالمة من $name.', 'فاتتك مكالمة من $name.');
+
   String get keepOpen => t(
     'Calls ring even with Sanadi in the background or your phone locked. Don\'t swipe Sanadi away from your recent apps, or calls can\'t reach you.',
     'ترنّ المكالمات حتى وسَنَدي في الخلفية أو الهاتف مقفل. لا تُغلقي سَنَدي بسحبه من التطبيقات الأخيرة، وإلا لن تصلكِ المكالمات.',

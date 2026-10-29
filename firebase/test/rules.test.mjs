@@ -526,3 +526,50 @@ test('presence: today\'s lesson count, for sharing out calls', async () => {
   await assertFails(updateDoc(p, { lessonsToday: 'many' }));
   await assertFails(updateDoc(p, { lessonsDay: 'x'.repeat(11) }));
 });
+
+// ---- A teacher calls their own student ----
+
+function teacherCall(teacher = 't1', student = 's1', extra = {}) {
+  const ref = doc(collection(db(teacher), 'calls'));
+  return setDoc(ref, {
+    studentId: student, studentName: 'F', studentAvatar: null, teacherId: teacher, teacherName: 'T', teacherAvatar: null,
+    gender: 'female', status: 'ringing', direction: 'toStudent', tried: [], createdAt: serverTimestamp(), ...extra,
+  }).then(() => ref.id);
+}
+
+test('a teacher rings only a student they share a chat with', async () => {
+  await assertFails(teacherCall('t1', 's1')); // no chat yet
+  await openChat();
+  await assertSucceeds(teacherCall('t1', 's1'));
+  await assertFails(teacherCall('t1', 's2')); // not their student
+  await assertFails(teacherCall('t3', 's1')); // not approved
+  await assertFails(teacherCall('t2', 's1', { gender: 'male' })); // other gender
+  await assertFails(teacherCall('t1', 's1', { status: 'active' })); // can't skip the ringing
+  await assertFails(teacherCall('t1', 's1', { teacherId: 't3' })); // only as themself
+  await env.withSecurityRulesDisabled((c) => setDoc(doc(c.firestore(), 'suspensions/s1'), { reason: '', by: 'admin1', at: new Date() }));
+  await assertFails(teacherCall('t1', 's1')); // a paused student can't be rung
+});
+
+test('the student answers or declines a call from their teacher; the teacher can give up', async () => {
+  await openChat();
+  const id = await teacherCall();
+  const asStudent = doc(db('s1'), `calls/${id}`);
+  const asTeacher = doc(db('t1'), `calls/${id}`);
+  await assertSucceeds(getDocs(query(collection(db('s1'), 'calls'), where('studentId', '==', 's1'),
+    where('direction', '==', 'toStudent'), where('status', '==', 'ringing'))));
+  await assertFails(updateDoc(asTeacher, { status: 'active' })); // only the student answers
+  await assertFails(updateDoc(asStudent, { teacherId: 't3' })); // can't put someone else through
+  await assertSucceeds(updateDoc(asStudent, { status: 'active' }));
+  await assertSucceeds(updateDoc(asStudent, { offer: { type: 'offer', sdp: 'x' } }));
+  await assertSucceeds(updateDoc(asTeacher, { answer: { type: 'answer', sdp: 'y' } }));
+  await assertSucceeds(updateDoc(asTeacher, { status: 'ended' }));
+
+  const id2 = await teacherCall();
+  await assertSucceeds(updateDoc(doc(db('s1'), `calls/${id2}`), { status: 'declined' }));
+  const id3 = await teacherCall();
+  await assertSucceeds(updateDoc(doc(db('t1'), `calls/${id3}`), { status: 'unmatched' }));
+  await assertFails(getDoc(doc(db('s2'), `calls/${id3}`)));
+  // A call the student started still can't be answered by the student.
+  const own = await startCall();
+  await assertFails(updateDoc(doc(db('s1'), `calls/${own}`), { status: 'active' }));
+});

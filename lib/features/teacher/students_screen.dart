@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../backend/sessions.dart';
+import '../../core/connectivity.dart';
 import '../../core/router.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
@@ -10,6 +13,13 @@ import '../../widgets/ui.dart';
 import '../lessons/lessons_ui.dart';
 import '../messages/messages_screen.dart';
 import '../quran/quran_data.dart';
+
+/// Rings [studentId] from the teacher's phone, after checking the internet.
+Future<void> callStudent(BuildContext context, WidgetRef ref, String studentId) async {
+  if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
+    unawaited(context.push(Routes.callStudent(studentId)));
+  }
+}
 
 /// A student this teacher has taught, from the lesson history.
 class TaughtStudent {
@@ -85,6 +95,17 @@ class StudentsScreen extends ConsumerWidget {
                                   ],
                                 ),
                               ),
+                              IconButton.filled(
+                                tooltip: s.call,
+                                onPressed: () => callStudent(context, ref, st.uid),
+                                icon: const Icon(Icons.call_rounded, size: 28),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: t.primary,
+                                  foregroundColor: t.onPrimary,
+                                  minimumSize: const Size(kMinTap, kMinTap),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
                               Icon(Arrows.next, color: t.primary, size: 32),
                             ],
                           ),
@@ -99,8 +120,8 @@ class StudentsScreen extends ConsumerWidget {
   }
 }
 
-/// 36 · One student: their lessons with this teacher (add or edit notes on
-/// any of them) and a Message button.
+/// 36 · One student: Call and Message, and their lessons with this teacher
+/// (add or edit notes on any of them).
 class StudentDetailScreen extends ConsumerWidget {
   const StudentDetailScreen({super.key, required this.studentId});
 
@@ -139,11 +160,27 @@ class StudentDetailScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 16),
-        BigButton(
-          label: s.message,
-          icon: Icons.chat_bubble_rounded,
-          kind: ButtonKind.outline,
-          onPressed: () => context.push(Routes.chat('${studentId}_$teacherId')),
+        Row(
+          children: [
+            Expanded(
+              child: BigButton(
+                label: s.call,
+                icon: Icons.call_rounded,
+                compact: true,
+                onPressed: () => callStudent(context, ref, studentId),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: BigButton(
+                label: s.message,
+                icon: Icons.chat_bubble_rounded,
+                kind: ButtonKind.outline,
+                compact: true,
+                onPressed: () => context.push(Routes.chat('${studentId}_$teacherId')),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 20),
         WordSafeText(s.lessonsL, style: tt.titleLarge),

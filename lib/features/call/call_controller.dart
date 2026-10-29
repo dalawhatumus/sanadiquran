@@ -18,7 +18,8 @@ enum CallPhase {
   /// Student: looking for a free teacher.
   finding,
 
-  /// Student: a teacher's phone is ringing.
+  /// Student: a teacher's phone is ringing (or, for a teacher calling a
+  /// student, the student's).
   ringing,
 
   /// Accepted; the phones are connecting.
@@ -27,7 +28,7 @@ enum CallPhase {
   reconnecting,
   ended,
 
-  /// Student: no teacher was free.
+  /// Student: no teacher was free. Teacher: the student didn't answer.
   unmatched,
 
   /// The call couldn't connect, or was cut off.
@@ -127,6 +128,9 @@ class CallController extends Notifier<CallState> {
   AudioLink? _link;
   Completer<CallStatus>? _waiting;
   bool _cancelled = false;
+
+  /// A teacher's call to a student stops ringing after [ringFor].
+  Timer? _ringTimeout;
 
   Backend get _b => ref.read(backendProvider);
 
@@ -234,9 +238,116 @@ class CallController extends Notifier<CallState> {
     return seen;
   }
 
-  /// Student: stops looking (before anyone answers).
+  /// Teacher: rings one of their students (from the student's page or the
+  /// chat). The student's phone rings while Sanadi is open on it.
+  Future<void> startAsTeacher({required String studentId, required String studentName, String? studentAvatar}) async {
+    if (state.phase != CallPhase.idle) return;
+    _cancelled = false;
+    state = CallState(
+      phase: CallPhase.ringing,
+      asTeacher: true,
+      otherName: studentName,
+      otherAvatar: studentAvatar,
+      otherUid: studentId,
+    );
+    if (!await ref.read(micPermissionProvider)()) {
+      state = const CallState(phase: CallPhase.noMic, asTeacher: true);
+      return;
+    }
+    final me = ref.read(settingsProvider);
+    final gender = me.gender;
+    if (gender == null) {
+      state = const CallState(phase: CallPhase.failed, asTeacher: true);
+      return;
+    }
+    final String id;
+    try {
+      id = await _b.callStudent(
+        studentId: studentId,
+        studentName: studentName,
+        studentAvatar: studentAvatar,
+        name: me.name.trim(),
+        avatar: me.avatar,
+        gender: gender,
+      );
+    } catch (e) {
+      logIssue('Call not made: $e');
+      state = const CallState(phase: CallPhase.failed, asTeacher: true);
+      return;
+    }
+    if (_cancelled) return _b.setCallStatus(id, CallStatus.cancelled).catchError((_) {});
+    state = state.copyWith(callId: id);
+    _lastCall = CallInfo(
+      id: id,
+      studentId: studentId,
+      studentName: studentName,
+      studentAvatar: studentAvatar,
+      teacherId: _b.myUid ?? 'demo-teacher',
+      teacherName: me.name.trim(),
+      teacherAvatar: me.avatar,
+      status: CallStatus.ringing,
+      fromTeacher: true,
+    );
+    _watch = _b.watchCall(id).listen(_onTeacherCall);
+    _ringTimeout = Timer(ringFor, () async {
+      if (state.phase != CallPhase.ringing || state.callId != id) return;
+      await _stopWatching();
+      await _b.setCallStatus(id, CallStatus.unmatched).catchError((_) {});
+      state = state.copyWith(phase: CallPhase.unmatched);
+    });
+  }
+
+  /// The student answered (or said no to) the teacher's call.
+  void _onTeacherCall(CallInfo? c) {
+    if (c == null) return;
+    if (state.phase == CallPhase.ringing && c.status == CallStatus.active) {
+      _ringTimeout?.cancel();
+      state = state.copyWith(phase: CallPhase.connecting);
+      _b.setBusy(true).catchError((_) {});
+      _connect(c.id, asStudent: false);
+    } else if (state.phase == CallPhase.ringing && c.status == CallStatus.declined) {
+      _ringTimeout?.cancel();
+      _stopWatching();
+      state = state.copyWith(phase: CallPhase.unmatched);
+    } else if (c.status == CallStatus.ended && state.inCall) {
+      _finish();
+    }
+  }
+
+  /// Student: answers a call from their teacher.
+  Future<void> acceptFromTeacher(CallInfo call) async {
+    if (state.phase != CallPhase.idle) return;
+    state = CallState(
+      phase: CallPhase.connecting,
+      callId: call.id,
+      otherName: call.teacherName,
+      otherAvatar: call.teacherAvatar,
+      otherUid: call.teacherId,
+    );
+    if (!await ref.read(micPermissionProvider)()) {
+      await declineFromTeacher(call);
+      state = const CallState(phase: CallPhase.noMic);
+      return;
+    }
+    _lastCall = call;
+    try {
+      await _b.setCallStatus(call.id, CallStatus.active);
+    } catch (e) {
+      logIssue('Answer failed: $e');
+      state = const CallState(phase: CallPhase.failed);
+      return;
+    }
+    _watch = _b.watchCall(call.id).listen((c) => _onCall(c, asStudent: true));
+    await _connect(call.id, asStudent: true);
+  }
+
+  /// Student: says no to (or misses) a call from their teacher.
+  Future<void> declineFromTeacher(CallInfo call) => _b.setCallStatus(call.id, CallStatus.declined).catchError((_) {});
+
+  /// Stops looking (student) or ringing (teacher), before anyone answers.
   Future<void> cancel() async {
     _cancelled = true;
+    _ringTimeout?.cancel();
     final id = state.callId;
     _resolve(CallStatus.cancelled);
     await _stopWatching();
@@ -407,6 +518,7 @@ class CallController extends Notifier<CallState> {
   }
 
   Future<void> _cleanUp() async {
+    _ringTimeout?.cancel();
     await _stopWatching();
     final link = _link;
     _link = null;

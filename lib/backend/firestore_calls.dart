@@ -11,7 +11,8 @@ import 'user_stream.dart';
 ///
 /// - calls/{id}: studentId, names and pictures, gender, status, the teacher
 ///   being rung (teacherId), teachers already tried, and the WebRTC offer and
-///   answer. Only its student and (once rung) its teacher can read it.
+///   answer; direction "toStudent" when a teacher rang the student. Only its
+///   student and (once rung) its teacher can read it.
 /// - calls/{id}/ice/{id}: network routes from each side.
 /// - presence/{uid}.busy: a teacher in a call isn't rung by anyone else.
 mixin FirestoreCalls implements CallApi {
@@ -21,6 +22,9 @@ mixin FirestoreCalls implements CallApi {
   String? get _me => auth.currentUser?.uid;
 
   CollectionReference<Map<String, dynamic>> get _calls => db.collection('calls');
+
+  /// Marks a call a teacher made to a student.
+  static const _toStudent = 'toStudent';
 
   static CallInfo _info(DocumentSnapshot<Map<String, dynamic>> d) {
     final c = d.data() ?? const {};
@@ -35,6 +39,7 @@ mixin FirestoreCalls implements CallApi {
       status: CallStatus.values.where((s) => s.name == c['status']).firstOrNull ?? CallStatus.ended,
       offer: (c['offer'] as Map?)?.cast<String, dynamic>(),
       answer: (c['answer'] as Map?)?.cast<String, dynamic>(),
+      fromTeacher: c['direction'] == _toStudent,
     );
   }
 
@@ -107,6 +112,44 @@ mixin FirestoreCalls implements CallApi {
     auth,
     (uid) => _calls
         .where('teacherId', isEqualTo: uid)
+        .where('status', isEqualTo: CallStatus.ringing.name)
+        .snapshots()
+        .map((s) => [for (final d in s.docs) _info(d)]),
+    const <CallInfo>[],
+  );
+
+  @override
+  Future<String> callStudent({
+    required String studentId,
+    required String studentName,
+    String? studentAvatar,
+    required String name,
+    String? avatar,
+    required Gender gender,
+  }) async {
+    final ref = _calls.doc();
+    await ref.set({
+      'studentId': studentId,
+      'studentName': studentName,
+      'studentAvatar': studentAvatar,
+      'teacherId': _me,
+      'teacherName': name,
+      'teacherAvatar': avatar,
+      'gender': gender.name,
+      'status': CallStatus.ringing.name,
+      'direction': _toStudent,
+      'tried': <String>[],
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    return ref.id;
+  }
+
+  @override
+  Stream<List<CallInfo>> callsFromTeachers() => perUser(
+    auth,
+    (uid) => _calls
+        .where('studentId', isEqualTo: uid)
+        .where('direction', isEqualTo: _toStudent)
         .where('status', isEqualTo: CallStatus.ringing.name)
         .snapshots()
         .map((s) => [for (final d in s.docs) _info(d)]),

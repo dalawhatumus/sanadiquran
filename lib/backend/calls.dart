@@ -40,6 +40,7 @@ class CallInfo {
     required this.status,
     this.offer,
     this.answer,
+    this.fromTeacher = false,
   });
 
   final String id;
@@ -50,6 +51,10 @@ class CallInfo {
   final String teacherName;
   final String? teacherAvatar;
   final CallStatus status;
+
+  /// The teacher rang the student (rather than the student looking for a
+  /// teacher).
+  final bool fromTeacher;
 
   /// WebRTC session descriptions ({type, sdp}).
   final Map<String, dynamic>? offer;
@@ -102,8 +107,10 @@ List<Candidate> rankCandidates(
 
 /// Calls without a server of our own: the student's app finds a free
 /// teacher of the same gender and rings them by writing to the call;
-/// the teacher's app (while open) sees it ring. The two phones then
-/// exchange WebRTC connection details through the call document.
+/// the teacher's app (while open) sees it ring. A teacher can also ring one
+/// of their own students. Either way the two phones then exchange WebRTC
+/// connection details through the call document (the student always sends
+/// the offer, the teacher the answer).
 abstract interface class CallApi {
   /// Creates a call for this student; returns its id.
   Future<String> createCall({required String name, String? avatar, required Gender gender});
@@ -125,6 +132,20 @@ abstract interface class CallApi {
 
   /// Calls ringing for this teacher now.
   Stream<List<CallInfo>> incomingCalls();
+
+  /// A teacher rings one of their students (someone they share a chat
+  /// with); returns the call's id.
+  Future<String> callStudent({
+    required String studentId,
+    required String studentName,
+    String? studentAvatar,
+    required String name,
+    String? avatar,
+    required Gender gender,
+  });
+
+  /// Calls from teachers ringing for this student now.
+  Stream<List<CallInfo>> callsFromTeachers();
 
   Future<void> setOffer(String callId, Map<String, dynamic> description);
   Future<void> setAnswer(String callId, Map<String, dynamic> description);
@@ -152,6 +173,10 @@ abstract interface class CallApi {
 
 final incomingCallsProvider = StreamProvider<List<CallInfo>>((ref) => ref.watch(backendProvider).incomingCalls());
 
+final callsFromTeachersProvider = StreamProvider<List<CallInfo>>(
+  (ref) => ref.watch(backendProvider).callsFromTeachers(),
+);
+
 /// Demo mode: a pretend teacher answers after a moment and the call has no
 /// audio, so the screens can be tried without a server.
 mixin DemoCalls implements CallApi {
@@ -173,6 +198,7 @@ mixin DemoCalls implements CallApi {
         teacherName: teacherName ?? c.teacherName,
         teacherAvatar: teacherAvatar ?? c.teacherAvatar,
         status: status ?? c.status,
+        fromTeacher: c.fromTeacher,
       );
 
   @override
@@ -220,6 +246,40 @@ mixin DemoCalls implements CallApi {
 
   @override
   Stream<List<CallInfo>> incomingCalls() => Stream.value(const []);
+
+  @override
+  Future<String> callStudent({
+    required String studentId,
+    required String studentName,
+    String? studentAvatar,
+    required String name,
+    String? avatar,
+    required Gender gender,
+  }) async {
+    final id = 'demo-call-${_calls.length + 1}';
+    _set(
+      CallInfo(
+        id: id,
+        studentId: studentId,
+        studentName: studentName,
+        studentAvatar: studentAvatar,
+        teacherId: 'demo-teacher',
+        teacherName: name,
+        teacherAvatar: avatar,
+        status: CallStatus.ringing,
+        fromTeacher: true,
+      ),
+    );
+    // The pretend student answers after a moment.
+    Timer(const Duration(seconds: 2), () {
+      final c = _calls[id];
+      if (c != null && c.status == CallStatus.ringing) _set(_copy(c, status: CallStatus.active));
+    });
+    return id;
+  }
+
+  @override
+  Stream<List<CallInfo>> callsFromTeachers() => Stream.value(const []);
 
   @override
   Future<void> setOffer(String callId, Map<String, dynamic> description) async {}

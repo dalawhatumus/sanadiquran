@@ -543,8 +543,9 @@ class _StudentCallEndedScreenState extends ConsumerState<StudentCallEndedScreen>
   }
 }
 
-/// 31 · Incoming call (teacher). Tap buttons, never swipe; auto-declines at
-/// 30 seconds. With no [callId] (demo mode) it's a practice call.
+/// 31 · Incoming call: a student calling a teacher, or a teacher calling
+/// their student. Tap buttons, never swipe; auto-declines at 30 seconds.
+/// With no [callId] (demo mode) it's a practice call from a student.
 class IncomingCallScreen extends ConsumerStatefulWidget {
   const IncomingCallScreen({super.key, this.callId});
 
@@ -579,21 +580,33 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
       setState(() => _left--);
       if (_left <= 0) {
         final c = _call;
-        if (c != null) ref.read(callControllerProvider.notifier).decline(c);
+        if (c != null) {
+          final calls = ref.read(callControllerProvider.notifier);
+          c.fromTeacher ? calls.declineFromTeacher(c) : calls.decline(c);
+        }
         _stop(missed: true);
       }
     });
   }
+
+  /// A teacher calling this student (rather than a student calling).
+  bool get _fromTeacher => _call?.fromTeacher ?? false;
 
   void _stop({bool missed = false}) {
     _timer.cancel();
     _sub?.cancel();
     unawaited(Reminders.instance.cancelIncomingCall());
     if (missed && !_missed && widget.callId != null) {
-      ref.read(autoAwayProvider.notifier).missed();
+      // Only teachers go "away" after missing calls.
+      if (!_fromTeacher) ref.read(autoAwayProvider.notifier).missed();
       // Not looking at the phone: leave a "missed call" notification.
       if (mounted && WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
-        unawaited(Reminders.instance.missedCall(s: S.of(context), studentName: _call?.studentName ?? ''));
+        final s = S.of(context);
+        unawaited(
+          _fromTeacher
+              ? Reminders.instance.missedTeacherCall(s: s, teacherName: _call?.teacherName ?? '')
+              : Reminders.instance.missedCall(s: s, studentName: _call?.studentName ?? ''),
+        );
       }
     }
     if (mounted && missed) setState(() => _missed = true);
@@ -623,17 +636,27 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
     if (call == null) return;
     _answering = true;
     _stop();
-    ref.read(autoAwayProvider.notifier).responded();
     final c = ref.read(callControllerProvider.notifier)..reset();
+    if (call.fromTeacher) {
+      unawaited(c.acceptFromTeacher(call));
+      if (mounted) context.pushReplacement(Routes.inCall);
+      return;
+    }
+    ref.read(autoAwayProvider.notifier).responded();
     unawaited(c.accept(call));
     if (mounted) context.pushReplacement('${Routes.inCall}?teacher=1');
   }
 
   Future<void> _decline() async {
     _stop();
-    ref.read(autoAwayProvider.notifier).responded();
     final c = _call;
-    if (c != null) await ref.read(callControllerProvider.notifier).decline(c);
+    final calls = ref.read(callControllerProvider.notifier);
+    if (c != null && c.fromTeacher) {
+      await calls.declineFromTeacher(c);
+    } else {
+      ref.read(autoAwayProvider.notifier).responded();
+      if (c != null) await calls.decline(c);
+    }
     if (mounted && context.canPop()) context.pop();
   }
 
@@ -643,11 +666,12 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
     final t = context.t;
     final tt = Theme.of(context).textTheme;
     final demo = widget.callId == null;
-    final name = demo ? s.studentName : (_call?.studentName ?? '');
-    final avatar = demo ? sampleStudentAvatar(s.female) : _call?.studentAvatar;
+    final fromTeacher = _fromTeacher;
+    final name = demo ? s.studentName : ((fromTeacher ? _call?.teacherName : _call?.studentName) ?? '');
+    final avatar = demo ? sampleStudentAvatar(s.female) : (fromTeacher ? _call?.teacherAvatar : _call?.studentAvatar);
     final initial = name.trim().isEmpty ? '?' : name.trim().characters.first.toUpperCase();
     // What this student recited with this teacher last time (if anything).
-    final studentId = _call?.studentId;
+    final studentId = fromTeacher ? null : _call?.studentId;
     final notes = studentId == null ? null : ref.watch(lastNotesForStudentProvider(studentId))?.notes;
     final recited = notes?.recited ?? notes?.next;
     final String? lastPortion = demo
@@ -667,10 +691,22 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
           const SizedBox(height: 18),
           WordSafeText(s.missedTitle, style: tt.headlineSmall, textAlign: TextAlign.center),
           const SizedBox(height: 8),
-          Text(demo ? s.missedBody : s.missedBodyName(name), style: tt.bodyLarge, textAlign: TextAlign.center),
+          Text(
+            demo
+                ? s.missedBody
+                : fromTeacher
+                ? s.missedFromName(name)
+                : s.missedBodyName(name),
+            style: tt.bodyLarge,
+            textAlign: TextAlign.center,
+          ),
         ],
         bottom: [
-          BigButton(label: s.ok, onPressed: () => context.canPop() ? context.pop() : context.go(Routes.teacherHome)),
+          BigButton(
+            label: s.ok,
+            onPressed: () =>
+                context.canPop() ? context.pop() : context.go(fromTeacher ? Routes.studentHome : Routes.teacherHome),
+          ),
         ],
       );
     }

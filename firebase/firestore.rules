@@ -197,11 +197,15 @@ service cloud.firestore {
     }
 
     // Calls. The student's app finds a free teacher of the same gender and
-    // rings them; the teacher's app answers. Only those two can see a call.
+    // rings them; the teacher's app answers. A teacher can also ring one of
+    // their own students (someone they share a chat with); the student
+    // answers. Only those two can see a call.
     match /calls/{id} {
       function isStudent() { return signedIn() && request.auth.uid == resource.data.studentId; }
       function isTeacher() { return signedIn() && request.auth.uid == resource.data.teacherId; }
       function unchanged(keys) { return !request.resource.data.diff(resource.data).affectedKeys().hasAny(keys); }
+      // Rung by the teacher (rather than found by the student).
+      function fromTeacher() { return resource.data.get('direction', '') == 'toStudent'; }
 
       allow read: if isStudent() || isTeacher();
       allow create: if signedIn() && !paused(request.auth.uid)
@@ -214,23 +218,51 @@ service cloud.firestore {
              'teacherId', 'tried', 'createdAt'])
         && text(request.resource.data.get('studentName', null), 80)
         && validAvatar(request.resource.data.get('studentAvatar', null), request.auth.uid);
+      // A teacher rings their own student: approved, not paused, same gender,
+      // with a chat between them; neither of them paused.
+      allow create: if signedIn() && !paused(request.auth.uid)
+        && request.resource.data.direction == 'toStudent'
+        && request.resource.data.teacherId == request.auth.uid
+        && isApproved(request.auth.uid)
+        && request.resource.data.status == 'ringing'
+        && request.resource.data.gender == teacherGender(request.auth.uid)
+        && userDoc(request.resource.data.studentId).gender == teacherGender(request.auth.uid)
+        && !paused(request.resource.data.studentId)
+        && exists(/databases/$(db)/documents/conversations/$(request.resource.data.studentId + '_' + request.auth.uid))
+        && request.resource.data.keys().hasOnly(['studentId', 'studentName', 'studentAvatar', 'teacherId',
+             'teacherName', 'teacherAvatar', 'gender', 'status', 'direction', 'tried', 'createdAt'])
+        && text(request.resource.data.get('studentName', null), 80)
+        && text(request.resource.data.get('teacherName', null), 80)
+        && validAvatar(request.resource.data.get('studentAvatar', null), request.resource.data.studentId)
+        && validAvatar(request.resource.data.get('teacherAvatar', null), request.auth.uid);
       // The student rings teachers (approved, same gender), cancels, hangs
       // up and sends the offer.
+      // For a call from their teacher, the student answers or declines it,
+      // and can't put anyone else through.
       allow update: if isStudent()
-        && unchanged(['studentId', 'gender', 'teacherName', 'teacherAvatar', 'answer'])
+        && unchanged(['studentId', 'gender', 'teacherName', 'teacherAvatar', 'answer', 'direction'])
         && (request.resource.data.status in ['searching', 'ringing', 'ended', 'cancelled', 'unmatched']
-            || request.resource.data.status == resource.data.status)
+            || request.resource.data.status == resource.data.status
+            || (fromTeacher() && resource.data.status == 'ringing'
+                && request.resource.data.status in ['active', 'declined']
+                && (request.resource.data.status == 'declined' || !paused(request.auth.uid))))
+        && (!fromTeacher() || unchanged(['teacherId', 'tried']))
         && (request.resource.data.teacherId == resource.data.teacherId
             || (isApproved(request.resource.data.teacherId)
                 && !paused(request.resource.data.teacherId)
                 && teacherGender(request.resource.data.teacherId) == resource.data.gender));
       // The teacher being rung answers or declines, then sends the answer
       // and can hang up.
+      // For a call the teacher made, they can't answer it themselves, but
+      // can give up while it rings (cancelled, or unmatched: no answer).
       allow update: if isTeacher()
-        && unchanged(['studentId', 'studentName', 'studentAvatar', 'gender', 'teacherId', 'tried', 'offer'])
-        && request.resource.data.status in ['active', 'declined', 'ended']
+        && unchanged(['studentId', 'studentName', 'studentAvatar', 'gender', 'teacherId', 'tried', 'offer', 'direction'])
+        && (request.resource.data.status in ['active', 'declined', 'ended']
+            || (fromTeacher() && resource.data.status == 'ringing'
+                && request.resource.data.status in ['cancelled', 'unmatched']))
         && (resource.data.status in ['ringing', 'active'])
-        && (request.resource.data.status != 'active' || resource.data.status == 'active' || !paused(request.auth.uid));
+        && (request.resource.data.status != 'active' || resource.data.status == 'active'
+            || (!fromTeacher() && !paused(request.auth.uid)));
       allow delete: if false;
 
       // Network routes for the connection, from each side.

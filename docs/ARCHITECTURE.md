@@ -54,7 +54,10 @@ phone). Calls are WebRTC audio, signalled through Firestore.
 at a time (`rankCandidates` in `backend/calls.dart`): the teacher the
 student chose, then favourites, then teachers they had lessons with (most
 recent first), then those who have taught least today. The rules allow a
-call to ring only approved teachers whose application gender matches.
+call to ring only approved teachers whose application gender matches. A
+teacher can also call one of their students (Students tab, the student's
+page, or the chat); it rings on the student's phone while Sanadi is open
+there.
 
 **Ayah of the day** (`features/quran/ayah_of_day.dart`, data in
 `daily_ayahs.dart`): one ayah a day with a theme, on the home screens and as

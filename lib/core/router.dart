@@ -9,6 +9,7 @@ import '../features/admin/users_screen.dart';
 import '../features/athkar/athkar_menu_screen.dart';
 import '../features/athkar/dhikr_screen.dart';
 import '../features/call/call_screens.dart';
+import '../features/call/call_student_screen.dart';
 import '../features/lessons/notes_form_screen.dart';
 import '../features/messages/chat_screen.dart';
 import '../features/messages/messages_screen.dart';
@@ -88,6 +89,7 @@ abstract final class Routes {
   static String lessonNotes(String id) => '$teacherNotes?id=$id';
   static String notesFormFor(String id) => '$notesForm?id=$id';
   static String studentDetail(String uid) => '/student/$uid';
+  static String callStudent(String uid) => '/call/student/$uid';
 
   static String homeFor(UserRole role) => role == UserRole.student ? studentHome : teacherHome;
   static String athkarFor(UserRole? role) => role == UserRole.teacher ? athkar : studentAthkar;
@@ -188,6 +190,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.connecting,
         builder: (_, st) => ConnectingScreen(teacherId: st.uri.queryParameters['teacher']),
+      ),
+      GoRoute(
+        path: '/call/student/:id',
+        builder: (_, st) => CallStudentScreen(studentId: st.pathParameters['id']!),
       ),
       GoRoute(
         path: Routes.inCall,

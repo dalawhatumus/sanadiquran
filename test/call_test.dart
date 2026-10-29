@@ -56,6 +56,51 @@ class _RingThen extends _Teachers {
   }
 }
 
+/// A teacher's call to this student, or a student who never answers the
+/// teacher's call. Records the statuses set.
+class _TeacherCalls extends DemoBackend {
+  _TeacherCalls({this.ringStudent = false});
+
+  /// Ring this student from their teacher.
+  final bool ringStudent;
+  final statuses = <CallStatus>[];
+
+  static const call = CallInfo(
+    id: 'teacher-call',
+    studentId: 'demo',
+    studentName: 'Fatima',
+    teacherId: 'demo-teacher',
+    teacherName: 'Aisha Rahman',
+    status: CallStatus.ringing,
+    fromTeacher: true,
+  );
+
+  @override
+  Stream<List<CallInfo>> callsFromTeachers() =>
+      // Rings a moment after the student has opened the app.
+      Stream.fromFuture(Future.delayed(const Duration(seconds: 2), () => ringStudent ? const [call] : const []));
+
+  @override
+  Future<String> callStudent({
+    required String studentId,
+    required String studentName,
+    String? studentAvatar,
+    required String name,
+    String? avatar,
+    required Gender gender,
+  }) async => call.id;
+
+  @override
+  Stream<CallInfo?> watchCall(String callId) =>
+      callId == call.id ? (StreamController<CallInfo?>()..add(call)).stream : super.watchCall(callId);
+
+  @override
+  Future<void> setCallStatus(String callId, CallStatus status) async {
+    statuses.add(status);
+    await super.setCallStatus(callId, status);
+  }
+}
+
 Future<void> _loadFont(String family, List<String> files) async {
   final loader = FontLoader(family);
   for (final f in files) {
@@ -217,5 +262,85 @@ void main() {
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
     expect(find.text('Incoming call'), findsNothing);
+  });
+
+  testWidgets('teacher: calls a student, who answers; they talk, then end', (tester) async {
+    final (container, router) = await open(tester, role: 'teacher');
+    unawaited(router.push(Routes.callStudent('demo-student')));
+    await tester.pump();
+    await settle(tester);
+    expect(find.textContaining('Calling'), findsOneWidget);
+    expect(container.read(callControllerProvider).phase, CallPhase.ringing);
+    // The (demo) student answers after a moment.
+    await settle(tester, const Duration(seconds: 3));
+    expect(container.read(callControllerProvider).phase, CallPhase.active);
+    expect(find.text('Good connection'), findsOneWidget);
+    await tester.tap(find.text('End call'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Yes, end call'));
+    await settle(tester);
+    expect(find.text('Call ended'), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await settle(tester);
+    expect(container.read(callControllerProvider).phase, CallPhase.idle);
+    await tester.pump(const Duration(seconds: 6));
+  });
+
+  testWidgets('teacher: a student who doesn\'t answer in 30 seconds; try again or go back', (tester) async {
+    final backend = _TeacherCalls();
+    final (container, router) = await open(tester, role: 'teacher', backend: backend);
+    unawaited(router.push(Routes.callStudent('demo')));
+    await tester.pump();
+    await settle(tester, const Duration(seconds: 31));
+    expect(container.read(callControllerProvider).phase, CallPhase.unmatched);
+    expect(find.textContaining("didn't answer"), findsOneWidget);
+    expect(backend.statuses, contains(CallStatus.unmatched));
+    await tester.tap(find.text('Back'));
+    await settle(tester);
+    expect(find.textContaining("didn't answer"), findsNothing);
+    await tester.pump(const Duration(seconds: 6));
+  });
+
+  testWidgets('teacher: cancelling while it rings stops the call', (tester) async {
+    final backend = _TeacherCalls();
+    final (container, router) = await open(tester, role: 'teacher', backend: backend);
+    unawaited(router.push(Routes.callStudent('demo')));
+    await tester.pump();
+    await settle(tester);
+    await tester.tap(find.text('Cancel'));
+    await settle(tester);
+    expect(backend.statuses, [CallStatus.cancelled]);
+    expect(container.read(callControllerProvider).phase, CallPhase.idle);
+    await tester.pump(const Duration(seconds: 6));
+  });
+
+  testWidgets('student: their teacher calls; it rings with her name, and Accept connects', (tester) async {
+    final backend = _TeacherCalls(ringStudent: true);
+    final (container, _) = await open(tester, backend: backend);
+    await settle(tester, const Duration(seconds: 3));
+    expect(find.text('Incoming call'), findsOneWidget);
+    expect(find.text('Aisha Rahman'), findsOneWidget);
+    await tester.tap(find.text('Accept'));
+    await settle(tester);
+    expect(backend.statuses, [CallStatus.active]);
+    expect(container.read(callControllerProvider).phase, CallPhase.active);
+    expect(container.read(callControllerProvider).asTeacher, isFalse);
+    await tester.tap(find.text('End call'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Yes, end call'));
+    await settle(tester);
+    expect(find.text('May Allah reward you'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 6));
+  });
+
+  testWidgets('student: declining their teacher\'s call', (tester) async {
+    final backend = _TeacherCalls(ringStudent: true);
+    await open(tester, backend: backend);
+    await settle(tester, const Duration(seconds: 3));
+    await tester.tap(find.text('Decline'));
+    await settle(tester);
+    expect(backend.statuses, [CallStatus.declined]);
+    expect(find.text('Incoming call'), findsNothing);
+    await tester.pump(const Duration(seconds: 6));
   });
 }

@@ -154,6 +154,9 @@ class _Header extends ConsumerWidget {
     final tt = Theme.of(context).textTheme;
     final c = this.c;
     final student = ref.watch(settingsProvider.select((x) => x.role == UserRole.student));
+    final teacherApproved = ref.watch(
+      settingsProvider.select((x) => x.role == UserRole.teacher && x.teacherStatus == TeacherStatus.approved),
+    );
     final otherTeacher = c?.otherRole == UserRole.teacher;
     final available = c != null && otherTeacher ? ref.watch(teacherAvailableProvider(c.otherUid)).value : null;
 
@@ -213,6 +216,22 @@ class _Header extends ConsumerWidget {
                   onPressed: () async {
                     if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
                       unawaited(context.push('${Routes.connecting}?teacher=${c.otherUid}'));
+                    }
+                  },
+                  icon: const Icon(Icons.call_rounded, size: 28),
+                  style: IconButton.styleFrom(
+                    backgroundColor: t.primary,
+                    foregroundColor: t.onPrimary,
+                    minimumSize: const Size(56, 56),
+                  ),
+                ),
+              // A teacher can ring their student from the chat.
+              if (!student && teacherApproved && !c.blocked)
+                IconButton.filled(
+                  tooltip: s.call,
+                  onPressed: () async {
+                    if (await ref.read(offlineProvider.notifier).check() && context.mounted) {
+                      unawaited(context.push(Routes.callStudent(c.otherUid)));
                     }
                   },
                   icon: const Icon(Icons.call_rounded, size: 28),

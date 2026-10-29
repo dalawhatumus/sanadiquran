@@ -290,13 +290,13 @@ class Reminders {
   /// A student is calling: full screen over the lock screen (where Android
   /// allows it; otherwise a high-priority alert). Cleared when answered,
   /// declined or missed, and by itself after the ringing time.
-  Future<void> incomingCall({required S s, required String callId, required String studentName}) => _show(
+  Future<void> incomingCall({required S s, required String callId, required String callerName}) => _show(
     id: _incomingId,
     channel: 'calls',
     channelName: s.callsChannel,
     channelDesc: s.callsChannelDesc,
     title: s.incoming,
-    body: studentName,
+    body: callerName,
     payload: '/call/incoming?id=$callId',
     importance: Importance.max,
     fullScreen: true,
@@ -315,6 +315,18 @@ class Reminders {
     title: s.missedTitle,
     body: s.missedBodyName(studentName),
     payload: teacherHomeRoute,
+    importance: Importance.defaultImportance,
+  );
+
+  /// A student missed a call from their teacher.
+  Future<void> missedTeacherCall({required S s, required String teacherName}) => _show(
+    id: _missedId,
+    channel: 'missed_calls',
+    channelName: s.missedChannel,
+    channelDesc: s.missedChannelDesc,
+    title: s.missedTitle,
+    body: s.missedFromName(teacherName),
+    payload: homeRoute,
     importance: Importance.defaultImportance,
   );
 
