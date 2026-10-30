@@ -5,6 +5,7 @@ export 'buttons.dart';
 export 'cards.dart';
 export 'dialogs.dart';
 export 'feedback.dart';
+export 'google_button.dart';
 export 'icons.dart';
 export 'layout.dart';
 export 'text.dart';

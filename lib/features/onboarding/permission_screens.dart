@@ -148,16 +148,7 @@ class _PermissionDeniedScreenState extends ConsumerState<PermissionDeniedScreen>
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(color: t.tint, shape: BoxShape.circle),
-                        child: Text(
-                          s.n(i + 1),
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: t.primary),
-                        ),
-                      ),
+                      NumberBadge(s.n(i + 1)),
                       const SizedBox(width: 12),
                       Expanded(child: Text(steps[i], style: tt.bodyMedium)),
                     ],

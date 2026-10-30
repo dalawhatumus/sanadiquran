@@ -383,3 +383,25 @@ class Logo extends StatelessWidget {
   Widget build(BuildContext context) =>
       SvgPicture.asset('assets/logo/$file.svg', height: height, semanticsLabel: label);
 }
+
+/// A step number in a tinted circle ("1", "٢", ...).
+class NumberBadge extends StatelessWidget {
+  const NumberBadge(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.t;
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: t.tint, shape: BoxShape.circle),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: t.primary),
+      ),
+    );
+  }
+}

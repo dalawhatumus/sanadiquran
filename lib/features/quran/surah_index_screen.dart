@@ -16,7 +16,10 @@ part 'surah_lists.dart';
 /// Quran tab: a surah search, then Surahs (with juz' markers), Juz' and
 /// Bookmarks.
 class SurahIndexScreen extends ConsumerStatefulWidget {
-  const SurahIndexScreen({super.key});
+  const SurahIndexScreen({super.key, this.standalone = false});
+
+  /// Opened on its own (by someone without an account), with a Back button.
+  final bool standalone;
 
   @override
   ConsumerState<SurahIndexScreen> createState() => _SurahIndexScreenState();
@@ -50,6 +53,7 @@ class _SurahIndexScreenState extends ConsumerState<SurahIndexScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
                 child: Row(
                   children: [
+                    if (widget.standalone) ...[const BackPill(), const SizedBox(width: 12)],
                     Expanded(
                       child: Align(
                         alignment: AlignmentDirectional.centerStart,
@@ -62,7 +66,7 @@ class _SurahIndexScreenState extends ConsumerState<SurahIndexScreen> {
                     if (teacher) ...[_AthkarPill(onTap: () => context.push(Routes.athkar)), const SizedBox(width: 8)],
                     // Teachers also have the athkar button here, so settings
                     // shows just the picture and every word stays whole.
-                    SettingsChip(compact: teacher),
+                    if (!widget.standalone) SettingsChip(compact: teacher),
                   ],
                 ),
               ),

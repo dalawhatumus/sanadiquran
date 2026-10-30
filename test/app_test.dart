@@ -172,7 +172,8 @@ void main() {
     await pumpApp(tester, {'settings.v2': '{"locale":"en"}'}, false);
     await tapText(tester, 'Continue with Google');
     expect(find.text('No internet connection. Connect to Wi-Fi or mobile data, then try again.'), findsOneWidget);
-    expect(find.text('The Quran and athkar work without internet.'), findsOneWidget);
+    // No account or internet needed for the Quran and athkar.
+    await tapText(tester, 'Read the Quran and athkar now');
     await tapText(tester, 'Athkar');
     expect(find.text('Morning'), findsOneWidget);
   });

@@ -100,6 +100,10 @@ abstract class Backend implements ChatApi, CallApi, LessonApi, AdminApi, Teacher
   /// True when connected to the real server.
   bool get live;
 
+  /// The Google account the person signed in with (null in demo mode or
+  /// when signed out), shown in Settings so they know which to pick again.
+  String? get accountEmail;
+
   /// Opens the Google account picker and signs in.
   /// Throws [SignInCancelled] if the user closes it.
   Future<SignedInUser> signIn();
@@ -161,6 +165,9 @@ final backendProvider = Provider<Backend>((ref) => DemoBackend());
 class DemoBackend with DemoChat, DemoCalls, DemoLessons, DemoAdmin, DemoTeachers, DemoPhotos implements Backend {
   @override
   bool get live => false;
+
+  @override
+  String? get accountEmail => null;
 
   @override
   Future<SignedInUser> signIn() async => const SignedInUser(uid: 'demo');

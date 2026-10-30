@@ -15,6 +15,7 @@ import '../features/messages/chat_screen.dart';
 import '../features/messages/messages_screen.dart';
 import '../features/onboarding/application_screens.dart';
 import '../features/onboarding/details_screen.dart';
+import '../features/onboarding/guest_home_screen.dart';
 import '../features/onboarding/language_screen.dart';
 import '../features/onboarding/permission_screens.dart';
 import '../features/onboarding/profile_screens.dart';
@@ -38,6 +39,12 @@ abstract final class Routes {
   static const splash = '/splash';
   static const language = '/language';
   static const welcome = '/welcome';
+
+  /// The Quran, athkar and Ayah of the day without an account.
+  static const guest = '/guest';
+
+  /// The Quran's surah list on its own (for guests).
+  static const quran = '/quran';
   static const role = '/role';
   static const gender = '/gender';
   static const name = '/name';
@@ -107,7 +114,7 @@ abstract final class Routes {
 /// The first onboarding step the user hasn't finished, or their home.
 String nextStep(AppSettings s) {
   if (s.locale == null) return Routes.language;
-  if (!s.signedIn) return Routes.welcome;
+  if (!s.signedIn) return s.guest ? Routes.guest : Routes.welcome;
   if (s.role == null) return Routes.role;
   if (s.gender == null) return Routes.gender;
   if (s.name.trim().isEmpty) return Routes.name;
@@ -136,6 +143,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.splash, builder: (_, _) => const SplashScreen()),
       GoRoute(path: Routes.language, builder: (_, _) => const LanguageScreen()),
       GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
+      GoRoute(path: Routes.guest, builder: (_, _) => const GuestHomeScreen()),
+      GoRoute(path: Routes.quran, builder: (_, _) => const SurahIndexScreen(standalone: true)),
       GoRoute(path: Routes.role, builder: (_, _) => const RoleScreen()),
       GoRoute(path: Routes.gender, builder: (_, _) => const GenderScreen()),
       GoRoute(path: Routes.name, builder: (_, _) => const NameScreen()),

@@ -47,6 +47,9 @@ class FirebaseBackend
   @override
   bool get live => true;
 
+  @override
+  String? get accountEmail => _auth.currentUser?.email;
+
   String? get _uid => _auth.currentUser?.uid;
 
   DocumentReference<Map<String, dynamic>> _doc(String collection, String uid) => _db.collection(collection).doc(uid);
@@ -63,9 +66,18 @@ class FirebaseBackend
       await google.initialize(serverClientId: FirebaseConfig.webClientId);
       _googleReady = true;
     }
+    // First the quiet way: an account this phone already used for Sanadi
+    // signs in with no picker at all. Otherwise the account picker (one tap
+    // when there's a single Google account on the phone).
+    GoogleSignInAccount? quick;
+    try {
+      quick = await google.attemptLightweightAuthentication();
+    } catch (e) {
+      logIssue('Quiet Google sign-in: $e');
+    }
     final GoogleSignInAccount account;
     try {
-      account = await google.authenticate();
+      account = quick ?? await google.authenticate();
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) throw const SignInCancelled();
       rethrow;

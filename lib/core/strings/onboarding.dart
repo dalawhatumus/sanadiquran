@@ -6,6 +6,37 @@ extension OnboardingStrings on S {
   String get tagline => t('Recite the Quran to a teacher, anytime.', 'سمِّع القرآن لمعلّم أو معلّمة، في أي وقت.');
   String get taglineSub => t('Free, for the sake of Allah.', 'مجانًا، لوجه الله.');
   String get continueGoogle => t('Continue with Google', 'المتابعة بحساب Google');
+  String get noPasswordNote => t(
+    'No password needed. It uses the Google account already on your phone.',
+    'لا حاجة إلى كلمة مرور، فهو يستخدم حساب Google الموجود على الهاتف.',
+  );
+  String get readWithoutAccount => t('Read the Quran and athkar now', 'قراءة القرآن والأذكار الآن');
+  String get noGoogleAccountQ => t('No Google account on this phone?', 'لا يوجد حساب Google على هذا الهاتف؟');
+  String get noAccountBody => t(
+    'Sanadi uses a Google account so you never need a password. Adding one is free and takes a few minutes, and a family member can help.',
+    'يستخدم سَنَدي حساب Google حتى لا تكون هناك حاجة إلى كلمة مرور أبدًا. إضافة الحساب مجانية وتستغرق دقائق، ويمكن لأحد أفراد العائلة المساعدة.',
+  );
+  List<String> get noAccountSteps => [
+    t('Tap "Add a Google account" below.', 'الضغط على «إضافة حساب Google» في الأسفل.'),
+    t(
+      'Follow the steps to create a free account, or sign in to one you already have.',
+      'اتّباع الخطوات لإنشاء حساب مجاني، أو الدخول إلى حساب موجود.',
+    ),
+    t('Come back to Sanadi and tap "Continue with Google".', 'العودة إلى سَنَدي والضغط على «المتابعة بحساب Google».'),
+  ];
+  String get addGoogleAccount => t('Add a Google account', 'إضافة حساب Google');
+  String get addAccountFailed => t(
+    "Couldn't open it. Open the phone's Settings, then Accounts, then Add account.",
+    'تعذّر فتحها. يمكن فتح إعدادات الهاتف، ثم «الحسابات»، ثم «إضافة حساب».',
+  );
+
+  // ---- Without an account (neutral Arabic) ----
+  String get guestTitle => t('Welcome to Sanadi', 'مرحبًا بكم في سَنَدي');
+  String get guestReciteTitle => t('Recite to a teacher', 'التسميع لمعلّم');
+  String get guestReciteBody => t(
+    'Free voice calls with volunteer teachers of your own gender. Sign in once with Google: no password, and you stay signed in.',
+    'مكالمات صوتية مجانية مع معلّمين متطوّعين من الجنس نفسه. يكفي الدخول مرة واحدة بحساب Google: دون كلمة مرور، ويبقى الدخول محفوظًا.',
+  );
   String get signingIn => t('Signing in…', 'جارٍ تسجيل الدخول…');
   String get signInFailed =>
       t("We couldn't sign you in. Please try again.", 'تعذّر تسجيل الدخول. يُرجى المحاولة مرة أخرى.');

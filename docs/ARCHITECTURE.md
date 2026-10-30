@@ -26,6 +26,19 @@ Large screens are split into `part` files next to them. For example,
 `chat_composer.dart`, and `call/call_screens.dart` has one part per call
 screen (connecting, in call, incoming, ended).
 
+## Signing in
+
+- **Google only, no passwords.** The app first tries a quiet sign-in with an
+  account already used on the phone, then shows Google's account picker.
+- **The button** follows Google's design (`widgets/google_button.dart`).
+- **No Google account on the phone:** a help sheet (in `sign_in_panel.dart`)
+  opens the phone's add-account screen through the `sanadi/screen` channel.
+- **Without an account:** the Quran, athkar and Ayah of the day work with
+  no sign-in. The "Read the Quran and athkar now" button sets
+  `settings.guest` and opens `/guest`. Signing in is offered there for
+  reciting to a teacher.
+- **Settings** shows the Google account that is signed in.
+
 ## Backend
 
 `Backend` (in `backend/backend.dart`) is the one interface screens use. It

@@ -28,6 +28,7 @@ class AppSettings {
   const AppSettings({
     this.locale,
     this.signedIn = false,
+    this.guest = false,
     this.role,
     this.gender,
     this.name = '',
@@ -52,6 +53,9 @@ class AppSettings {
   /// Null until the user picks a language on first launch.
   final Locale? locale;
   final bool signedIn;
+
+  /// Chose to use the Quran and athkar without signing in (for now).
+  final bool guest;
   final UserRole? role;
   final Gender? gender;
   final String name;
@@ -101,6 +105,7 @@ class AppSettings {
   AppSettings copyWith({
     Locale? locale,
     bool? signedIn,
+    bool? guest,
     UserRole? role,
     Gender? gender,
     String? name,
@@ -125,6 +130,7 @@ class AppSettings {
     return AppSettings(
       locale: locale ?? this.locale,
       signedIn: signedIn ?? this.signedIn,
+      guest: guest ?? this.guest,
       role: role ?? this.role,
       gender: gender ?? this.gender,
       name: name ?? this.name,
@@ -150,6 +156,7 @@ class AppSettings {
   Map<String, Object?> toJson() => {
     'locale': locale?.languageCode,
     'signedIn': signedIn,
+    'guest': guest,
     'role': role?.name,
     'gender': gender?.name,
     'name': name,
@@ -176,6 +183,7 @@ class AppSettings {
   factory AppSettings.fromJson(Map<String, Object?> j) => AppSettings(
     locale: j['locale'] is String ? Locale(j['locale'] as String) : null,
     signedIn: j['signedIn'] == true,
+    guest: j['guest'] == true,
     role: _enum(UserRole.values, j['role']),
     gender: _enum(Gender.values, j['gender']),
     name: (j['name'] as String?) ?? '',

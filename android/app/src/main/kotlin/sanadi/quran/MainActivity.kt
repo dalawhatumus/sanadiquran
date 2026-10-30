@@ -1,6 +1,8 @@
 package sanadi.quran
 
+import android.content.Intent
 import android.os.Build
+import android.provider.Settings
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -45,6 +47,20 @@ class MainActivity : FlutterActivity() {
                 "moveToBack" -> {
                     moveTaskToBack(true)
                     result.success(null)
+                }
+                // Opens the phone's "Add a Google account" screen, for
+                // someone with no Google account on the phone yet.
+                "addGoogleAccount" -> {
+                    val intent = Intent(Settings.ACTION_ADD_ACCOUNT)
+                        .putExtra(Settings.EXTRA_ACCOUNT_TYPES, arrayOf("com.google"))
+                    result.success(
+                        try {
+                            startActivity(intent)
+                            true
+                        } catch (e: Exception) {
+                            false
+                        }
+                    )
                 }
                 else -> result.notImplemented()
             }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../backend/backend.dart';
@@ -33,6 +34,7 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final n = ref.read(settingsProvider.notifier);
     final teacher = settings.role == UserRole.teacher;
+    final signedIn = settings.signedIn;
     final backend = ref.watch(backendProvider);
     final admin = ref.watch(isAdminProvider).value ?? false;
 
@@ -113,55 +115,58 @@ class SettingsScreen extends ConsumerWidget {
       content: [
         WordSafeText(s.settings, style: tt.headlineMedium),
         const SizedBox(height: 12),
-        SCard(
-          onTap: () => showAvatarPicker(context, ref),
-          child: Row(
-            children: [
-              Avatar(settings.name.characters.first.toUpperCase(), size: 72, image: settings.avatar),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    FullName(settings.name, style: tt.titleLarge!),
-                    Text(teacher ? s.roleTeacher : s.roleStudent, style: tt.bodySmall),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.edit_rounded, size: 18, color: t.primary),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            s.changePicture,
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.primary),
+        // Someone using Sanadi without an account has no profile yet.
+        if (signedIn) ...[
+          SCard(
+            onTap: () => showAvatarPicker(context, ref),
+            child: Row(
+              children: [
+                Avatar(settings.name.characters.first.toUpperCase(), size: 72, image: settings.avatar),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FullName(settings.name, style: tt.titleLarge!),
+                      Text(teacher ? s.roleTeacher : s.roleStudent, style: tt.bodySmall),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.edit_rounded, size: 18, color: t.primary),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              s.changePicture,
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.primary),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        BigButton(label: s.changeName, icon: Icons.badge_rounded, kind: ButtonKind.tint, onPressed: changeName),
-        const SizedBox(height: 10),
-        BigButton(
-          label: s.yourDetails,
-          icon: Icons.contact_phone_rounded,
-          kind: ButtonKind.tint,
-          onPressed: () => context.push(Routes.editDetails),
-        ),
-        if (admin) ...[
-          for (final (icon, title, sub, route) in [
-            (Icons.how_to_reg_rounded, s.adminTitle, s.adminSub, Routes.admin),
-            (Icons.link_rounded, s.connectTitle, s.connectSub, Routes.adminConnect),
-            (Icons.flag_rounded, s.reportsTitle, s.reportsSub, Routes.adminReports),
-            (Icons.people_rounded, s.usersTitle, s.usersSub, Routes.adminUsers),
-            (Icons.insights_rounded, s.overviewTitle, s.overviewSub, Routes.adminStats),
-          ])
-            linkCard(icon, title, sub, () => context.push(route)),
+          const SizedBox(height: 10),
+          BigButton(label: s.changeName, icon: Icons.badge_rounded, kind: ButtonKind.tint, onPressed: changeName),
+          const SizedBox(height: 10),
+          BigButton(
+            label: s.yourDetails,
+            icon: Icons.contact_phone_rounded,
+            kind: ButtonKind.tint,
+            onPressed: () => context.push(Routes.editDetails),
+          ),
+          if (admin) ...[
+            for (final (icon, title, sub, route) in [
+              (Icons.how_to_reg_rounded, s.adminTitle, s.adminSub, Routes.admin),
+              (Icons.link_rounded, s.connectTitle, s.connectSub, Routes.adminConnect),
+              (Icons.flag_rounded, s.reportsTitle, s.reportsSub, Routes.adminReports),
+              (Icons.people_rounded, s.usersTitle, s.usersSub, Routes.adminUsers),
+              (Icons.insights_rounded, s.overviewTitle, s.overviewSub, Routes.adminStats),
+            ])
+              linkCard(icon, title, sub, () => context.push(route)),
+          ],
         ],
         section(s.language),
         Row(
@@ -281,74 +286,98 @@ class SettingsScreen extends ConsumerWidget {
         linkCard(Icons.info_rounded, s.aboutTitle, s.aboutSub, () => context.push(Routes.about)),
         if (backend.live)
           linkCard(Icons.block_rounded, s.blockedTitle, s.blockedSub, () => context.push(Routes.blocked)),
-        section(s.testing),
-        Text(s.testingNote, style: tt.bodySmall),
-        const SizedBox(height: 12),
-        BigButton(
-          label: s.switchRole,
-          icon: Icons.swap_horiz_rounded,
-          kind: ButtonKind.tint,
-          onPressed: () {
-            n.update(
-              (x) => x.copyWith(
-                role: teacher ? UserRole.student : UserRole.teacher,
-                tourDone: true,
-                // Online, the server decides whether a teacher is approved.
-                teacherStatus: teacher || backend.live ? null : TeacherStatus.approved,
-              ),
-            );
-            context.go(nextStep(ref.read(settingsProvider)));
-          },
-        ),
-        if (teacher && !backend.live) ...[
-          const SizedBox(height: 10),
-          BigButton(
-            label: s.approveApp,
-            icon: Icons.verified_rounded,
-            kind: ButtonKind.tint,
-            onPressed: () {
-              n.update((x) => x.copyWith(teacherStatus: TeacherStatus.approved));
-              context.go(Routes.teacherHome);
-            },
-          ),
-          const SizedBox(height: 10),
-          BigButton(
-            label: s.rejectApp,
-            icon: Icons.block_rounded,
-            kind: ButtonKind.tint,
-            onPressed: () {
-              n.update((x) => x.copyWith(teacherStatus: TeacherStatus.rejected));
-              context.go(Routes.teacherHome);
-            },
-          ),
-          const SizedBox(height: 10),
-          BigButton(
-            label: s.simulateCall,
-            icon: Icons.call_received_rounded,
-            kind: ButtonKind.tint,
-            onPressed: () => context.push(Routes.incoming),
-          ),
-        ],
-        const SizedBox(height: 10),
-        BigButton(label: s.resetApp, icon: Icons.restart_alt_rounded, kind: ButtonKind.tint, onPressed: signOut),
-        section(s.account),
-        BigButton(
-          label: s.signOut,
-          icon: Icons.logout_rounded,
-          kind: ButtonKind.outline,
-          onPressed: () async {
-            final yes = await confirm(context, title: s.signOutQ, confirmLabel: s.signOut, destructive: true);
-            if (yes) await signOut();
-          },
-        ),
-        if (backend.live) ...[
+        if (signedIn) ...[
+          section(s.testing),
+          Text(s.testingNote, style: tt.bodySmall),
           const SizedBox(height: 12),
           BigButton(
-            label: s.deleteAccount,
-            icon: Icons.delete_forever_rounded,
-            kind: ButtonKind.outline,
-            onPressed: deleteAccount,
+            label: s.switchRole,
+            icon: Icons.swap_horiz_rounded,
+            kind: ButtonKind.tint,
+            onPressed: () {
+              n.update(
+                (x) => x.copyWith(
+                  role: teacher ? UserRole.student : UserRole.teacher,
+                  tourDone: true,
+                  // Online, the server decides whether a teacher is approved.
+                  teacherStatus: teacher || backend.live ? null : TeacherStatus.approved,
+                ),
+              );
+              context.go(nextStep(ref.read(settingsProvider)));
+            },
           ),
+          if (teacher && !backend.live) ...[
+            const SizedBox(height: 10),
+            BigButton(
+              label: s.approveApp,
+              icon: Icons.verified_rounded,
+              kind: ButtonKind.tint,
+              onPressed: () {
+                n.update((x) => x.copyWith(teacherStatus: TeacherStatus.approved));
+                context.go(Routes.teacherHome);
+              },
+            ),
+            const SizedBox(height: 10),
+            BigButton(
+              label: s.rejectApp,
+              icon: Icons.block_rounded,
+              kind: ButtonKind.tint,
+              onPressed: () {
+                n.update((x) => x.copyWith(teacherStatus: TeacherStatus.rejected));
+                context.go(Routes.teacherHome);
+              },
+            ),
+            const SizedBox(height: 10),
+            BigButton(
+              label: s.simulateCall,
+              icon: Icons.call_received_rounded,
+              kind: ButtonKind.tint,
+              onPressed: () => context.push(Routes.incoming),
+            ),
+          ],
+          const SizedBox(height: 10),
+          BigButton(label: s.resetApp, icon: Icons.restart_alt_rounded, kind: ButtonKind.tint, onPressed: signOut),
+          section(s.account),
+          if (backend.accountEmail != null) ...[
+            SCard(
+              child: Row(
+                children: [
+                  SvgPicture.asset('assets/icons/google_g.svg', width: 28, height: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.googleAccountL, style: tt.bodySmall),
+                        Text(backend.accountEmail!, style: tt.titleSmall),
+                        const SizedBox(height: 4),
+                        Text(s.googleAccountHint, style: tt.bodySmall),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          BigButton(
+            label: s.signOut,
+            icon: Icons.logout_rounded,
+            kind: ButtonKind.outline,
+            onPressed: () async {
+              final yes = await confirm(context, title: s.signOutQ, confirmLabel: s.signOut, destructive: true);
+              if (yes) await signOut();
+            },
+          ),
+          if (backend.live) ...[
+            const SizedBox(height: 12),
+            BigButton(
+              label: s.deleteAccount,
+              icon: Icons.delete_forever_rounded,
+              kind: ButtonKind.outline,
+              onPressed: deleteAccount,
+            ),
+          ],
         ],
         const SizedBox(height: 20),
         Text(backend.live ? s.serverLive : s.serverDemo, style: tt.bodySmall, textAlign: TextAlign.center),

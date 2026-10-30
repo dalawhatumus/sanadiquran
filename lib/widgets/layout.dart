@@ -139,7 +139,11 @@ class SettingsChip extends ConsumerWidget {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.text),
                   ),
                   const SizedBox(width: 8),
-                  Avatar(initial, size: 44, image: avatar),
+                  // No profile yet (using Sanadi without an account): a gear.
+                  if (initial.isEmpty && avatar == null)
+                    SizedBox(width: 44, height: 44, child: Icon(Icons.settings_rounded, color: t.primary, size: 30))
+                  else
+                    Avatar(initial, size: 44, image: avatar),
                 ],
               ),
             ),

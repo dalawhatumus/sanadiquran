@@ -26,6 +26,12 @@ extension SettingsStrings on S {
 
   // ---- Settings: profile, help, privacy ----
   String get changeName => t('Change name', 'تغيير الاسم');
+  String get googleAccountL => t('Signed in with Google', 'الدخول بحساب Google');
+  String get googleAccountHint => t(
+    'On a new phone, sign in with this account to get everything back.',
+    'على هاتف جديد، سجّلي الدخول بهذا الحساب لتعود إليكِ بياناتكِ كلها.',
+    'على هاتف جديد، سجّل الدخول بهذا الحساب لتعود إليك بياناتك كلها.',
+  );
   String get save => t('Save', 'حفظ');
   String get helpSection => t('Help and information', 'المساعدة والمعلومات');
   String get contactSub => t('Questions, ideas or problems', 'أسئلة أو اقتراحات أو مشكلات');

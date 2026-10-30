@@ -54,6 +54,8 @@ void main() {
     Routes.codeOfConduct,
     Routes.mushafAt(sura: 67, ayah: 1),
     Routes.welcome,
+    Routes.guest,
+    Routes.quran,
     Routes.role,
     Routes.gender,
     Routes.name,
