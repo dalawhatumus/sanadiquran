@@ -86,6 +86,10 @@ The screenshots come from the app's own screens (demo data), framed with the bra
 7. Ayah of the day
 8. Volunteering to teach
 
+Uploaded (Unlisted) on the Sanadi Quran YouTube channel:
+- English: https://youtu.be/YgbbTl_3WKQ
+- Arabic: https://youtu.be/L4ZdbxWASdQ
+
 Google Play only takes a YouTube link for the promo video:
 1. Upload each video to YouTube on the Sanadi Google account, as **Public** or **Unlisted**, with ads turned off.
 2. Paste the English link in the English listing and the Arabic link in the Arabic listing.
