@@ -18,6 +18,7 @@ import '../lessons/lessons_ui.dart';
 import '../messages/messages_screen.dart';
 import '../quran/ayah_of_day.dart';
 import '../quran/quran_data.dart';
+import '../shell/announcement_card.dart';
 import 'home_cards.dart';
 import 'teacher_alert.dart';
 
@@ -51,6 +52,7 @@ class StudentHomeScreen extends ConsumerWidget {
           children: [
             const HomeHeader(),
             const SizedBox(height: 16),
+            const AnnouncementCard(),
             if (offline) ...[
               WarnBanner(
                 icon: Icons.wifi_off_rounded,

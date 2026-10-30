@@ -96,6 +96,8 @@ mixin FirestoreChat implements ChatApi {
     'lastSender': myUid,
     'lastAt': FieldValue.serverTimestamp(),
     'unread.${_other(conversationId)}': FieldValue.increment(1),
+    // A count only, for the admins' overview.
+    'sent.$myUid': FieldValue.increment(1),
   };
 
   @override

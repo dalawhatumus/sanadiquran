@@ -15,7 +15,8 @@ The server is Firebase (Auth + Firestore) on the free Spark plan.
 | `lib/widgets/` | Shared widgets. Import `widgets/ui.dart` to get them all (buttons, cards, text, layout, dialogs, toasts, icons). |
 | `assets/` | Quran text and page layout, athkar, fonts, icons, avatars. |
 | `firebase/` | Firestore security rules, indexes and their emulator tests. |
-| `site/` | The public web pages for Google Play (privacy policy, terms, account deletion), published to GitHub Pages by `.github/workflows/pages.yml`. |
+| `site/` | The public web pages for Google Play (privacy policy, terms, account deletion), published to GitHub Pages by `.github/workflows/pages.yml`. `site/admin/` is the admin portal (see below). |
+| `store-listing/` | The Google Play listing: texts, icon, feature graphics, screenshots and promo videos, in English and Arabic. |
 | `test/` | Widget and unit tests (`flutter test`). `test/helpers.dart` has what they share: `startApp` (the app on a typical phone, past the splash), `userSettings` (saved settings for a signed-in person), `testQuran` and `loadAppFonts`. |
 | `tools/` | One-off generators (e.g. the mushaf line widths). |
 
@@ -66,6 +67,26 @@ a notification. English shows the Saheeh International translation and
 Arabic al-Tafsir al-Muyassar (King Fahd Complex), unchanged, with their
 source and a note that a translation is not the Quran. The next 30 days are scheduled on the phone
 each time the app opens (each day's text differs).
+
+## Admin portal
+
+`site/admin/` is a web page for admins at `<website>/admin/`: plain
+JavaScript modules with no build step. The Firebase web SDK and Chart.js
+are copied into `vendor/`.
+- **Sign-in and access:** it signs in with Google and reads Firestore
+  directly under the same rules as the app.
+- **Files:** `data.js` has every read and write, and `app.js` has the pages.
+- **Pages:** overview with charts, teacher applications (with the
+  recitation sample), people and each person's history, lessons, reports,
+  announcements, connecting a student and teacher, admins, and CSV exports.
+- **Settings:** `config.js` is empty in the repository. The website workflow
+  fills it from the repository's Firebase variables (`FIREBASE_WEB_APP_ID`
+  is the web app's id).
+- **What the app records for it:**
+  - when each person joined and last opened the app (`markActive`, once a
+    day),
+  - how many messages each member of a chat sent,
+  - announcements, which show on both home screens (`AnnouncementCard`).
 
 ## Conventions
 

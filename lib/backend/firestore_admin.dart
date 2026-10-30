@@ -89,6 +89,43 @@ mixin FirestoreAdmin implements AdminApi {
   }
 
   @override
+  Future<void> markActive() async {
+    final uid = auth.currentUser?.uid;
+    if (uid == null) return;
+    final me = db.collection('users').doc(uid);
+    final saved = await me.get();
+    // Only once their profile exists (it is made when signing up).
+    if (!saved.exists) return;
+    await me.set({
+      'lastActive': FieldValue.serverTimestamp(),
+      if (saved.data()?['createdAt'] == null) 'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  @override
+  Stream<List<Announcement>> announcements() => perUser(
+    auth,
+    (_) => db
+        .collection('announcements')
+        .orderBy('at', descending: true)
+        .limit(20)
+        .snapshots()
+        .map(
+          (s) => [
+            for (final d in s.docs)
+              Announcement(
+                id: d.id,
+                textEn: (d.data()['textEn'] as String?) ?? '',
+                textAr: (d.data()['textAr'] as String?) ?? '',
+                audience: (d.data()['audience'] as String?) ?? 'all',
+                until: (d.data()['until'] as Timestamp?)?.toDate(),
+              ),
+          ],
+        ),
+    const <Announcement>[],
+  );
+
+  @override
   Future<AdminStats> stats() async {
     Future<int?> countOf(Query<Map<String, dynamic>> q) async {
       try {

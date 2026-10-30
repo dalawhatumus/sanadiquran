@@ -25,6 +25,7 @@ extension HomeStrings on S {
     'اضغط «سمِّع الآن» لتبدأ أول جلسة. سيظهر هنا معلّمك ووِردك القادم.',
   );
   String get myProgress => t('My progress', 'تقدّمي');
+  String get announcementL => t('From Sanadi', 'من سَنَدي');
 
   // ---- 30 Teacher home ----
   String get on => t('ON', 'مفعّل');

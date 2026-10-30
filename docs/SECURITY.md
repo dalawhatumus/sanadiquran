@@ -13,14 +13,27 @@ Firebase Auth). Beyond that:
 | Availability `presence/{uid}` (teacher list: first name, picture, available / in a lesson, lessons given today) | students and teachers of the **same gender** only (queries must ask for that gender), admins | approved teachers only, with the gender of their **approved application**; name ≤ 80; lessons today 0–200 |
 | Waiting students `waiting/{uid}` ("Alert me when a teacher is free") | the student, admins, approved teachers of the same gender (to see how many) | the student only, with their own gender, for at most an hour |
 | Conversations and messages | the two members (admins can read conversations) | only an admin or a finished call opens one, between a student and a teacher of the same gender. Members change only the preview, unread counts, **their own** name and picture, and their own block. Messages are sent by the sender only (text ≤ 2000, voice ≤ ~3 min). Deleting is allowed for your own messages only. |
-| Calls | the student and the teacher being rung | the student rings approved teachers whose **application** gender matches; the teacher answers or declines. An approved teacher can also ring **their own student** (same gender, with a chat between them, neither paused); only the student answers that call. Neither side can change the other's fields. |
+| Calls | the student and the teacher being rung, admins (for the overview) | the student rings approved teachers whose **application** gender matches; the teacher answers or declines. An approved teacher can also ring **their own student** (same gender, with a chat between them, neither paused); only the student answers that call. Neither side can change the other's fields. |
 | Lessons | the two people in it | saved only for a real call between them. Notes are written by the teacher (validated), the rating by the student. |
 | Reports | admins | anyone may report the other member of **their own** chat, with a known reason (details ≤ 1000). Admins can only change the status. |
 | Paused accounts `suspensions/{uid}` | the person, admins | admins only (with a reason, signed with their id). A paused person can't send messages, start or answer calls, switch on "available", or apply to teach; nobody can ring a paused teacher. Restoring deletes the record. |
-| Admins | the admin themself | nobody (added by hand in the console) |
+| Admins `admins/{uid}` | admins | the first is added by hand in the console; admins add others (only people with a profile) and remove others, never themselves, so one always remains |
+| Announcements `announcements/{id}` | anyone signed in | admins only: English and/or Arabic text ≤ 500 each, for everyone / students / teachers, optional end date. Can't be edited, only removed. |
+| Joined and last active (`createdAt`, `lastActive` on the profile) | the person, admins | the person's app, and only as the server's current time; the join time is set once |
+| Messages sent (`sent` counts on a conversation) | the members, admins | each member counts only their own. Admins see the counts, never the messages: **admins can't read messages** (only conversation details). |
 
 Every rule has emulator tests in `firebase/test/rules.test.mjs`, including
 attempts to break it.
+
+## Admin portal
+
+`site/admin/` (published at `/admin/` on the website) is a plain web page
+for admins. It signs in with Google and uses the **same Firestore rules** as
+the app, so anyone who isn't in `admins` can open the page but can't read or
+change anything. Its Firebase settings are public values written in when the
+website is published. It shows every user's details including phone
+numbers, so only trusted people should be made admins. Names and other text
+from users are always inserted as text, never as HTML.
 
 ## Sign-in and account deletion
 

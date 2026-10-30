@@ -25,6 +25,8 @@ class HomeShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = S.of(context);
     final unread = ref.watch(unreadTotalProvider);
+    // Opening the app counts as being active today (for the admins).
+    ref.watch(markActiveProvider);
     final home = (const Icon(Icons.home_rounded), s.navHome);
     final quran = (const SIcon(SIcons.rehal), s.navQuran);
     final messages = (const Icon(Icons.chat_bubble_rounded), s.navMessages);

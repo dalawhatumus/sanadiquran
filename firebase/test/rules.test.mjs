@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import {
   doc, getDoc, setDoc, updateDoc, deleteDoc, writeBatch, collection, getDocs, query, where, addDoc,
-  serverTimestamp, increment, arrayUnion, Bytes,
+  serverTimestamp, increment, arrayUnion, Bytes, Timestamp,
 } from 'firebase/firestore';
 
 let env;
@@ -572,4 +572,62 @@ test('the student answers or declines a call from their teacher; the teacher can
   // A call the student started still can't be answered by the student.
   const own = await startCall();
   await assertFails(updateDoc(doc(db('s1'), `calls/${own}`), { status: 'active' }));
+});
+
+// ---- Admin portal ----
+
+test('profile: joined and last-active times are server stamps; joined is set once', async () => {
+  const me = doc(db('s1'), 'users/s1');
+  await assertSucceeds(setDoc(me, { lastActive: serverTimestamp(), createdAt: serverTimestamp() }, { merge: true }));
+  // Not a made-up time.
+  await assertFails(setDoc(me, { lastActive: Timestamp.fromDate(new Date(2020, 0, 1)) }, { merge: true }));
+  // Joined can't move once set; last active can.
+  await assertFails(setDoc(me, { createdAt: serverTimestamp() }, { merge: true }));
+  await assertSucceeds(setDoc(me, { lastActive: serverTimestamp() }, { merge: true }));
+  // Saving the profile leaves both as they were.
+  await assertSucceeds(setDoc(me, { name: 'Fatima A' }, { merge: true }));
+});
+
+test('chat: each member counts only their own sent messages', async () => {
+  await openChat();
+  const c = (uid) => doc(db(uid), 'conversations/s1_t1');
+  await assertSucceeds(updateDoc(c('s1'), { 'sent.s1': increment(1), lastSender: 's1' }));
+  await assertFails(updateDoc(c('s1'), { 'sent.t1': increment(1) }));
+  await assertFails(updateDoc(c('s2'), { 'sent.s2': increment(1) }));
+});
+
+test('admins can read calls, for the overview', async () => {
+  const id = await startCall();
+  await assertSucceeds(getDoc(doc(db('admin1'), `calls/${id}`)));
+  await assertSucceeds(getDocs(query(collection(db('admin1'), 'calls'), where('status', '==', 'searching'))));
+  await assertFails(getDocs(query(collection(db('s2'), 'calls'), where('status', '==', 'searching'))));
+});
+
+test('admins add and remove other admins, never themselves', async () => {
+  const add = (by, uid, extra = {}) =>
+    setDoc(doc(db(by), `admins/${uid}`), { name: 'Aisha', by, at: serverTimestamp(), ...extra });
+  await assertFails(add('s1', 's1'));
+  await assertFails(add('admin1', 'nobody'));
+  await assertFails(add('admin1', 't1', { by: 's1' }));
+  await assertSucceeds(add('admin1', 't1'));
+  await assertSucceeds(getDocs(collection(db('t1'), 'admins')));
+  await assertFails(getDocs(collection(db('s1'), 'admins')));
+  await assertFails(deleteDoc(doc(db('t1'), 'admins/t1')));
+  await assertSucceeds(deleteDoc(doc(db('admin1'), 'admins/t1')));
+  await assertFails(deleteDoc(doc(db('s1'), 'admins/admin1')));
+});
+
+test('announcements: admins write, everyone signed in reads', async () => {
+  const a = (by, extra = {}) =>
+    addDoc(collection(db(by), 'announcements'), { textEn: 'Hello', textAr: 'مرحبا', audience: 'all', by, at: serverTimestamp(), ...extra });
+  await assertFails(a('s1'));
+  await assertFails(a('admin1', { audience: 'everyone' }));
+  await assertFails(a('admin1', { textEn: '', textAr: '' }));
+  await assertFails(a('admin1', { textEn: 'x'.repeat(501) }));
+  const ref = await assertSucceeds(a('admin1', { audience: 'teacher', until: Timestamp.fromDate(new Date(2099, 0, 1)) }));
+  await assertSucceeds(getDocs(collection(db('s1'), 'announcements')));
+  await assertFails(getDocs(collection(db(null), 'announcements')));
+  await assertFails(updateDoc(doc(db('admin1'), `announcements/${ref.id}`), { textEn: 'Bye' }));
+  await assertFails(deleteDoc(doc(db('s1'), `announcements/${ref.id}`)));
+  await assertSucceeds(deleteDoc(doc(db('admin1'), `announcements/${ref.id}`)));
 });

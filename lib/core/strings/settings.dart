@@ -133,6 +133,14 @@ extension SettingsStrings on S {
       ),
     ),
     (
+      t('How Sanadi is used', 'استخدام سَنَدي'),
+      t(
+        'So Sanadi can be run well, admins see when you joined, when you last opened the app, your lessons (with whom, when and for how long), and how many messages you have sent. They see the number of messages only, never what they say.',
+        'لإدارة سَنَدي جيدًا، يرى المشرفون متى انضممتِ، ومتى فتحتِ التطبيق آخر مرة، ودروسكِ (مع من ومتى ومدتها)، وعدد الرسائل التي أرسلتِها. يرون عدد الرسائل فقط، ولا يرون محتواها أبدًا.',
+        'لإدارة سَنَدي جيدًا، يرى المشرفون متى انضممت، ومتى فتحت التطبيق آخر مرة، ودروسك (مع من ومتى ومدتها)، وعدد الرسائل التي أرسلتها. يرون عدد الرسائل فقط، ولا يرون محتواها أبدًا.',
+      ),
+    ),
+    (
       t('Calls', 'المكالمات'),
       t(
         'Calls go directly between the two phones and are never recorded.',

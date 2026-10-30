@@ -49,6 +49,29 @@ class UserEntry {
   );
 }
 
+/// A short message from the admins, shown on the home screen. Written in
+/// the admin portal, in English and/or Arabic, for everyone or one role.
+class Announcement {
+  const Announcement({required this.id, this.textEn = '', this.textAr = '', this.audience = 'all', this.until});
+
+  final String id;
+  final String textEn;
+  final String textAr;
+
+  /// 'all', 'student' or 'teacher'.
+  final String audience;
+
+  /// Shown until then (null: until an admin removes it).
+  final DateTime? until;
+
+  /// The text in the person's language, or the other one if that's empty.
+  String text({required bool ar}) => ar ? (textAr.isNotEmpty ? textAr : textEn) : (textEn.isNotEmpty ? textEn : textAr);
+
+  /// Whether it is for this person, now.
+  bool showsTo(UserRole? role, DateTime now) =>
+      (audience == 'all' || audience == role?.name) && (until == null || until!.isAfter(now));
+}
+
 /// The admin's overview. A value is null when it couldn't be counted.
 class AdminStats {
   const AdminStats({
@@ -93,10 +116,28 @@ abstract interface class AdminApi {
 
   /// Counts for the overview (admins only).
   Future<AdminStats> stats();
+
+  /// Notes that this person opened the app now (and that they joined now, if
+  /// that was never noted), for the admins' overview.
+  Future<void> markActive();
+
+  /// The admins' announcements, newest first.
+  Stream<List<Announcement>> announcements();
 }
 
 final pausedProvider = StreamProvider<bool>((ref) => ref.watch(backendProvider).paused());
 final usersProvider = StreamProvider<List<UserEntry>>((ref) => ref.watch(backendProvider).users());
+final announcementsProvider = StreamProvider<List<Announcement>>((ref) => ref.watch(backendProvider).announcements());
+
+/// Marks this person active, at most once a day (read by the home tabs).
+final markActiveProvider = FutureProvider<void>((ref) async {
+  final prefs = ref.read(sharedPreferencesProvider);
+  final today = DateTime.now().toIso8601String().substring(0, 10);
+  if (prefs.getString(_kActiveDay) == today) return;
+  await ref.read(backendProvider).markActive();
+  await prefs.setString(_kActiveDay, today);
+});
+const _kActiveDay = 'lastActiveDay';
 
 /// Demo mode: a few sample people; pausing is kept in memory.
 mixin DemoAdmin implements AdminApi {
@@ -155,6 +196,12 @@ mixin DemoAdmin implements AdminApi {
     lessonsWeek: 2,
     minutesWeek: 33,
   );
+
+  @override
+  Future<void> markActive() async {}
+
+  @override
+  Stream<List<Announcement>> announcements() => Stream.value(const []);
 }
 
 /// Sorts people by name, ignoring case.

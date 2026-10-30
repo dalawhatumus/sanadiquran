@@ -24,6 +24,16 @@ service cloud.firestore {
     }
     // A picture: one of the drawn avatars (a short id), or the person's own
     // photo ("photo:<their uid>:<version>", see /photos).
+    // A server time the app may only set to "now" (or leave as it was);
+    // stampOnce can't change once set.
+    function stamp(k) {
+      return request.resource.data.get(k, null) == (resource == null ? null : resource.data.get(k, null))
+        || request.resource.data.get(k, null) == request.time;
+    }
+    function stampOnce(k) {
+      return request.resource.data.get(k, null) == (resource == null ? null : resource.data.get(k, null))
+        || ((resource == null || resource.data.get(k, null) == null) && request.resource.data.get(k, null) == request.time);
+    }
     function validAvatar(v, uid) {
       return v == null || (v is string
         && ((v.size() <= 20 && !v.matches('photo:.*')) || v.matches('photo:' + uid + ':[a-z0-9]{1,12}')));
@@ -37,7 +47,11 @@ service cloud.firestore {
       allow read: if isMe(uid) || isAdmin();
       allow create, update: if isMe(uid)
         && request.resource.data.keys().hasOnly(['name', 'role', 'gender', 'avatar', 'locale', 'ageGroup',
-             'nationality', 'phone', 'whatsapp', 'updatedAt'])
+             'nationality', 'phone', 'whatsapp', 'updatedAt', 'createdAt', 'lastActive'])
+        // When they joined (set once) and when they last opened the app,
+        // both stamped by the server, for the admins' overview.
+        && stampOnce('createdAt')
+        && stamp('lastActive')
         && text(request.resource.data.get('name', null), 80)
         && request.resource.data.get('role', null) in [null, 'student', 'teacher']
         && request.resource.data.get('gender', null) in [null, 'male', 'female']
@@ -150,13 +164,18 @@ service cloud.firestore {
         && request.resource.data.members == resource.data.members
         && request.resource.data.gender == resource.data.gender
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['lastText', 'lastVoiceSec', 'lastSender', 'lastAt', 'unread', 'names', 'avatars', 'blockedBy'])
+             .hasOnly(['lastText', 'lastVoiceSec', 'lastSender', 'lastAt', 'unread', 'names', 'avatars', 'blockedBy',
+                       'sent'])
         && request.resource.data.blockedBy.removeAll([request.auth.uid])
              == resource.data.blockedBy.removeAll([request.auth.uid])
         // Each member changes only their own name and picture.
         && request.resource.data.get('names', {}).diff(resource.data.get('names', {})).affectedKeys()
              .hasOnly([request.auth.uid])
         && request.resource.data.get('avatars', {}).diff(resource.data.get('avatars', {})).affectedKeys()
+             .hasOnly([request.auth.uid])
+        // How many messages each member has sent (a number only, for the
+        // admins); each counts their own.
+        && request.resource.data.get('sent', {}).diff(resource.data.get('sent', {})).affectedKeys()
              .hasOnly([request.auth.uid])
         && text(request.resource.data.get('names', {}).get(request.auth.uid, null), 80);
       allow delete: if false;
@@ -207,7 +226,9 @@ service cloud.firestore {
       // Rung by the teacher (rather than found by the student).
       function fromTeacher() { return resource.data.get('direction', '') == 'toStudent'; }
 
-      allow read: if isStudent() || isTeacher();
+      // Admins see calls too, for the overview (e.g. students who found no
+      // teacher).
+      allow read: if isStudent() || isTeacher() || isAdmin();
       allow create: if signedIn() && !paused(request.auth.uid)
         && request.resource.data.studentId == request.auth.uid
         && userDoc(request.auth.uid).role == 'student'
@@ -370,10 +391,35 @@ service cloud.firestore {
       allow delete: if isMe(uid) || isAdmin();
     }
 
-    // Who can review applications. Added by hand in the console.
+    // Admins. The first is added by hand in the console; admins can add
+    // and remove others (but not themselves, so there's always one left).
     match /admins/{uid} {
-      allow read: if isMe(uid);
-      allow write: if false;
+      allow read: if isMe(uid) || isAdmin();
+      allow create: if isAdmin() && exists(/databases/$(db)/documents/users/$(uid))
+        && request.resource.data.keys().hasOnly(['name', 'by', 'at'])
+        && text(request.resource.data.get('name', null), 80)
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.at == request.time;
+      allow update: if false;
+      allow delete: if isAdmin() && uid != request.auth.uid;
+    }
+
+    // Announcements shown in the app, written by admins: English and/or
+    // Arabic text, for everyone or only students or only teachers, until a
+    // date (or until removed).
+    match /announcements/{id} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['textEn', 'textAr', 'audience', 'until', 'by', 'at'])
+        && text(request.resource.data.get('textEn', null), 500)
+        && text(request.resource.data.get('textAr', null), 500)
+        && (request.resource.data.get('textEn', '') != '' || request.resource.data.get('textAr', '') != '')
+        && request.resource.data.audience in ['all', 'student', 'teacher']
+        && (request.resource.data.get('until', null) == null || request.resource.data.until is timestamp)
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.at == request.time;
+      allow update: if false;
+      allow delete: if isAdmin();
     }
   }
 }
