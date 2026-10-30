@@ -43,6 +43,13 @@ Everything for the Sanadi Quran store page, in English (default, en-US) and Arab
 - **Real screens only:** every screenshot is captured from the real app, with no features that don't exist.
 - **Honest claims:** no "first" or "only". Teachers are described as reviewed by our team, not as certified.
 
+## Store name
+
+- **English:** "Sanadi Quran: Learn & Memorize". This uses all 30 characters and matches the searches "learn Quran" and "memorize Quran".
+- **Arabic:** «سَنَدي: تسميع وتحفيظ القرآن» (27 characters). This matches «تسميع القرآن» and «تحفيظ القرآن».
+- **Brand first:** the name always starts with the brand, so people remember it.
+- **Under the app icon on the phone:** it stays short ("Sanadi Quran" / سَنَدي). That name is set in the app, not on Play.
+
 ## Store settings
 
 - **App category:** Education.
