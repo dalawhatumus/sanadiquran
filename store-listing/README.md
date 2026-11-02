@@ -45,10 +45,9 @@ Everything for the Sanadi Quran store page, in English (default, en-US) and Arab
 
 ## Store name
 
-- **English:** "Sanadi Quran: Learn & Memorize". This uses all 30 characters and matches the searches "learn Quran" and "memorize Quran".
-- **Arabic:** «سَنَدي: تسميع وتحفيظ القرآن» (27 characters). This matches «تسميع القرآن» and «تحفيظ القرآن».
-- **Brand first:** the name always starts with the brand, so people remember it.
-- **Under the app icon on the phone:** it stays short ("Sanadi Quran" / سَنَدي). That name is set in the app, not on Play.
+- **English:** "Sanadi Quran". **Arabic:** «سَنَدي».
+- **Why short:** the owner chose short names that match the name under the app icon.
+- **Search words** (recite, memorize, hifz, teacher, تسميع، تحفيظ) are in the short and full descriptions, which Google also searches.
 
 ## Store settings
 
