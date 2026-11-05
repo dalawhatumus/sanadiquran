@@ -134,8 +134,8 @@ extension SettingsStrings on S {
     (
       t('Messages and lessons', 'الرسائل والدروس'),
       t(
-        'Text messages, voice notes, lesson times and teachers\' notes are saved so both people can see them. Only the two people in a conversation (and admins, if a report is made) can read them.',
-        'تُحفظ الرسائل والتسجيلات الصوتية وأوقات الدروس وملاحظات المعلّمين ليراها الطرفان. لا يقرؤها إلا طرفا المحادثة (والمشرفون عند وجود بلاغ).',
+        'Text messages, voice notes, lesson times and teachers\' notes are saved so both people can see them. Only the two people in a conversation can read them; admins never read messages.',
+        'تُحفظ الرسائل والتسجيلات الصوتية وأوقات الدروس وملاحظات المعلّمين ليراها الطرفان. لا يقرؤها إلا طرفا المحادثة، ولا يقرأ المشرفون الرسائل أبدًا.',
       ),
     ),
     (

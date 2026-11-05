@@ -785,8 +785,12 @@ views.admins = async () => {
 
 function download(name, rows) {
   const cell = (v) => {
-    const s = v == null ? '' : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    let s = v == null ? '' : String(v);
+    // Something a spreadsheet would run as a formula (a name like
+    // =HYPERLINK(...)) is written as plain text instead. Phone numbers
+    // (+ and digits only) are left as they are.
+    if (/^[=+\-@\t\r]/.test(s) && !/^\+[0-9]{6,15}$/.test(s)) s = `'${s}`;
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   // A byte-order mark so Excel reads Arabic names correctly.
   const csv = '﻿' + rows.map((r) => r.map(cell).join(',')).join('\r\n');

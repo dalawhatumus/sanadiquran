@@ -28,7 +28,7 @@ Built to match the approved Claude Design screens (batches 1–3):
 - **Athkar:** morning, evening, after salah, tasbeeh, before sleep and on waking, with a tap counter.
 - Arabic written for the user's gender, dark mode, and layouts checked at 200% text size.
 
-Not real yet (simulated): Google sign-in, calls, notes delivery, messages, reminders and audio. These come with Firebase and calling. **Settings → Testing tools** lets you switch between student and teacher, approve or reject a teacher application, and try an incoming call.
+Built without the Firebase settings (for example a local `flutter run`), Sanadi runs in **demo mode**: sign-in, calls and messages are simulated on the phone. The builds from GitHub use the real Firebase project, with Google sign-in, live voice calls, messages and reminders.
 
 ## Develop locally (optional)
 Needs Flutter 3.47.6 and the Android SDK (via Android Studio).

@@ -29,8 +29,8 @@ extension LegalStrings on S {
     (
       t('Calls and messages', 'المكالمات والرسائل'),
       t(
-        'Calls are never recorded by Sanadi, and must not be recorded by anyone. Messages are between the two of you; admins only read them if a report is made.',
-        'لا يسجّل سَنَدي المكالمات أبدًا، ولا يجوز لأحد تسجيلها. الرسائل بينكما فقط، ولا يطّلع عليها المشرفون إلا عند وجود بلاغ.',
+        'Calls are never recorded by Sanadi, and must not be recorded by anyone. Messages are between the two of you; admins never read them.',
+        'لا يسجّل سَنَدي المكالمات أبدًا، ولا يجوز لأحد تسجيلها. الرسائل بينكما فقط، ولا يقرؤها المشرفون أبدًا.',
       ),
     ),
     (

@@ -11,6 +11,10 @@ Firebase Auth). Beyond that:
 | Own photo `photos/{uid}` | the person, admins, signed-in people of the **same gender** | the person only (not while paused), one JPEG ≤ 150 KB. A picture value (`avatar`) can only point to the person's **own** photo (also on calls and the teacher list). Admins can delete a photo. |
 | Teacher application, voice sample | the applicant, admins | the applicant sends or resends (same gender as their profile, limited sizes). Only an admin approves or turns it down, signing it with their own id. An approved application can't be edited. |
 | Availability `presence/{uid}` (teacher list: first name, picture, available / in a lesson, lessons given today) | students and teachers of the **same gender** only (queries must ask for that gender), admins | approved teachers only, with the gender of their **approved application**; name ≤ 80; lessons today 0–200 |
+| Gender `genders/{uid}` | the person, admins | the person, once, with their first profile save; it can never change or be deleted (so deleting and re-creating the profile can't change who can call whom) |
+| "Still here" `beats/{uid}` | signed-in people | the person, a server time only, every minute while available |
+| Calls `calls/{id}` | its student and teacher, admins | strict steps: looking → ringing (approved, available, same gender, nobody paused) → answered → ended; a call ends only after it was answered; ended, cancelled and unmatched calls never change again (except blanking a deleted person's name and removing the connection details). Network routes only while the call is on; each phone deletes its own afterwards |
+| Lessons `sessions/{id}` | its student and teacher, admins | only for an answered call, server-stamped, no longer than the time since it was answered |
 | Waiting students `waiting/{uid}` ("Alert me when a teacher is free") | the student, admins, approved teachers of the same gender (to see how many) | the student only, with their own gender, for at most an hour |
 | Conversations and messages | the two members (admins can read conversations) | only an admin or a finished call opens one, between a student and a teacher of the same gender. Members change only the preview, unread counts, **their own** name and picture, and their own block. Messages are sent by the sender only (text ≤ 2000, voice ≤ ~3 min). Deleting is allowed for your own messages only. |
 | Calls | the student and the teacher being rung, admins (for the overview) | the student rings approved teachers whose **application** gender matches; the teacher answers or declines. An approved teacher can also ring **their own student** (same gender, with a chat between them, neither paused); only the student answers that call. Neither side can change the other's fields. |
@@ -72,8 +76,10 @@ from users are always inserted as text, never as HTML.
 
 ## Secrets
 
-The app signing key, its password and the TURN credential live only in
-GitHub Secrets. The Firebase settings are build-time variables. None of
+The app signing key and its password live only in GitHub Secrets. The
+TURN credential is kept there too, but it is compiled into the app, so
+anyone with the APK can extract it: treat it as public and keep a usage
+(bandwidth) limit on it at the TURN provider. The Firebase settings are build-time variables. None of
 these are in the repository, and `.gitignore` blocks key files (`*.jks`,
 `*.keystore`, `key.properties`, `.env`).
 
