@@ -357,70 +357,84 @@ service cloud.firestore {
         return v == null || (v is map && v.keys().hasOnly(['type', 'sdp'])
           && v.type in ['offer', 'answer'] && v.sdp is string && v.sdp.size() <= 20000);
       }
-      function from(states) { return resource.data.status in states; }
-      function to(states) { return request.resource.data.status in states; }
-      function only(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
       // Deleting an account blanks the person's own name and picture.
-      function scrubbed(nameKey, avatarKey) {
-        return only([nameKey, avatarKey])
-          && request.resource.data.get(nameKey, '') == '' && request.resource.data.get(avatarKey, null) == null;
+      function scrubbed(changed, d, nameKey, avatarKey) {
+        return changed.hasOnly([nameKey, avatarKey]) && d.get(nameKey, '') == '' && d.get(avatarKey, null) == null;
       }
       // After a call, either phone removes the connection details (they hold
       // network addresses).
-      function routesCleared() {
-        return from(['ended', 'cancelled', 'unmatched', 'declined']) && only(['offer', 'answer'])
-          && !('offer' in request.resource.data) && !('answer' in request.resource.data);
+      function routesCleared(changed, d, was) {
+        return was in ['ended', 'cancelled', 'unmatched', 'declined'] && changed.hasOnly(['offer', 'answer'])
+          && !('offer' in d) && !('answer' in d);
+      }
+      // Ringing a teacher: approved, the same gender, available and not
+      // paused; and the student isn't paused either.
+      function canRing(d) {
+        return !paused(request.auth.uid)
+          && isApproved(d.teacherId)
+          && !paused(d.teacherId)
+          && teacherGender(d.teacherId) == resource.data.gender
+          && get(/databases/$(db)/documents/presence/$(d.teacherId)).data.available == true;
       }
 
-      // The student looks for a teacher: rings one (approved, the same
-      // gender, available and not paused), goes back to looking when they
-      // don't answer, cancels or gives up; and, once answered, sends the
-      // offer and hangs up. A call only ends after it was answered, and an
-      // ended, cancelled or unmatched call never changes again.
-      allow update: if isStudent() && !fromTeacher() && callShape()
-        && unchanged(['studentId', 'gender', 'direction', 'teacherName', 'teacherAvatar', 'answer', 'createdAt',
-             'acceptedAt'])
-        && (scrubbed('studentName', 'studentAvatar') || routesCleared()
-          || (from(['searching']) && to(['ringing', 'cancelled', 'unmatched']))
-          || (from(['ringing', 'declined']) && to(['searching', 'cancelled', 'unmatched']))
-          || (from(['active']) && to(['ended']) && only(['status', 'endedAt']))
-          || (from(['active']) && to(['active']) && only(['offer'])))
-        && (to(['ringing'])
-          ? (!paused(request.auth.uid)
-            && isApproved(request.resource.data.teacherId)
-            && !paused(request.resource.data.teacherId)
-            && teacherGender(request.resource.data.teacherId) == resource.data.gender
-            && get(/databases/$(db)/documents/presence/$(request.resource.data.teacherId)).data.available == true)
-          : unchanged(['teacherId', 'tried']));
+      // The student looks for a teacher: rings one, goes back to looking
+      // when they don't answer, cancels or gives up; and, once answered,
+      // sends the offer and hangs up. A call only ends after it was
+      // answered, and an ended, cancelled or unmatched call never changes
+      // again.
+      function studentUpdate() {
+        let d = request.resource.data;
+        let changed = d.diff(resource.data).affectedKeys();
+        let was = resource.data.status;
+        let now = d.status;
+        return !changed.hasAny(['studentId', 'gender', 'direction', 'teacherName', 'teacherAvatar', 'answer',
+               'createdAt', 'acceptedAt'])
+          && (scrubbed(changed, d, 'studentName', 'studentAvatar') || routesCleared(changed, d, was)
+            || (was == 'searching' && now in ['ringing', 'cancelled', 'unmatched'])
+            || (was in ['ringing', 'declined'] && now in ['searching', 'cancelled', 'unmatched'])
+            || (was == 'active' && now == 'ended' && changed.hasOnly(['status', 'endedAt']))
+            || (was == 'active' && now == 'active' && changed.hasOnly(['offer'])))
+          && (now == 'ringing' && was != 'ringing' ? canRing(d) : !changed.hasAny(['teacherId', 'tried']));
+      }
       // For a call from their teacher, the student answers or declines it,
       // then sends the offer and can hang up; they can't put anyone else
       // through.
-      allow update: if isStudent() && fromTeacher() && callShape()
-        && unchanged(['studentId', 'gender', 'direction', 'teacherId', 'tried', 'teacherName', 'teacherAvatar',
-             'answer', 'createdAt', 'ringAt'])
-        && (scrubbed('studentName', 'studentAvatar') || routesCleared()
-          || (from(['ringing']) && to(['declined']) && only(['status']))
-          || (from(['ringing']) && to(['active']) && only(['status', 'acceptedAt'])
-              && request.resource.data.acceptedAt == request.time && !paused(request.auth.uid))
-          || (from(['active']) && to(['ended']) && only(['status', 'endedAt']))
-          || (from(['active']) && to(['active']) && only(['offer'])));
+      function studentAnswers() {
+        let d = request.resource.data;
+        let changed = d.diff(resource.data).affectedKeys();
+        let was = resource.data.status;
+        let now = d.status;
+        return scrubbed(changed, d, 'studentName', 'studentAvatar') || routesCleared(changed, d, was)
+          || (was == 'ringing' && now == 'declined' && changed.hasOnly(['status']))
+          || (was == 'ringing' && now == 'active' && changed.hasOnly(['status', 'acceptedAt'])
+              && d.acceptedAt == request.time && !paused(request.auth.uid))
+          || (was == 'active' && now == 'ended' && changed.hasOnly(['status', 'endedAt']))
+          || (was == 'active' && now == 'active' && changed.hasOnly(['offer']));
+      }
       // The teacher being rung answers (with their name and picture) or
       // declines, then sends the answer and can hang up.
       // For a call the teacher made, they can't answer it themselves, but
       // can give up while it rings (cancelled, or unmatched: no answer).
-      allow update: if isTeacher() && callShape()
-        && unchanged(['studentId', 'studentName', 'studentAvatar', 'gender', 'teacherId', 'tried', 'offer',
-             'direction', 'createdAt', 'ringAt'])
-        && (scrubbed('teacherName', 'teacherAvatar') || routesCleared()
-          || (!fromTeacher() && from(['ringing']) && to(['declined']) && only(['status']))
-          || (!fromTeacher() && from(['ringing']) && to(['active'])
-              && only(['status', 'teacherName', 'teacherAvatar', 'acceptedAt'])
-              && request.resource.data.acceptedAt == request.time
-              && validAvatar(request.resource.data.get('teacherAvatar', null), request.auth.uid)
+      function teacherUpdate() {
+        let d = request.resource.data;
+        let changed = d.diff(resource.data).affectedKeys();
+        let was = resource.data.status;
+        let now = d.status;
+        let mine = fromTeacher();
+        return scrubbed(changed, d, 'teacherName', 'teacherAvatar') || routesCleared(changed, d, was)
+          || (!mine && was == 'ringing' && now == 'declined' && changed.hasOnly(['status']))
+          || (!mine && was == 'ringing' && now == 'active'
+              && changed.hasOnly(['status', 'teacherName', 'teacherAvatar', 'acceptedAt'])
+              && d.acceptedAt == request.time
+              && validAvatar(d.get('teacherAvatar', null), request.auth.uid)
               && !paused(request.auth.uid))
-          || (fromTeacher() && from(['ringing']) && to(['cancelled', 'unmatched']) && only(['status', 'endedAt']))
-          || (from(['active']) && to(['ended']) && only(['status', 'endedAt']))
-          || (from(['active']) && to(['active']) && only(['answer'])));
+          || (mine && was == 'ringing' && now in ['cancelled', 'unmatched'] && changed.hasOnly(['status', 'endedAt']))
+          || (was == 'active' && now == 'ended' && changed.hasOnly(['status', 'endedAt']))
+          || (was == 'active' && now == 'active' && changed.hasOnly(['answer']));
+      }
+      allow update: if isStudent() && !fromTeacher() && studentUpdate() && callShape();
+      allow update: if isStudent() && fromTeacher() && studentAnswers() && callShape();
+      allow update: if isTeacher() && teacherUpdate() && callShape();
       allow delete: if false;
 
       // Network routes for the connection, from each side, while the call is

@@ -28,6 +28,13 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        ndk {
+            // Only the processors Flutter builds for (the calls library also
+            // ships 32-bit Intel code no phone needs).
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+            // Lets Google Play show readable crash reports from native code.
+            debugSymbolLevel = "SYMBOL_TABLE"
+        }
     }
 
     // The permanent upload key comes from CI secrets (never from the repo).

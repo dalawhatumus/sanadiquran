@@ -643,3 +643,119 @@ test('announcements: admins write, everyone signed in reads', async () => {
   await assertFails(deleteDoc(doc(db('s1'), `announcements/${ref.id}`)));
   await assertSucceeds(deleteDoc(doc(db('admin1'), `announcements/${ref.id}`)));
 });
+
+// ---- Attacks found in the security review (each must now fail) ----
+
+test('a call ends only after it was answered: no chat or lesson without a real call', async () => {
+  const id = await startCall();
+  await assertSucceeds(updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: 't1', status: 'ringing' }));
+  await assertFails(updateDoc(doc(db('s1'), `calls/${id}`), { status: 'ended' }));
+  await assertFails(updateDoc(doc(db('t1'), `calls/${id}`), { status: 'ended' }));
+  await assertFails(setDoc(doc(db('s1'), 'conversations/s1_t1'), { ...conv('s1', 't1'), fromCall: id, createdBy: 's1' }));
+  await assertFails(setDoc(doc(db('s1'), `sessions/${id}`), lesson()));
+});
+
+test('a new chat and a lesson record are checked field by field', async () => {
+  const id = await endedCall();
+  const chat = { ...conv('s1', 't1'), fromCall: id, createdBy: 's1' };
+  await assertFails(setDoc(doc(db('s1'), 'conversations/s1_t1'), { ...chat, names: { s1: 'S', t1: 'X'.repeat(5000) } }));
+  await assertFails(setDoc(doc(db('s1'), 'conversations/s1_t1'), { ...chat, roles: { s1: 'teacher', t1: 'student' } }));
+  await assertFails(setDoc(doc(db('s1'), 'conversations/s1_t1'), { ...chat, junk: 1 }));
+  await assertFails(setDoc(doc(db('s1'), `sessions/${id}`), lesson({ durationSec: 2000000000 })));
+  await assertFails(setDoc(doc(db('s1'), `sessions/${id}`), lesson({ startedAt: new Date('2030-01-01') })));
+  await assertFails(setDoc(doc(db('s1'), `sessions/${id}`), lesson({ createdAt: new Date(0) })));
+  await assertFails(setDoc(doc(db('s1'), `sessions/${id}`), lesson({ studentName: 'Y'.repeat(100) })));
+  await assertSucceeds(setDoc(doc(db('s1'), 'conversations/s1_t1'), chat));
+  await assertSucceeds(setDoc(doc(db('s1'), `sessions/${id}`), lesson()));
+});
+
+test('gender cannot be changed by deleting and re-creating the profile', async () => {
+  await assertSucceeds(deleteDoc(doc(db('s1'), 'users/s1')));
+  await assertFails(setDoc(doc(db('s1'), 'users/s1'), { name: 'F', role: 'student', gender: 'male' }));
+  const f = db('s1');
+  await assertFails(writeBatch(f).set(doc(f, 'genders/s1'), { gender: 'male' }).set(doc(f, 'users/s1'), { name: 'F', role: 'student', gender: 'male' }).commit());
+  await assertSucceeds(writeBatch(f).set(doc(f, 'genders/s1'), { gender: 'female' }).set(doc(f, 'users/s1'), { name: 'F', role: 'student', gender: 'female' }).commit());
+});
+
+test('an ended call never rings again, and a paused student cannot ring', async () => {
+  const id = await endedCall();
+  await assertFails(updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: 't1', status: 'ringing' }));
+  await assertFails(updateDoc(doc(db('s1'), `calls/${id}`), { status: 'searching' }));
+  const id2 = await startCall();
+  await env.withSecurityRulesDisabled(async (c) => setDoc(doc(c.firestore(), 'suspensions/s1'), { reason: 'x', by: 'admin1' }));
+  await assertFails(updateDoc(doc(db('s1'), `calls/${id2}`), { teacherId: 't1', status: 'ringing' }));
+  await assertSucceeds(updateDoc(doc(db('s1'), `calls/${id2}`), { status: 'cancelled', endedAt: serverTimestamp() }));
+});
+
+test('calls hold only their own fields; only available teachers ring', async () => {
+  const id = await startCall();
+  await assertFails(updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: 't1', status: 'ringing', junk: 'Z'.repeat(1000) }));
+  await env.withSecurityRulesDisabled(async (c) => setDoc(doc(c.firestore(), 'presence/t1'), { available: false, gender: 'female' }));
+  await assertFails(updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: 't1', status: 'ringing' }));
+});
+
+test('a teacher who answers too late (the student moved on) is refused', async () => {
+  const id = await startCall();
+  await updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: 't1', status: 'ringing' });
+  await assertSucceeds(updateDoc(doc(db('s1'), `calls/${id}`), { status: 'searching' }));
+  await assertFails(updateDoc(doc(db('t1'), `calls/${id}`), { status: 'active', acceptedAt: serverTimestamp() }));
+  // ...and once answered, the student can't put it back to "looking".
+  await updateDoc(doc(db('s1'), `calls/${id}`), { status: 'ringing' });
+  await assertSucceeds(updateDoc(doc(db('t1'), `calls/${id}`), { status: 'active', acceptedAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(db('s1'), `calls/${id}`), { status: 'searching' }));
+});
+
+test('voice recordings only with their message; previews and counters are small', async () => {
+  await openChat();
+  await assertFails(setDoc(doc(db('s1'), 'conversations/s1_t1/audio/a1'), { senderId: 's1', data: Bytes.fromUint8Array(new Uint8Array(1000)), createdAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(db('s1'), 'conversations/s1_t1'), { lastText: 'L'.repeat(1000) }));
+  await assertFails(updateDoc(doc(db('s1'), 'conversations/s1_t1'), { 'unread.t1': 'lots' }));
+  await assertFails(updateDoc(doc(db('s1'), 'conversations/s1_t1'), { 'unread.x9': 1 }));
+  await assertSucceeds(sendVoice('s1', new Array(1000).fill(7)));
+});
+
+test('routes are small and only during the call; each phone removes its own afterwards', async () => {
+  const id = await startCall();
+  await assertFails(addDoc(collection(db('s1'), `calls/${id}/ice`), { from: 'student', senderId: 's1', c: {} })); // not answered yet
+  await updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: 't1', status: 'ringing' });
+  await updateDoc(doc(db('t1'), `calls/${id}`), { status: 'active', acceptedAt: serverTimestamp() });
+  await assertFails(addDoc(collection(db('s1'), `calls/${id}/ice`), { from: 'student', senderId: 's1', c: { candidate: 'Q'.repeat(5000) } }));
+  const r = await assertSucceeds(addDoc(collection(db('s1'), `calls/${id}/ice`), { from: 'student', senderId: 's1', c: { candidate: 'a', sdpMid: '0', sdpMLineIndex: 0 } }));
+  await assertSucceeds(updateDoc(doc(db('s1'), `calls/${id}`), { offer: { type: 'offer', sdp: 'x' } }));
+  await assertSucceeds(updateDoc(doc(db('t1'), `calls/${id}`), { status: 'ended', endedAt: serverTimestamp() }));
+  await assertFails(deleteDoc(doc(db('t1'), `calls/${id}/ice/${r.id}`)));
+  await assertSucceeds(deleteDoc(doc(db('s1'), `calls/${id}/ice/${r.id}`)));
+  const { deleteField } = await import('firebase/firestore');
+  await assertSucceeds(updateDoc(doc(db('t1'), `calls/${id}`), { offer: deleteField(), answer: deleteField() }));
+});
+
+test('samples and applications are bounded and server-stamped', async () => {
+  await env.withSecurityRulesDisabled(async (c) => setDoc(doc(c.firestore(), 'suspensions/s2'), { reason: 'x', by: 'admin1' }));
+  await assertFails(setDoc(doc(db('s2'), 'applicationSamples/s2'), { data: Bytes.fromUint8Array(new Uint8Array(10)), durationSec: 5, createdAt: serverTimestamp() }));
+  await assertFails(setDoc(doc(db('t9'), 'applicationSamples/t9'), { data: Bytes.fromUint8Array(new Uint8Array(10)), durationSec: -5, createdAt: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(db('t9'), 'applicationSamples/t9'), { data: Bytes.fromUint8Array(new Uint8Array(10)), durationSec: 5, createdAt: serverTimestamp() }));
+  const app = { name: 'N', gender: 'male', answers: { Country: 'Egypt' }, order: ['Country'], status: 'pending', sampleSec: 0, submittedAt: serverTimestamp() };
+  await assertFails(setDoc(doc(db('t9'), 'teacherApplications/t9'), { ...app, answers: { Country: 'W'.repeat(5000) } }));
+  await assertFails(setDoc(doc(db('t9'), 'teacherApplications/t9'), { ...app, answers: { other: 'x' } }));
+  await assertFails(setDoc(doc(db('t9'), 'teacherApplications/t9'), { ...app, submittedAt: new Date(0) }));
+  await assertSucceeds(setDoc(doc(db('t9'), 'teacherApplications/t9'), app));
+});
+
+test('deleting an account blanks the person\'s name in lessons, calls and chats', async () => {
+  const id = await endedCall();
+  await setDoc(doc(db('s1'), `sessions/${id}`), lesson());
+  await openChat();
+  await assertSucceeds(updateDoc(doc(db('s1'), `sessions/${id}`), { studentName: '', studentAvatar: null }));
+  await assertFails(updateDoc(doc(db('s1'), `sessions/${id}`), { teacherName: '' }));
+  await assertSucceeds(updateDoc(doc(db('s1'), `calls/${id}`), { studentName: '', studentAvatar: null }));
+  await assertFails(updateDoc(doc(db('s1'), `calls/${id}`), { studentName: 'Someone else' }));
+  await assertSucceeds(updateDoc(doc(db('s1'), 'conversations/s1_t1'), { 'names.s1': '', 'avatars.s1': null }));
+});
+
+test('beats: a time only, written by the person themselves', async () => {
+  await assertSucceeds(setDoc(doc(db('t1'), 'beats/t1'), { at: serverTimestamp() }));
+  await assertFails(setDoc(doc(db('t1'), 'beats/t2'), { at: serverTimestamp() }));
+  await assertFails(setDoc(doc(db('t1'), 'beats/t1'), { at: new Date(0) }));
+  await assertFails(setDoc(doc(db('t1'), 'beats/t1'), { at: serverTimestamp(), x: 1 }));
+  await assertSucceeds(getDocs(query(collection(db('s1'), 'beats'), where('__name__', 'in', ['t1']))));
+});

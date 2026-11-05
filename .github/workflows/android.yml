@@ -45,11 +45,17 @@ jobs:
       - name: Prepare signing key
         env:
           KEYSTORE_B64: ${{ secrets.SANADI_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.SANADI_KEYSTORE_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
             echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/sanadi-upload.jks"
             echo "SANADI_KEYSTORE=$RUNNER_TEMP/sanadi-upload.jks" >> "$GITHUB_ENV"
             echo "Signing with the Sanadi upload key"
+          elif [ "$GITHUB_REF" = "refs/heads/main" ] && [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+            # A release (and the Google Play bundle) must never be signed
+            # with a throwaway key.
+            echo "::error::The upload key secrets are missing: main can't be built for release"
+            exit 1
           else
             echo "::warning::SANADI_KEYSTORE_B64 secret not set: signing with a temporary debug key"
           fi
@@ -57,17 +63,27 @@ jobs:
       # Firebase settings come from repository variables (they are not secret;
       # every Android app ships them). Without them the app runs in demo mode.
       - name: Collect build settings
+        # Passed through the environment, never pasted into the script.
+        env:
+          V_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+          V_APP_ID: ${{ vars.FIREBASE_APP_ID }}
+          V_SENDER_ID: ${{ vars.FIREBASE_SENDER_ID }}
+          V_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          V_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+          V_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          V_TURN_URLS: ${{ vars.TURN_URLS }}
+          V_TURN_USERNAME: ${{ vars.TURN_USERNAME }}
         run: |
           {
             echo "DEFINES<<EOF"
-            echo "--dart-define=FIREBASE_API_KEY=${{ vars.FIREBASE_API_KEY }}"
-            echo "--dart-define=FIREBASE_APP_ID=${{ vars.FIREBASE_APP_ID }}"
-            echo "--dart-define=FIREBASE_SENDER_ID=${{ vars.FIREBASE_SENDER_ID }}"
-            echo "--dart-define=FIREBASE_PROJECT_ID=${{ vars.FIREBASE_PROJECT_ID }}"
-            echo "--dart-define=FIREBASE_STORAGE_BUCKET=${{ vars.FIREBASE_STORAGE_BUCKET }}"
-            echo "--dart-define=GOOGLE_WEB_CLIENT_ID=${{ vars.GOOGLE_WEB_CLIENT_ID }}"
-            echo "--dart-define=TURN_URLS=${{ vars.TURN_URLS }}"
-            echo "--dart-define=TURN_USERNAME=${{ vars.TURN_USERNAME }}"
+            echo "--dart-define=FIREBASE_API_KEY=$V_API_KEY"
+            echo "--dart-define=FIREBASE_APP_ID=$V_APP_ID"
+            echo "--dart-define=FIREBASE_SENDER_ID=$V_SENDER_ID"
+            echo "--dart-define=FIREBASE_PROJECT_ID=$V_PROJECT_ID"
+            echo "--dart-define=FIREBASE_STORAGE_BUCKET=$V_STORAGE_BUCKET"
+            echo "--dart-define=GOOGLE_WEB_CLIENT_ID=$V_WEB_CLIENT_ID"
+            echo "--dart-define=TURN_URLS=$V_TURN_URLS"
+            echo "--dart-define=TURN_USERNAME=$V_TURN_USERNAME"
             echo "EOF"
           } >> "$GITHUB_ENV"
 
@@ -77,6 +93,18 @@ jobs:
           SANADI_KEY_ALIAS: sanadi
           TURN_CREDENTIAL: ${{ secrets.TURN_CREDENTIAL }}
         run: flutter build apk --release $DEFINES "--dart-define=TURN_CREDENTIAL=$TURN_CREDENTIAL"
+
+      # Google Play requires native code aligned for phones with 16 KB memory
+      # pages (Android 15+). Reports any library that isn't.
+      - name: Check 16 KB page alignment
+        run: |
+          ZIPALIGN=$(ls -d "$ANDROID_HOME"/build-tools/*/zipalign | sort -V | tail -1)
+          if "$ZIPALIGN" -c -P 16 -v 4 build/app/outputs/flutter-apk/app-release.apk > align.txt 2>&1; then
+            echo "All native libraries are 16 KB aligned"
+          else
+            grep -i "\.so" align.txt | grep -iv "(OK" || true
+            echo "::warning::Some native libraries are not 16 KB aligned (see above)"
+          fi
 
       # The Android App Bundle is what Google Play takes (same app, same key).
       - name: Build app bundle (for Google Play)
