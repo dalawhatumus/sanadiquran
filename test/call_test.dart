@@ -108,8 +108,13 @@ class _Incoming extends DemoBackend {
   final calls = StreamController<List<CallInfo>>.broadcast();
   final statuses = <String, CallStatus>{};
 
-  static CallInfo call(String id) =>
-      CallInfo(id: id, studentId: 's-$id', studentName: 'Student $id', teacherId: 'demo-teacher', status: CallStatus.ringing);
+  static CallInfo call(String id) => CallInfo(
+    id: id,
+    studentId: 's-$id',
+    studentName: 'Student $id',
+    teacherId: 'demo-teacher',
+    status: CallStatus.ringing,
+  );
 
   @override
   Stream<List<CallInfo>> incomingCalls() => calls.stream;
@@ -366,11 +371,7 @@ void main() {
 
   testWidgets('teacher: after Back on "Call ended", the next call still rings', (tester) async {
     final b = _Incoming();
-    final (container, router) = await open(
-      tester,
-      role: 'teacher',
-      backend: b,
-    );
+    final (container, router) = await open(tester, role: 'teacher', backend: b);
     container.read(settingsProvider.notifier).update((x) => x.copyWith(available: true));
     await tester.pumpAndSettle();
     b.calls.add([_Incoming.call('c1')]);
@@ -408,10 +409,7 @@ void main() {
     final (container, _) = await startApp(
       tester,
       prefs: {'settings.v2': userSettings(role: 'teacher', sessions: 0)},
-      overrides: [
-        micPermissionProvider.overrideWithValue(() async => false),
-        backendProvider.overrideWithValue(b),
-      ],
+      overrides: [micPermissionProvider.overrideWithValue(() async => false), backendProvider.overrideWithValue(b)],
     );
     final router = routerOf(tester);
     router.go(Routes.teacherHome);

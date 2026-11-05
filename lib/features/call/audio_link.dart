@@ -5,6 +5,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../../backend/calls.dart';
 import '../../backend/config.dart';
+import '../../core/log.dart';
 
 enum LinkState { connecting, connected, reconnecting, failed }
 
@@ -103,7 +104,7 @@ class WebRtcAudioLink implements AudioLink {
       if (c.candidate == null || _closed) return;
       api
           .addIceCandidate(callId, fromStudent: asStudent, candidate: (c.toMap() as Map).cast<String, dynamic>())
-          .catchError((Object e) => debugPrint('ICE not sent: $e'));
+          .catchError((Object e) => logIssue('ICE not sent: $e'));
     };
     pc.onIceConnectionState = (s) {
       if (_closed) return;
@@ -131,7 +132,7 @@ class WebRtcAudioLink implements AudioLink {
 
     // Routes from the other phone, applied once its description is known.
     _subs.add(
-      api.iceCandidates(callId, fromStudent: !asStudent).listen(onError: (Object e) => debugPrint('ICE: $e'), (
+      api.iceCandidates(callId, fromStudent: !asStudent).listen(onError: (Object e) => logIssue('ICE: $e'), (
         list,
       ) async {
         for (final m in list) {
@@ -143,7 +144,7 @@ class WebRtcAudioLink implements AudioLink {
             (m['sdpMLineIndex'] as num?)?.toInt(),
           );
           if (_remoteSet) {
-            await pc.addCandidate(c).catchError((Object e) => debugPrint('Route not added: $e'));
+            await pc.addCandidate(c).catchError((Object e) => logIssue('Route not added: $e'));
           } else {
             _pending.add(c);
           }
@@ -156,7 +157,7 @@ class WebRtcAudioLink implements AudioLink {
       _remoteSet = true;
       await pc.setRemoteDescription(RTCSessionDescription(d['sdp'] as String?, d['type'] as String?));
       for (final c in [..._pending]) {
-        await pc.addCandidate(c).catchError((Object e) => debugPrint('Route not added: $e'));
+        await pc.addCandidate(c).catchError((Object e) => logIssue('Route not added: $e'));
       }
       _pending.clear();
     }
@@ -169,7 +170,7 @@ class WebRtcAudioLink implements AudioLink {
         api.watchCall(callId).listen((c) {
           final a = c?.answer;
           if (a != null && !_closed) remote(a).catchError((Object e) => _fail('Answer not applied: $e'));
-        }, onError: (Object e) => debugPrint('Call: $e')),
+        }, onError: (Object e) => logIssue('Call: $e')),
       );
     } else {
       _subs.add(
@@ -184,7 +185,7 @@ class WebRtcAudioLink implements AudioLink {
           } catch (e) {
             _fail('Answer not sent: $e');
           }
-        }, onError: (Object e) => debugPrint('Call: $e')),
+        }, onError: (Object e) => logIssue('Call: $e')),
       );
     }
     // If nothing connects within 40 seconds, the call can't go through.
@@ -196,7 +197,7 @@ class WebRtcAudioLink implements AudioLink {
   }
 
   void _fail(String why) {
-    debugPrint(why);
+    logIssue(why);
     if (!_closed) _state.value = LinkState.failed;
   }
 

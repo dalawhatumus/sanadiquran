@@ -12,7 +12,6 @@ import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../widgets/ui.dart';
-import '../call/call_controller.dart';
 import 'easy_page_physics.dart';
 import 'large_text_view.dart';
 import 'mushaf_page.dart';
@@ -80,6 +79,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   @override
   void initState() {
     super.initState();
+    // The screen stays on while the mushaf is open: an elderly reader may
+    // spend minutes on one page, and shouldn't find it dark and locked.
+    Screen.keepOn(true);
     // Bars show on opening, then step aside so the whole page is visible.
     // A tap on the page brings them back.
     _hide = Timer(const Duration(seconds: 4), () {
@@ -98,13 +100,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     // Leaving the mushaf stops the recitation.
     final r = ref.read(recitationProvider);
     if (r.active) ref.read(recitationProvider.notifier).stop();
-    // Here rather than in dispose, where providers can no longer be read.
-    if (_auto) _keepScreenOn(false);
     super.deactivate();
   }
 
   @override
   void dispose() {
+    Screen.keepOn(false);
     _autoPx.dispose();
     _hide?.cancel();
     _pc?.dispose();
@@ -159,13 +160,6 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     if (old != null) WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
   }
 
-  /// The screen stays on while auto scroll runs (and during a call, which
-  /// keeps it on by itself).
-  void _keepScreenOn(bool on) {
-    if (!on && ref.read(callControllerProvider).inCall) return;
-    Screen.keepOn(on);
-  }
-
   void _startAuto() {
     final r = ref.read(recitationProvider);
     if (r.active) ref.read(recitationProvider.notifier).stop();
@@ -177,14 +171,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       // Out of the way of the text; a tap brings the controls back.
       _chrome = false;
     });
-    _keepScreenOn(true);
     _applyAuto();
   }
 
   void _stopAuto() {
     if (!_auto) return;
     _autoPx.value = 0;
-    _keepScreenOn(false);
     if (mounted) setState(() => _auto = false);
   }
 

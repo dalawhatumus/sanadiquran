@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/screen.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
 import '../../core/theme.dart';
@@ -31,6 +32,19 @@ class _DhikrScreenState extends ConsumerState<DhikrScreen> {
   bool _advancing = false;
 
   Dhikr get _d => set.items[_i];
+
+  // The screen stays on while reciting (a set can take several minutes).
+  @override
+  void initState() {
+    super.initState();
+    Screen.keepOn(true);
+  }
+
+  @override
+  void dispose() {
+    Screen.keepOn(false);
+    super.dispose();
+  }
 
   void _go(int i) {
     if (i >= set.items.length) {

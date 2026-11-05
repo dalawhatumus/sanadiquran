@@ -34,7 +34,12 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
     if (!mounted) return;
     final s = S.of(context);
     if (next.phase == CallPhase.ended) {
-      context.pushReplacement(
+      // Home, with "Call ended" on top: whatever was open over the call (the
+      // mushaf, say) closes with it, and Back from there goes home rather
+      // than to a finished call.
+      final router = GoRouter.of(context);
+      router.go(widget.asTeacher ? Routes.teacherHome : Routes.studentHome);
+      router.push(
         widget.asTeacher ? '${Routes.teacherEnded}?s=${next.seconds}' : '${Routes.studentEnded}?s=${next.seconds}',
       );
     } else if (next.phase == CallPhase.noMic ||

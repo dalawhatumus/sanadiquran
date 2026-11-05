@@ -9,6 +9,7 @@ import 'core/settings.dart';
 import 'core/strings.dart';
 import 'core/text_size.dart';
 import 'core/theme.dart';
+import 'features/call/call_controller.dart';
 import 'features/call/incoming_watcher.dart';
 import 'features/lessons/lesson_alerts.dart';
 import 'features/messages/message_alerts.dart';
@@ -33,6 +34,10 @@ class SanadiApp extends ConsumerWidget {
       // The call screen is already up; tapping the call alert only brings
       // the app forward.
       if (route.startsWith(Routes.incoming)) return;
+      // During a call (or while finding a teacher) the call screen stays:
+      // tapping any other notification then only brings Sanadi forward.
+      final call = ref.read(callControllerProvider);
+      if (call.inCall || call.searching) return;
       final home = nextStep(ref.read(settingsProvider));
       if (home != Routes.studentHome && home != Routes.teacherHome) return;
       router.go(home);

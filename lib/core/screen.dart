@@ -17,9 +17,15 @@ abstract final class Screen {
     }
   }
 
+  /// How many screens currently want the screen kept on (the Quran, the
+  /// athkar, a call). It goes dark again only once none of them do.
+  static int _holds = 0;
+
+  /// [on]: one more screen wants it on; off: one fewer. Calls must pair up.
   static Future<void> keepOn(bool on) async {
+    _holds = on ? _holds + 1 : (_holds > 0 ? _holds - 1 : 0);
     try {
-      await _channel.invokeMethod<void>('keepOn', on);
+      await _channel.invokeMethod<void>('keepOn', _holds > 0);
     } catch (e) {
       logIssue('Keep screen on: $e');
     }

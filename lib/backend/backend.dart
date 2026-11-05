@@ -273,9 +273,12 @@ final backendSyncProvider = Provider<void>((ref) {
       final key = '$uid|$next';
       if (uid != null && prefs.getString(_savedProfileKey) == key) return;
       unawaited(
-        backend.saveProfile(s).then((_) async {
-          if (uid != null) await prefs.setString(_savedProfileKey, key);
-        }).catchError((_) {}),
+        backend
+            .saveProfile(s)
+            .then((_) async {
+              if (uid != null) await prefs.setString(_savedProfileKey, key);
+            })
+            .catchError((_) {}),
       );
     },
     fireImmediately: true,

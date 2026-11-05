@@ -37,17 +37,20 @@ class HomeShell extends ConsumerWidget {
     // A paused account sees why on its home tab; the Quran, athkar and
     // messages stay open (the server refuses new messages and calls).
     final paused = ref.watch(pausedProvider).value ?? false;
-    // While a teacher is available, Back on the home tabs keeps Sanadi
-    // running in the background, so calls can still ring.
-    return ValueListenableBuilder<bool>(
-      valueListenable: Background.listening,
-      builder: (context, listening, child) => PopScope(
-        canPop: !(teacher && listening),
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) Background.moveToBack();
-        },
-        child: child!,
-      ),
+    // Back never closes Sanadi by accident: on another tab it goes to Home;
+    // on Home it puts Sanadi in the background like the Home button, so
+    // opening it again comes back to the same place (and a teacher's calls
+    // can still ring).
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (shell.currentIndex != 0) {
+          shell.goBranch(0);
+        } else {
+          Background.moveToBack();
+        }
+      },
       child: Scaffold(
         body: paused && shell.currentIndex == 0 ? const _PausedView() : shell,
         bottomNavigationBar: Column(

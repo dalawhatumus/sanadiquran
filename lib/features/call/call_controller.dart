@@ -321,9 +321,7 @@ class CallController extends Notifier<CallState> {
       return;
     }
     if (_stale(gen)) return;
-    _watch = _b
-        .watchCall(call.id)
-        .listen((c) => _onCall(c, asStudent: true), onError: (Object e) => _lost(call.id, e));
+    _watch = _b.watchCall(call.id).listen((c) => _onCall(c, asStudent: true), onError: (Object e) => _lost(call.id, e));
     await _connect(call.id, asStudent: true);
   }
 
