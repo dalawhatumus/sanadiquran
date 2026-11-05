@@ -22,6 +22,30 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
     // answered from the lock screen, it stays visible there until it ends.
     Screen.keepOn(true);
     Background.overLockScreen(true);
+    // Answering can fail before this screen is even showing (no
+    // microphone, or the call went to someone else a moment earlier).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _follow(null, ref.read(callControllerProvider));
+    });
+  }
+
+  /// Leaves this screen when the call ends or can't go ahead.
+  void _follow(CallState? prev, CallState next) {
+    if (!mounted) return;
+    final s = S.of(context);
+    if (next.phase == CallPhase.ended) {
+      context.pushReplacement(
+        widget.asTeacher ? '${Routes.teacherEnded}?s=${next.seconds}' : '${Routes.studentEnded}?s=${next.seconds}',
+      );
+    } else if (next.phase == CallPhase.noMic ||
+        (next.phase == CallPhase.failed && prev?.phase != CallPhase.failed) ||
+        (next.phase == CallPhase.idle && prev != null)) {
+      // Couldn't connect (or answer), from whatever stage: back home with
+      // the reason, never stuck on "Connecting…".
+      toast(context, next.phase == CallPhase.noMic ? s.micNeededCall : s.callFailedTitle);
+      ref.read(callControllerProvider.notifier).reset();
+      context.go(widget.asTeacher ? Routes.teacherHome : Routes.studentHome);
+    }
   }
 
   @override
@@ -73,17 +97,7 @@ class _InCallScreenState extends ConsumerState<InCallScreen> {
     final st = ref.watch(callControllerProvider);
     final c = ref.read(callControllerProvider.notifier);
     final live = ref.watch(backendProvider).live;
-    ref.listen(callControllerProvider, (prev, next) {
-      if (next.phase == CallPhase.ended) {
-        context.pushReplacement(
-          widget.asTeacher ? '${Routes.teacherEnded}?s=${next.seconds}' : '${Routes.studentEnded}?s=${next.seconds}',
-        );
-      } else if (next.phase == CallPhase.failed && (prev?.inCall ?? false)) {
-        toast(context, s.callFailedTitle);
-        c.reset();
-        context.go(widget.asTeacher ? Routes.teacherHome : Routes.studentHome);
-      }
-    });
+    ref.listen(callControllerProvider, _follow);
     final (name, initials, avatar) = _other(s, st);
     // "Open Quran" goes to the student's portion: their own next portion,
     // or (for the teacher) the one from their last lesson together.

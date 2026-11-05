@@ -61,8 +61,17 @@ class CallInfo {
   final Map<String, dynamic>? answer;
 }
 
-/// A teacher counts as reachable this long after their last heartbeat.
+/// A teacher is rung only this long after their last "still here" beat
+/// (sent every [beatEvery] while they are reachable).
 const presenceFresh = Duration(seconds: 150);
+const beatEvery = Duration(seconds: 60);
+
+/// The teacher list (and "N teachers available") counts a teacher this long
+/// after their presence was last refreshed (every [listBeatEvery]). Kept
+/// coarse on purpose: every refresh is a read for each student watching
+/// the list, which the free plan can't afford every minute.
+const listFresh = Duration(minutes: 40);
+const listBeatEvery = Duration(minutes: 15);
 
 /// A teacher who could take a call now.
 class Candidate {
@@ -125,8 +134,19 @@ abstract interface class CallApi {
   /// Updates the call's status (and when it ended).
   Future<void> setCallStatus(String callId, CallStatus status);
 
-  /// The teacher accepts, adding their name and picture.
+  /// The teacher accepts, adding their name and picture. Only while the
+  /// call is still ringing for them: throws [CallGone] if the student gave
+  /// up or was put through to someone else first.
   Future<void> acceptCall(String callId, {required String name, String? avatar});
+
+  /// Student: stops ringing [teacherId] and goes back to looking, unless
+  /// the teacher answered first. Returns the call's status afterwards
+  /// (searching, or active if they did answer).
+  Future<CallStatus> unring(String callId, String teacherId);
+
+  /// After a call: removes the network routes and connection details it
+  /// used (they hold network addresses), so nothing is kept.
+  Future<void> clearRoutes(String callId);
 
   Stream<CallInfo?> watchCall(String callId);
 
@@ -158,9 +178,10 @@ abstract interface class CallApi {
   /// Marks this teacher as in a call, so no one else rings them.
   Future<void> setBusy(bool busy);
 
-  /// "Still here": sent every minute while an available teacher has the app
-  /// open. Teachers who stop sending it aren't rung (or counted).
-  Future<void> presenceHeartbeat();
+  /// "Still here": sent every [beatEvery] while an available teacher is
+  /// reachable; teachers who stop sending it aren't rung. With [list], also
+  /// refreshes their entry in the teacher list (every [listBeatEvery]).
+  Future<void> presenceHeartbeat({bool list = false});
 
   /// How many lessons this teacher has given today, so students' calls go
   /// first to teachers who have taught least.
@@ -169,6 +190,14 @@ abstract interface class CallApi {
   /// After a call, opens the chat between its student and teacher (if it
   /// isn't open already).
   Future<void> openChatAfterCall(CallInfo call);
+}
+
+/// The call was answered, cancelled or moved on before this phone's change
+/// reached it.
+class CallGone implements Exception {
+  const CallGone();
+  @override
+  String toString() => 'CallGone';
 }
 
 final incomingCallsProvider = StreamProvider<List<CallInfo>>((ref) => ref.watch(backendProvider).incomingCalls());
@@ -237,6 +266,18 @@ mixin DemoCalls implements CallApi {
   }
 
   @override
+  Future<CallStatus> unring(String callId, String teacherId) async {
+    final c = _calls[callId];
+    if (c == null) return CallStatus.ended;
+    if (c.status == CallStatus.active) return CallStatus.active;
+    _set(_copy(c, status: CallStatus.searching));
+    return CallStatus.searching;
+  }
+
+  @override
+  Future<void> clearRoutes(String callId) async {}
+
+  @override
   Stream<CallInfo?> watchCall(String callId) async* {
     yield _calls[callId];
     await for (final id in _callChanges.stream) {
@@ -302,7 +343,7 @@ mixin DemoCalls implements CallApi {
   Future<void> setBusy(bool busy) async {}
 
   @override
-  Future<void> presenceHeartbeat() async {}
+  Future<void> presenceHeartbeat({bool list = false}) async {}
 
   @override
   Future<void> setLessonsToday(int count) async {}

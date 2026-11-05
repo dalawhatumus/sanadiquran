@@ -128,7 +128,11 @@ class FirebaseBackend
     final uid = _uid;
     if (uid == null) return;
     final name = _clip(s.name.trim(), 80);
-    await _doc('users', uid).set({
+    final batch0 = _db.batch();
+    // The gender also goes to /genders, which can never change (see the
+    // rules): it decides who can call whom.
+    if (s.gender != null) batch0.set(_doc('genders', uid), {'gender': s.gender!.name});
+    batch0.set(_doc('users', uid), {
       'name': name,
       'role': s.role?.name,
       'gender': s.gender?.name,
@@ -140,6 +144,7 @@ class FirebaseBackend
       'whatsapp': s.whatsapp,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+    await batch0.commit();
     // Keep the name and picture the other person sees in chats up to date.
     final convs = await _db.collection('conversations').where('members', arrayContains: uid).get();
     final batch = _db.batch();
@@ -220,18 +225,76 @@ class FirebaseBackend
     if (lastSignIn == null || DateTime.now().difference(lastSignIn) > const Duration(minutes: 4)) {
       await user.reauthenticateWithCredential((await _google()).$2);
     }
-    // Personal data next (the rules allow it only while signed in).
-    for (final c in ['presence', 'waiting', 'photos', 'applicationSamples', 'teacherApplications', 'users']) {
+    // Then their data, while still signed in (the rules allow it only then).
+    await _scrubShared(uid);
+    for (final c in ['presence', 'beats', 'waiting', 'photos', 'applicationSamples', 'teacherApplications', 'users']) {
       await _doc(c, uid).delete().catchError((Object e) => logIssue('Delete $c: $e'));
     }
     try {
-      await user.delete();
-    } on FirebaseAuthException catch (e) {
-      if (e.code != 'requires-recent-login') rethrow;
-      await user.reauthenticateWithCredential((await _google()).$2);
-      await user.delete();
+      try {
+        await user.delete();
+      } on FirebaseAuthException catch (e) {
+        if (e.code != 'requires-recent-login') rethrow;
+        await user.reauthenticateWithCredential((await _google()).$2);
+        await user.delete();
+      }
+    } on SignInCancelled {
+      await signOut();
+      throw const AccountNotDeleted();
+    } catch (e) {
+      logIssue('Account not deleted: $e');
+      await signOut();
+      throw const AccountNotDeleted();
     }
     await signOut();
+  }
+
+  /// Removes what this person left in things shared with others: their
+  /// messages and voice notes, and their name and picture in chats, lesson
+  /// records and calls (each record itself stays for the other person).
+  Future<void> _scrubShared(String uid) async {
+    Future<void> commitAll(Iterable<void Function(WriteBatch)> ops) async {
+      final list = ops.toList();
+      for (var i = 0; i < list.length; i += 400) {
+        final b = _db.batch();
+        for (final op in list.skip(i).take(400)) {
+          op(b);
+        }
+        await b.commit();
+      }
+    }
+
+    Future<void> step(String what, Future<void> Function() run) =>
+        run().catchError((Object e) => logIssue('Delete $what: $e'));
+
+    await step('chats', () async {
+      final convs = await _db.collection('conversations').where('members', arrayContains: uid).get();
+      for (final c in convs.docs) {
+        final mine = await c.reference.collection('messages').where('senderId', isEqualTo: uid).get();
+        final audio = await c.reference.collection('audio').where('senderId', isEqualTo: uid).get();
+        await commitAll([
+          for (final d in audio.docs) (b) => b.delete(d.reference),
+          for (final d in mine.docs) (b) => b.delete(d.reference),
+          (b) => b.update(c.reference, {'names.$uid': '', 'avatars.$uid': null}),
+        ]);
+      }
+    });
+    await step('lessons', () async {
+      final asStudent = await _db.collection('sessions').where('studentId', isEqualTo: uid).get();
+      final asTeacher = await _db.collection('sessions').where('teacherId', isEqualTo: uid).get();
+      await commitAll([
+        for (final d in asStudent.docs) (b) => b.update(d.reference, {'studentName': '', 'studentAvatar': null}),
+        for (final d in asTeacher.docs) (b) => b.update(d.reference, {'teacherName': '', 'teacherAvatar': null}),
+      ]);
+    });
+    await step('calls', () async {
+      final asStudent = await _db.collection('calls').where('studentId', isEqualTo: uid).get();
+      final asTeacher = await _db.collection('calls').where('teacherId', isEqualTo: uid).get();
+      await commitAll([
+        for (final d in asStudent.docs) (b) => b.update(d.reference, {'studentName': '', 'studentAvatar': null}),
+        for (final d in asTeacher.docs) (b) => b.update(d.reference, {'teacherName': '', 'teacherAvatar': null}),
+      ]);
+    });
   }
 
   @override

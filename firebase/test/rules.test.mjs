@@ -33,6 +33,12 @@ beforeEach(async () => {
     await setDoc(doc(f, 'teacherApplications/t2'), { name: 'Yusuf', gender: 'male', status: 'approved', answers: {}, order: [] });
     await setDoc(doc(f, 'teacherApplications/t3'), { name: 'Khadijah', gender: 'female', status: 'pending', answers: {}, order: [] });
     await setDoc(doc(f, 'admins/admin1'), { role: 'admin' });
+    for (const [u, g] of [['s1', 'female'], ['s2', 'female'], ['t1', 'female'], ['t2', 'male'], ['t3', 'female'], ['t9', 'male']]) {
+      await setDoc(doc(f, `genders/${u}`), { gender: g });
+    }
+    // The approved teachers have "available" on.
+    await setDoc(doc(f, 'presence/t1'), { available: true, gender: 'female' });
+    await setDoc(doc(f, 'presence/t2'), { available: true, gender: 'male' });
   });
 });
 
@@ -258,14 +264,14 @@ test('presence: busy flag', async () => {
 async function endedCall() {
   const id = await startCall();
   await updateDoc(doc(db('s1'), `calls/${id}`), { teacherId: 't1', status: 'ringing' });
-  await updateDoc(doc(db('t1'), `calls/${id}`), { status: 'active' });
+  await updateDoc(doc(db('t1'), `calls/${id}`), { status: 'active', acceptedAt: serverTimestamp() });
   await updateDoc(doc(db('t1'), `calls/${id}`), { status: 'ended' });
   return id;
 }
 
 const lesson = (over = {}) => ({
   studentId: 's1', teacherId: 't1', studentName: 'F', teacherName: 'A', studentAvatar: null, teacherAvatar: null,
-  gender: 'female', startedAt: new Date(), durationSec: 600, createdAt: serverTimestamp(), ...over,
+  gender: 'female', startedAt: new Date(), durationSec: 60, createdAt: serverTimestamp(), ...over,
 });
 
 test('lessons: saved by either person for their own call only', async () => {
@@ -339,9 +345,15 @@ test('reports: an admin marks one as dealt with', async () => {
 
 test('profile: gender is chosen once; picture and language are checked', async () => {
   await assertSucceeds(setDoc(doc(db('new1'), 'users/new1'), { name: 'A', role: 'student' }));
-  await assertSucceeds(updateDoc(doc(db('new1'), 'users/new1'), { gender: 'male' }));
+  // The gender goes with its permanent copy in /genders.
+  await assertFails(updateDoc(doc(db('new1'), 'users/new1'), { gender: 'male' }));
+  const f = db('new1');
+  await assertSucceeds(writeBatch(f).set(doc(f, 'genders/new1'), { gender: 'male' }).update(doc(f, 'users/new1'), { gender: 'male' }).commit());
   await assertFails(updateDoc(doc(db('new1'), 'users/new1'), { gender: 'female' }));
   await assertSucceeds(updateDoc(doc(db('new1'), 'users/new1'), { name: 'B', gender: 'male' }));
+  await assertSucceeds(setDoc(doc(db('new1'), 'genders/new1'), { gender: 'male' })); // unchanged: fine
+  await assertFails(setDoc(doc(db('new1'), 'genders/new1'), { gender: 'female' }));
+  await assertFails(deleteDoc(doc(db('new1'), 'genders/new1')));
   await assertFails(updateDoc(doc(db('s1'), 'users/s1'), { gender: 'male' }));
   await assertFails(updateDoc(doc(db('s1'), 'users/s1'), { avatar: 'x'.repeat(21) }));
   await assertFails(updateDoc(doc(db('s1'), 'users/s1'), { locale: 'fr' }));
@@ -559,7 +571,7 @@ test('the student answers or declines a call from their teacher; the teacher can
     where('direction', '==', 'toStudent'), where('status', '==', 'ringing'))));
   await assertFails(updateDoc(asTeacher, { status: 'active' })); // only the student answers
   await assertFails(updateDoc(asStudent, { teacherId: 't3' })); // can't put someone else through
-  await assertSucceeds(updateDoc(asStudent, { status: 'active' }));
+  await assertSucceeds(updateDoc(asStudent, { status: 'active', acceptedAt: serverTimestamp() }));
   await assertSucceeds(updateDoc(asStudent, { offer: { type: 'offer', sdp: 'x' } }));
   await assertSucceeds(updateDoc(asTeacher, { answer: { type: 'answer', sdp: 'y' } }));
   await assertSucceeds(updateDoc(asTeacher, { status: 'ended' }));

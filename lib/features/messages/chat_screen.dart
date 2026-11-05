@@ -52,6 +52,10 @@ class _Failed {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _failed = <_Failed>[];
 
+  /// A "read" already sent for the current unread count (one write, not one
+  /// per rebuild while the server catches up).
+  int? _readSentFor;
+
   String get _id => widget.conversationId;
 
   Backend get _backend => ref.read(backendProvider);
@@ -86,7 +90,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final offline = ref.watch(offlineProvider);
 
     // Opening the chat reads it.
-    if ((c?.unread ?? 0) > 0) {
+    final unread = c?.unread ?? 0;
+    if (unread == 0) {
+      _readSentFor = null;
+    } else if (_readSentFor != unread) {
+      _readSentFor = unread;
       WidgetsBinding.instance.addPostFrameCallback((_) => _backend.markRead(_id).catchError((_) {}));
     }
 

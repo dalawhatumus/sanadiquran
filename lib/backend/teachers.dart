@@ -43,11 +43,11 @@ abstract interface class TeacherDirectoryApi {
   Stream<int> waitingStudents(Gender gender);
 }
 
-final teachersProvider = StreamProvider.family<List<TeacherEntry>, Gender>(
+final teachersProvider = StreamProvider.autoDispose.family<List<TeacherEntry>, Gender>(
   (ref, gender) => ref.watch(backendProvider).teachers(gender),
 );
 
-final waitingStudentsProvider = StreamProvider.family<int, Gender>(
+final waitingStudentsProvider = StreamProvider.autoDispose.family<int, Gender>(
   (ref, gender) => ref.watch(backendProvider).waitingStudents(gender),
 );
 

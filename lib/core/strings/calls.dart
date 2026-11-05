@@ -169,6 +169,16 @@ extension CallStrings on S {
     'سيرنّ سَنَدي هنا عند اتصال طالبة.',
     'سيرنّ سَنَدي هنا عند اتصال طالب.',
   );
+  String get callServiceChannel => t('Lesson calls', 'مكالمات الدروس');
+  String get callServiceTitle => t('Lesson call in progress', 'مكالمة درس جارية');
+  String get callServiceText =>
+      t('Tap to go back to the call.', 'اضغطي للعودة إلى المكالمة.', 'اضغط للعودة إلى المكالمة.');
+  String get callAlertsOffTitle => t('Calls can\'t ring yet', 'لا يمكن للمكالمات أن ترنّ بعد');
+  String get callAlertsOffBody => t(
+    'Sanadi\'s notifications are switched off on this phone, so a student\'s call can\'t ring when Sanadi isn\'t on screen. On the next screen, please turn them on.',
+    'إشعارات سَنَدي مُغلقة على هذا الهاتف، فلا يمكن لاتصال الطالبة أن يرنّ وسَنَدي ليس على الشاشة. في الشاشة التالية، يُرجى تشغيلها.',
+    'إشعارات سَنَدي مُغلقة على هذا الهاتف، فلا يمكن لاتصال الطالب أن يرنّ وسَنَدي ليس على الشاشة. في الشاشة التالية، يُرجى تشغيلها.',
+  );
   String get batteryTitle => t('So calls always ring', 'لكي ترنّ المكالمات دائمًا');
   String get batteryBody => t(
     'Phones put apps to sleep to save battery, and a sleeping app can\'t ring. On the next screen, please allow Sanadi to run without battery limits. It only stays awake while you\'re available to teach.',

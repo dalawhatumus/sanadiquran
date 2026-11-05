@@ -117,17 +117,44 @@ class Reminders {
         // Keep UTC; times are then approximate, but reminders still come.
       }
       await _plugin.initialize(
-        settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
+        settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_stat_sanadi')),
         onDidReceiveNotificationResponse: (r) {
           final route = safeRoute(r.payload);
           if (route != null) onOpen?.call(route);
         },
       );
+      // The old call channel rang a single notification sound; calls now
+      // ring from the app (see incomingCall).
+      await _android?.deleteNotificationChannel(channelId: 'calls').catchError((_) {});
       final launch = await _plugin.getNotificationAppLaunchDetails();
       final route = safeRoute(launch?.notificationResponse?.payload);
       if ((launch?.didNotificationLaunchApp ?? false) && route != null) _launchRoute = route;
     } catch (e) {
       logIssue('Reminders unavailable: $e');
+    }
+  }
+
+  AndroidFlutterLocalNotificationsPlugin? get _android =>
+      _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+  /// Whether Sanadi may show notifications (an incoming call can't ring in
+  /// the background without them). True where it can't be checked.
+  Future<bool> notificationsAllowed() async {
+    await _init();
+    try {
+      return await _android?.areNotificationsEnabled() ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Asks for the notification permission (Android 13+). True if allowed.
+  Future<bool> askNotifications() async {
+    await _init();
+    try {
+      return await _android?.requestNotificationsPermission() ?? true;
+    } catch (_) {
+      return true;
     }
   }
 
@@ -225,6 +252,7 @@ class Reminders {
     Importance importance = Importance.high,
     bool fullScreen = false,
     bool ongoing = false,
+    bool silent = false,
     int? timeoutMs,
   }) async {
     await _init();
@@ -246,6 +274,8 @@ class Reminders {
             category: fullScreen ? AndroidNotificationCategory.call : null,
             ongoing: ongoing,
             autoCancel: !ongoing,
+            playSound: !silent,
+            enableVibration: !silent,
             timeoutAfter: timeoutMs,
           ),
         ),
@@ -290,9 +320,14 @@ class Reminders {
   /// Someone is calling: full screen over the lock screen (where Android
   /// allows it; otherwise a high-priority alert). Cleared when answered,
   /// declined or missed, and by itself after the ringing time.
+  ///
+  /// The notification itself is silent: the call screen rings with the
+  /// phone's ringtone (on repeat) and vibrates, which a notification sound
+  /// can't do.
   Future<void> incomingCall({required S s, required String callId, required String callerName}) => _show(
     id: _incomingId,
-    channel: 'calls',
+    // A new channel: Android keeps a channel's first sound settings.
+    channel: 'incoming_calls',
     channelName: s.callsChannel,
     channelDesc: s.callsChannelDesc,
     title: s.incoming,
@@ -301,6 +336,7 @@ class Reminders {
     importance: Importance.max,
     fullScreen: true,
     ongoing: true,
+    silent: true,
     timeoutMs: 35000,
   );
 

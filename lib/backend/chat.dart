@@ -160,7 +160,7 @@ abstract interface class ChatApi {
 
 final conversationsProvider = StreamProvider<List<Conversation>>((ref) => ref.watch(backendProvider).conversations());
 
-final messagesProvider = StreamProvider.family<List<ChatMessage>, String>(
+final messagesProvider = StreamProvider.autoDispose.family<List<ChatMessage>, String>(
   (ref, id) => ref.watch(backendProvider).messages(id),
 );
 
@@ -169,7 +169,7 @@ final unreadTotalProvider = Provider<int>(
   (ref) => (ref.watch(conversationsProvider).value ?? const []).fold(0, (n, c) => n + c.unread),
 );
 
-final teacherAvailableProvider = StreamProvider.family<bool, String>(
+final teacherAvailableProvider = StreamProvider.autoDispose.family<bool, String>(
   (ref, uid) => ref.watch(backendProvider).teacherAvailable(uid),
 );
 

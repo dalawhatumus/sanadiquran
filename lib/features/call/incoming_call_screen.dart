@@ -26,6 +26,10 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
     HapticFeedback.heavyImpact();
     final id = widget.callId;
     if (id != null) {
+      // Rings like a phone call (the phone's ringtone, on repeat), and
+      // stops any Quran recitation playing.
+      unawaited(Background.ring(true));
+      unawaited(ref.read(recitationProvider.notifier).stop().catchError((_) {}));
       _sub = ref.read(backendProvider).watchCall(id).listen((c) {
         if (!mounted || _answering) return;
         setState(() => _call = c);
@@ -52,6 +56,7 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
   void _stop({bool missed = false}) {
     _timer.cancel();
     _sub?.cancel();
+    unawaited(Background.ring(false));
     unawaited(Reminders.instance.cancelIncomingCall());
     if (missed && !_missed && widget.callId != null) {
       // Only teachers go "away" after missing calls.
@@ -73,6 +78,7 @@ class _IncomingCallScreenState extends ConsumerState<IncomingCallScreen> {
   void dispose() {
     _timer.cancel();
     _sub?.cancel();
+    unawaited(Background.ring(false));
     unawaited(Reminders.instance.cancelIncomingCall());
     // Answered: the call screen keeps it over the lock screen instead.
     if (!_answering) Background.overLockScreen(false);

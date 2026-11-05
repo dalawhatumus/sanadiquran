@@ -1,6 +1,8 @@
 package sanadi.quran
 
+import android.app.NotificationManager
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.view.WindowManager
@@ -66,6 +68,67 @@ class MainActivity : FlutterActivity() {
             }
         }
 
+        MethodChannel(messenger, "sanadi/call").setMethodCallHandler { call, result ->
+            when (call.method) {
+                // A lesson call connected / ended: keeps the microphone
+                // working with the screen off (see CallService).
+                "start" -> {
+                    val args = call.arguments as? Map<*, *>
+                    result.success(
+                        CallService.start(
+                            this,
+                            args?.get("title") as? String ?: "Sanadi",
+                            args?.get("text") as? String ?: "",
+                            args?.get("channelName") as? String ?: "Sanadi",
+                        )
+                    )
+                }
+                "stop" -> {
+                    CallService.stop(this)
+                    result.success(null)
+                }
+                "ring" -> {
+                    Ringer.start(this)
+                    result.success(null)
+                }
+                "stopRing" -> {
+                    Ringer.stop()
+                    result.success(null)
+                }
+                // Android 14+ lets people (and Google Play) switch off
+                // full-screen call alerts for an app.
+                "canFullScreen" -> {
+                    result.success(
+                        if (Build.VERSION.SDK_INT >= 34) {
+                            getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
+                        } else {
+                            true
+                        }
+                    )
+                }
+                "openFullScreenSettings" -> {
+                    val intent = if (Build.VERSION.SDK_INT >= 34) {
+                        Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:$packageName"))
+                    } else {
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                    }
+                    try {
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        try {
+                            startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
+                            )
+                        } catch (_: Exception) {
+                        }
+                    }
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
         MethodChannel(messenger, "sanadi/availability").setMethodCallHandler { call, result ->
             when (call.method) {
                 "start" -> {
@@ -90,8 +153,12 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         // Closed for good (e.g. swiped away): nothing is listening any more,
-        // so don't keep showing "available".
-        if (isFinishing) AvailabilityService.stop(this)
+        // so don't keep showing "available", and no call goes on.
+        if (isFinishing) {
+            AvailabilityService.stop(this)
+            CallService.stop(this)
+            Ringer.stop()
+        }
         super.onDestroy()
     }
 }

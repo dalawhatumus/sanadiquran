@@ -19,6 +19,7 @@ import '../../widgets/avatars.dart';
 import '../../widgets/ui.dart';
 import '../lessons/lessons_ui.dart';
 import '../quran/quran_data.dart';
+import '../quran/recitation.dart';
 import '../settings/more_screens.dart';
 import 'call_controller.dart';
 import 'missed_calls.dart';

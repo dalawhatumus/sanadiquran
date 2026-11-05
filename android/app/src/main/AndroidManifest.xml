@@ -14,6 +14,16 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <!-- ...and keep the processor (never the screen) awake meanwhile, so the
+         app's "still here" signal keeps going while the phone sleeps. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- During a lesson call: keep the microphone working with the screen
+         off or Sanadi in the background, ring and vibrate like a phone call,
+         and use a Bluetooth headset or hearing aid when one is connected. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
@@ -59,8 +69,13 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="A volunteer Quran teacher who has switched on 'available to teach' must receive incoming voice calls from students while the app is in the background. The app does not use Firebase Cloud Messaging, so it keeps its connection open only while the teacher is available; it stops as soon as the teacher switches 'available' off in the app." />
+                android:value="Started only when a volunteer Quran teacher switches on 'I'm available to teach' in the app, and shows a permanent notification saying so. It keeps the app's connection open so a student's live voice call can ring the teacher while the app is in the background or the phone is locked. It stops as soon as the teacher switches 'available' off, or closes the app." />
         </service>
+        <!-- Keeps the microphone working during a lesson call only. -->
+        <service
+            android:name=".CallService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
         <!-- Athkar reminders (scheduled on the phone, no server needed). -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">

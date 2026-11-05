@@ -33,6 +33,9 @@ class _IncomingCallWatcherState extends ConsumerState<IncomingCallWatcher> with 
   Timer? _beat;
   bool _foreground = true;
 
+  /// When the teacher-list entry was last refreshed (see [listBeatEvery]).
+  DateTime? _listedAt;
+
   @override
   void initState() {
     super.initState();
@@ -79,23 +82,40 @@ class _IncomingCallWatcherState extends ConsumerState<IncomingCallWatcher> with 
 
   /// While an available teacher is reachable (app on screen, or kept alive
   /// in the background), says "still here" every minute; students only
-  /// ring teachers who do.
+  /// ring teachers who do. Their entry in the teacher list is refreshed
+  /// far less often (each refresh is a read for every student watching).
   void _heartbeat() {
     _beat?.cancel();
     _beat = null;
-    if (!_reachable) return;
+    if (!_reachable) {
+      _listedAt = null;
+      return;
+    }
     final b = ref.read(backendProvider);
-    b.presenceHeartbeat().catchError((_) {});
-    _beat = Timer.periodic(const Duration(seconds: 60), (_) {
-      if (_reachable) b.presenceHeartbeat().catchError((_) {});
-    });
+    void beat() {
+      if (!_reachable) return;
+      final now = DateTime.now();
+      final list = _listedAt == null || now.difference(_listedAt!) >= listBeatEvery;
+      if (list) _listedAt = now;
+      b.presenceHeartbeat(list: list).catchError((_) {});
+    }
+
+    beat();
+    _beat = Timer.periodic(beatEvery, (_) => beat());
+  }
+
+  /// In a call, or looking for / ringing someone. The end screens ("Call
+  /// ended", "No answer"...) don't count: a call can ring over them.
+  bool get _busy {
+    final st = ref.read(callControllerProvider);
+    return st.inCall || st.searching;
   }
 
   void _onCalls(List<CallInfo> calls) {
     final me = ref.read(settingsProvider);
     if (me.role != UserRole.teacher || me.teacherStatus != TeacherStatus.approved) return;
     final controller = ref.read(callControllerProvider.notifier);
-    final busy = ref.read(callControllerProvider).phase != CallPhase.idle;
+    final busy = _busy;
     for (final c in calls) {
       if (!_shown.add(c.id)) continue;
       if (busy || !me.available) {
@@ -124,7 +144,7 @@ class _IncomingCallWatcherState extends ConsumerState<IncomingCallWatcher> with 
     final me = ref.read(settingsProvider);
     if (!me.signedIn || me.role != UserRole.student) return;
     final controller = ref.read(callControllerProvider.notifier);
-    final busy = ref.read(callControllerProvider).phase != CallPhase.idle;
+    final busy = _busy;
     for (final c in calls) {
       if (!_shown.add(c.id)) continue;
       if (busy) {

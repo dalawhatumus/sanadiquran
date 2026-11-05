@@ -67,6 +67,12 @@ class SavedProfile {
 }
 
 /// The user closed the Google account picker.
+/// Deleting an account removed the person's data but not the account itself
+/// (e.g. no connection at the last step). The phone signs out anyway.
+class AccountNotDeleted implements Exception {
+  const AccountNotDeleted();
+}
+
 class SignInCancelled implements Exception {
   const SignInCancelled();
 }
@@ -230,7 +236,7 @@ class SuggestedNameNotifier extends Notifier<String> {
 
 final suggestedNameProvider = NotifierProvider<SuggestedNameNotifier, String>(SuggestedNameNotifier.new);
 
-final availableTeachersProvider = StreamProvider.family<int, Gender?>(
+final availableTeachersProvider = StreamProvider.autoDispose.family<int, Gender?>(
   (ref, gender) => ref.watch(backendProvider).availableTeachers(gender),
 );
 
@@ -241,6 +247,8 @@ final applicationReasonProvider = StreamProvider<String>((ref) => ref.watch(back
 final pendingApplicationsProvider = StreamProvider<List<TeacherApplication>>(
   (ref) => ref.watch(backendProvider).pendingApplications(),
 );
+
+const _savedProfileKey = 'savedProfile';
 
 /// Keeps the server and this phone in step while the app runs: saves the
 /// profile when it changes, follows the teacher's application status, and
@@ -256,7 +264,19 @@ final backendSyncProvider = Provider<void>((ref) {
     ),
     (_, next) {
       final s = ref.read(settingsProvider);
-      if (s.signedIn && s.role != null) unawaited(backend.saveProfile(s).catchError((_) {}));
+      if (!s.signedIn || s.role == null) return;
+      // Only when something changed since the last save: saving also
+      // re-reads every chat (to update the name shown in them), which on
+      // every app start would cost reads for nothing.
+      final uid = backend.myUid;
+      final prefs = ref.read(sharedPreferencesProvider);
+      final key = '$uid|$next';
+      if (uid != null && prefs.getString(_savedProfileKey) == key) return;
+      unawaited(
+        backend.saveProfile(s).then((_) async {
+          if (uid != null) await prefs.setString(_savedProfileKey, key);
+        }).catchError((_) {}),
+      );
     },
     fireImmediately: true,
   );

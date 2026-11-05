@@ -44,8 +44,11 @@ class SettingsScreen extends ConsumerWidget {
       // While still signed in, so the server forgets the waiting student.
       ref.read(teacherAlertProvider.notifier).turnOff();
       if (teacher && settings.teacherStatus == TeacherStatus.approved) {
+        // Not waited for long: offline, the write goes when the phone is
+        // back online, and signing out shouldn't hang meanwhile.
         await backend
             .setAvailable(on: false, gender: settings.gender, name: settings.name, avatar: settings.avatar)
+            .timeout(const Duration(seconds: 3))
             .catchError((_) {});
       }
       await backend.signOut().catchError((_) {});
@@ -99,6 +102,15 @@ class SettingsScreen extends ConsumerWidget {
         await backend.deleteAccount();
       } on SignInCancelled {
         return;
+      } on AccountNotDeleted {
+        // The data is gone but the account itself wasn't removed: signed
+        // out on this phone, so nothing is saved back to it.
+        await forgetUserOnThisPhone(ref);
+        if (context.mounted) {
+          toast(context, s.decisionFailed);
+          context.go(Routes.language);
+        }
+        return;
       } catch (_) {
         if (context.mounted) toast(context, s.decisionFailed);
         return;
@@ -121,7 +133,11 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => showAvatarPicker(context, ref),
             child: Row(
               children: [
-                Avatar(settings.name.characters.first.toUpperCase(), size: 72, image: settings.avatar),
+                Avatar(
+                  settings.name.trim().isEmpty ? '?' : settings.name.trim().characters.first.toUpperCase(),
+                  size: 72,
+                  image: settings.avatar,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

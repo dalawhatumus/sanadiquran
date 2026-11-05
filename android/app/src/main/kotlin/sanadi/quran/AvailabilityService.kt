@@ -10,13 +10,17 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 
 /**
  * While a teacher is "available to teach", keeps Sanadi running in the
  * background (with a small permanent notification) so a student's call can
  * still ring when the app is not on screen or the phone is locked. The
- * listening itself happens in the app; this service only keeps it alive.
+ * listening itself happens in the app; this service only keeps it alive,
+ * and holds a light wake lock (the processor only, never the screen) so the
+ * app's "still here" signal and its call listener keep running while the
+ * phone sleeps.
  * Started and stopped from Dart through the "sanadi/availability" channel.
  */
 class AvailabilityService : Service() {
@@ -49,7 +53,29 @@ class AvailabilityService : Service() {
         }
     }
 
+    private var wakeLock: PowerManager.WakeLock? = null
+
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        releaseWakeLock()
+        super.onDestroy()
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        // Sanadi swiped away: nothing is listening any more.
+        stopSelf()
+        super.onTaskRemoved(rootIntent)
+    }
+
+    private fun releaseWakeLock() {
+        try {
+            wakeLock?.let { if (it.isHeld) it.release() }
+        } catch (e: Exception) {
+            Log.w("Sanadi", "Wake lock not released", e)
+        }
+        wakeLock = null
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val title = intent?.getStringExtra(EXTRA_TITLE) ?: "Sanadi"
@@ -69,7 +95,7 @@ class AvailabilityService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val notification = Notification.Builder(this, CHANNEL)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_sanadi)
             .setContentTitle(title)
             .setContentText(text)
             .setContentIntent(open)
@@ -85,6 +111,19 @@ class AvailabilityService : Service() {
         } catch (e: Exception) {
             Log.w("Sanadi", "Could not stay in the foreground", e)
             stopSelf()
+            return START_NOT_STICKY
+        }
+        if (wakeLock == null) {
+            try {
+                wakeLock = getSystemService(PowerManager::class.java)
+                    .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Sanadi:available")
+                    .apply {
+                        setReferenceCounted(false)
+                        acquire()
+                    }
+            } catch (e: Exception) {
+                Log.w("Sanadi", "Wake lock not taken", e)
+            }
         }
         // If Android stops it, don't restart without the app.
         return START_NOT_STICKY

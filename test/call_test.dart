@@ -98,6 +98,54 @@ class _TeacherCalls extends DemoBackend {
   }
 }
 
+/// Students' calls ringing for this teacher, sent when a test says; records
+/// the statuses set. [gone] makes Accept lose the race (the student moved
+/// on a moment before).
+class _Incoming extends DemoBackend {
+  _Incoming({this.gone = false});
+
+  final bool gone;
+  final calls = StreamController<List<CallInfo>>.broadcast();
+  final statuses = <String, CallStatus>{};
+
+  static CallInfo call(String id) =>
+      CallInfo(id: id, studentId: 's-$id', studentName: 'Student $id', teacherId: 'demo-teacher', status: CallStatus.ringing);
+
+  @override
+  Stream<List<CallInfo>> incomingCalls() => calls.stream;
+
+  @override
+  Stream<CallInfo?> watchCall(String callId) async* {
+    yield call(callId);
+  }
+
+  @override
+  Future<void> setCallStatus(String callId, CallStatus status) async => statuses[callId] = status;
+
+  @override
+  Future<void> acceptCall(String callId, {required String name, String? avatar}) async {
+    if (gone) throw const CallGone();
+    statuses[callId] = CallStatus.active;
+  }
+}
+
+/// Teachers who never answer, and a list that stays empty for a while: for
+/// cancelling and starting again.
+class _Slow extends _Teachers {
+  _Slow() : super({});
+  var looks = 0;
+  final ringing = <String>[];
+
+  @override
+  Future<List<Candidate>> freeTeachers(Gender gender, {Set<String> exclude = const {}}) async {
+    looks++;
+    return const [];
+  }
+
+  @override
+  Future<void> ring(String callId, String teacherId) async => ringing.add(callId);
+}
+
 void main() {
   setUpAll(loadAppFonts);
 
@@ -314,5 +362,89 @@ void main() {
     expect(backend.statuses, [CallStatus.declined]);
     expect(find.text('Incoming call'), findsNothing);
     await tester.pump(const Duration(seconds: 6));
+  });
+
+  testWidgets('teacher: after Back on "Call ended", the next call still rings', (tester) async {
+    final b = _Incoming();
+    final (container, router) = await open(
+      tester,
+      role: 'teacher',
+      backend: b,
+    );
+    container.read(settingsProvider.notifier).update((x) => x.copyWith(available: true));
+    await tester.pumpAndSettle();
+    b.calls.add([_Incoming.call('c1')]);
+    await settle(tester);
+    expect(find.text('Incoming call'), findsOneWidget);
+    await tester.tap(find.text('Accept'));
+    await settle(tester, const Duration(seconds: 2));
+    expect(container.read(callControllerProvider).phase, CallPhase.active);
+    await container.read(callControllerProvider.notifier).hangUp();
+    await settle(tester);
+    expect(find.text('Call ended'), findsOneWidget);
+    // The phone's Back button, not "Done".
+    await tester.binding.handlePopRoute();
+    await settle(tester);
+    b.calls.add([_Incoming.call('c2')]);
+    await settle(tester);
+    expect(b.statuses['c2'], isNot(CallStatus.declined));
+    expect(find.text('Incoming call'), findsOneWidget);
+  });
+
+  testWidgets('teacher: answering a call that has just gone elsewhere goes home, not stuck', (tester) async {
+    final b = _Incoming(gone: true);
+    final (container, router) = await open(tester, role: 'teacher', backend: b);
+    unawaited(router.push('${Routes.incoming}?id=c1'));
+    await settle(tester);
+    await tester.tap(find.text('Accept'));
+    await settle(tester, const Duration(seconds: 2));
+    expect(container.read(callControllerProvider).inCall, isFalse);
+    expect(find.text('Connecting…'), findsNothing);
+    expect(router.state.uri.path, Routes.teacherHome);
+  });
+
+  testWidgets('teacher: microphone refused while answering goes home, not stuck', (tester) async {
+    final b = _Incoming();
+    final (container, _) = await startApp(
+      tester,
+      prefs: {'settings.v2': userSettings(role: 'teacher', sessions: 0)},
+      overrides: [
+        micPermissionProvider.overrideWithValue(() async => false),
+        backendProvider.overrideWithValue(b),
+      ],
+    );
+    final router = routerOf(tester);
+    router.go(Routes.teacherHome);
+    await tester.pumpAndSettle();
+    unawaited(router.push('${Routes.incoming}?id=c1'));
+    await settle(tester);
+    await tester.tap(find.text('Accept'));
+    await settle(tester, const Duration(seconds: 2));
+    expect(container.read(callControllerProvider).inCall, isFalse);
+    expect(b.statuses['c1'], CallStatus.declined);
+    expect(router.state.uri.path, Routes.teacherHome);
+  });
+
+  testWidgets('student: cancel, then Recite now again at once: the old search stops', (tester) async {
+    final b = _Slow();
+    final (container, router) = await open(tester, backend: b);
+    final c = container.read(callControllerProvider.notifier);
+    unawaited(c.startAsStudent());
+    await settle(tester);
+    final first = container.read(callControllerProvider).callId;
+    await c.cancel();
+    unawaited(c.startAsStudent());
+    await settle(tester);
+    final second = container.read(callControllerProvider).callId;
+    expect(second, isNot(first));
+    final looksBefore = b.looks;
+    // Long enough for the old loop's wait to end.
+    await settle(tester, const Duration(seconds: 12));
+    expect(container.read(callControllerProvider).callId, second);
+    expect(container.read(callControllerProvider).searching, isTrue);
+    // Only the new search keeps looking (at most one look per wait).
+    expect(b.looks - looksBefore, lessThanOrEqualTo(2));
+    await c.cancel();
+    await settle(tester, const Duration(seconds: 25));
   });
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../core/background.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -43,8 +44,10 @@ class PermissionScreen extends ConsumerWidget {
 
   Future<void> _request(BuildContext context, WidgetRef ref) async {
     if (kind == PermKind.fullScreen) {
-      // Full-screen call alerts are set up with the calling feature.
-      _afterPermission(context, ref, kind);
+      // Android 14+ may have full-screen call alerts off for Sanadi: open
+      // that setting (the teacher comes back to the next step).
+      if (!await Background.canFullScreen()) await Background.openFullScreenSettings();
+      if (context.mounted) _afterPermission(context, ref, kind);
       return;
     }
     final perm = kind == PermKind.mic ? Permission.microphone : Permission.notification;

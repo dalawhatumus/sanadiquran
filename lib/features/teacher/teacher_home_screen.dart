@@ -6,6 +6,8 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../backend/backend.dart';
 import '../../backend/sessions.dart';
 import '../../backend/teachers.dart';
+import '../../core/background.dart';
+import '../../core/reminders.dart';
 import '../../core/router.dart';
 import '../../core/settings.dart';
 import '../../core/strings.dart';
@@ -141,7 +143,7 @@ class TeacherHomeScreen extends ConsumerWidget {
       ref.read(settingsProvider.notifier).update((x) => x.copyWith(available: !on));
       if (!on) {
         ref.read(autoAwayProvider.notifier).dismiss();
-        if (live) askBatteryOnce(context, ref);
+        if (live) prepareToTeach(context, ref);
       }
     }
 
@@ -340,6 +342,37 @@ class _LinkCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Each time a teacher switches "available" on: makes sure a call can
+/// actually ring (notifications allowed, and full-screen call alerts on
+/// Android 14+), then, once, asks about battery limits.
+Future<void> prepareToTeach(BuildContext context, WidgetRef ref) async {
+  final s = S.of(context);
+  if (!await Reminders.instance.notificationsAllowed()) {
+    if (!await Reminders.instance.askNotifications()) {
+      if (!context.mounted) return;
+      final open = await confirm(
+        context,
+        title: s.callAlertsOffTitle,
+        body: s.callAlertsOffBody,
+        confirmLabel: s.openSettings,
+      );
+      if (open) {
+        try {
+          await openAppSettings();
+        } catch (_) {}
+      }
+      return;
+    }
+  }
+  if (!await Background.canFullScreen()) {
+    if (!context.mounted) return;
+    final open = await confirm(context, title: s.fsTitle, body: s.fsBody, confirmLabel: s.openSettings);
+    if (open) await Background.openFullScreenSettings();
+    return;
+  }
+  if (context.mounted) await askBatteryOnce(context, ref);
 }
 
 /// The first time a teacher switches "available" on: explains why Sanadi

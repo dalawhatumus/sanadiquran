@@ -63,10 +63,30 @@ service cloud.firestore {
         && (request.resource.data.get('phone', null) == null
             || (request.resource.data.phone is string && request.resource.data.phone.matches('[+][1-9][0-9]{6,14}')))
         && request.resource.data.get('whatsapp', false) is bool
-        // Gender is chosen once: it decides who can call whom.
+        // Gender is chosen once: it decides who can call whom. It is kept
+        // in /genders too, which can never change or be deleted, so deleting
+        // and re-creating the profile can't change it either.
         && (resource == null || resource.data.get('gender', null) == null
-            || request.resource.data.get('gender', null) == resource.data.gender);
+            || request.resource.data.get('gender', null) == resource.data.gender)
+        && (request.resource.data.get('gender', null) == null
+            || getAfter(/databases/$(db)/documents/genders/$(uid)).data.gender == request.resource.data.gender);
       allow delete: if isMe(uid);
+    }
+
+    // The gender each account chose, set once (with the profile) and never
+    // changed or removed. Only the person and admins can read it.
+    match /genders/{uid} {
+      allow read: if isMe(uid) || isAdmin();
+      allow create: if isMe(uid)
+        && request.resource.data.keys().hasOnly(['gender'])
+        && request.resource.data.gender in ['male', 'female']
+        // An account that already had a gender keeps it.
+        && (!exists(/databases/$(db)/documents/users/$(uid))
+            || get(/databases/$(db)/documents/users/$(uid)).data.get('gender', null) == null
+            || get(/databases/$(db)/documents/users/$(uid)).data.gender == request.resource.data.gender);
+      // Saving it again (unchanged) is allowed, so the app can always send it.
+      allow update: if isMe(uid) && request.resource.data == resource.data;
+      allow delete: if false;
     }
 
     // Teacher applications. The applicant can send (or resend after a
@@ -74,13 +94,21 @@ service cloud.firestore {
     match /teacherApplications/{uid} {
       allow read: if isMe(uid) || isAdmin();
       function validApplication() {
+        let a = request.resource.data.answers;
         return request.resource.data.status == 'pending'
           && request.resource.data.keys().hasOnly(['name', 'gender', 'answers', 'order', 'sampleSec', 'status', 'submittedAt'])
           && text(request.resource.data.name, 80)
           // The same gender as the applicant's profile.
           && request.resource.data.gender == userDoc(uid).gender
-          && request.resource.data.answers is map
-          && request.resource.data.answers.size() <= 20
+          && request.resource.data.submittedAt == request.time
+          && request.resource.data.get('sampleSec', 0) is int
+          && a is map
+          && a.keys().hasOnly(['Country', 'Languages', 'Can teach', 'Free times', 'Memorised', 'Ijazah / teachers',
+               'Recording sample', 'Pledge'])
+          && text(a.get('Country', null), 100) && text(a.get('Languages', null), 500)
+          && text(a.get('Can teach', null), 500) && text(a.get('Free times', null), 500)
+          && text(a.get('Memorised', null), 200) && text(a.get('Ijazah / teachers', null), 2000)
+          && text(a.get('Recording sample', null), 100) && text(a.get('Pledge', null), 20)
           && request.resource.data.order is list
           && request.resource.data.order.size() <= 20;
       }
@@ -100,11 +128,13 @@ service cloud.firestore {
     // kept apart so the list of applications stays light.
     match /applicationSamples/{uid} {
       allow read: if isMe(uid) || isAdmin();
-      allow create, update: if isMe(uid)
+      allow create, update: if isMe(uid) && !paused(uid)
         && request.resource.data.keys().hasOnly(['data', 'durationSec', 'createdAt'])
         && request.resource.data.data is bytes
         && request.resource.data.data.size() <= 900000
-        && request.resource.data.durationSec is int;
+        && request.resource.data.durationSec is int
+        && request.resource.data.durationSec >= 0 && request.resource.data.durationSec <= 150
+        && request.resource.data.createdAt == request.time;
       allow delete: if isMe(uid);
     }
 
@@ -126,9 +156,22 @@ service cloud.firestore {
         && text(request.resource.data.get('lessonsDay', null), 10)
         && request.resource.data.available is bool
         && request.resource.data.get('busy', false) is bool
+        && stamp('updatedAt')
         && request.resource.data.gender == teacherGender(uid);
       // An admin pausing a teacher removes them from the list too.
       allow delete: if isMe(uid) || isAdmin();
+    }
+
+    // An available teacher's "still here", every minute (kept apart from
+    // /presence, which students watch: a beat there would cost each of them
+    // a read every minute). Only a time; students only ring teachers whose
+    // beat is recent.
+    match /beats/{uid} {
+      allow read: if signedIn();
+      allow create, update: if isMe(uid)
+        && request.resource.data.keys().hasOnly(['at'])
+        && request.resource.data.at == request.time;
+      allow delete: if isMe(uid);
     }
 
     // Chat between a student and a teacher. Only an admin opens a
@@ -142,19 +185,38 @@ service cloud.firestore {
     match /conversations/{cid} {
       allow read: if isAdmin() || (signedIn() && request.auth.uid in resource.data.members);
       // ...or the student, right after their first call with that teacher.
+      // A new chat: the two members with their names and pictures, no
+      // messages yet.
+      function newChat() {
+        let d = request.resource.data;
+        let m = d.members;
+        return m.size() == 2
+          && cid == m[0] + '_' + m[1]
+          && d.keys().hasOnly(['members', 'names', 'avatars', 'roles', 'gender', 'unread', 'blockedBy', 'lastText',
+               'fromCall', 'createdBy', 'createdAt'])
+          && d.names.keys().hasOnly(m) && text(d.names.get(m[0], null), 80) && text(d.names.get(m[1], null), 80)
+          && d.avatars.keys().hasOnly(m)
+          && validAvatar(d.avatars.get(m[0], null), m[0]) && validAvatar(d.avatars.get(m[1], null), m[1])
+          && d.roles == {m[0]: 'student', m[1]: 'teacher'}
+          && d.unread == {m[0]: 0, m[1]: 0}
+          && d.blockedBy.size() == 0
+          && d.lastText == ''
+          && d.createdBy == request.auth.uid
+          && d.createdAt == request.time;
+      }
+      // (A call ends only after it was answered, so an ended call was a
+      // real lesson.)
       allow create: if signedIn() && !paused(request.auth.uid)
-        && request.resource.data.members.size() == 2
+        && newChat()
         && request.auth.uid == request.resource.data.members[0]
-        && cid == request.resource.data.members[0] + '_' + request.resource.data.members[1]
         && request.resource.data.fromCall is string
         && callDoc(request.resource.data.fromCall).studentId == request.resource.data.members[0]
         && callDoc(request.resource.data.fromCall).teacherId == request.resource.data.members[1]
         && callDoc(request.resource.data.fromCall).status in ['active', 'ended']
-        && request.resource.data.gender == callDoc(request.resource.data.fromCall).gender
-        && request.resource.data.blockedBy.size() == 0;
+        && request.resource.data.gender == callDoc(request.resource.data.fromCall).gender;
       allow create: if isAdmin()
-        && request.resource.data.members.size() == 2
-        && cid == request.resource.data.members[0] + '_' + request.resource.data.members[1]
+        && newChat()
+        && !('fromCall' in request.resource.data)
         && userDoc(request.resource.data.members[0]).role == 'student'
         && isApproved(request.resource.data.members[1])
         && userDoc(request.resource.data.members[0]).gender == teacherGender(request.resource.data.members[1]);
@@ -177,7 +239,24 @@ service cloud.firestore {
         // admins); each counts their own.
         && request.resource.data.get('sent', {}).diff(resource.data.get('sent', {})).affectedKeys()
              .hasOnly([request.auth.uid])
-        && text(request.resource.data.get('names', {}).get(request.auth.uid, null), 80);
+        && text(request.resource.data.get('names', {}).get(request.auth.uid, null), 80)
+        && validAvatar(request.resource.data.get('avatars', {}).get(request.auth.uid, null), request.auth.uid)
+        && previewOk();
+      // The last message's preview (120 letters at most), who sent it and
+      // when, and small counters.
+      function count(v) { return v is int && v >= 0 && v <= 1000000; }
+      function previewOk() {
+        let d = request.resource.data;
+        let m = resource.data.members;
+        let changed = d.diff(resource.data).affectedKeys();
+        return text(d.get('lastText', null), 130)
+          && (d.get('lastVoiceSec', null) == null || (d.lastVoiceSec is int && d.lastVoiceSec >= 0 && d.lastVoiceSec <= 185))
+          && (!('lastSender' in changed) || d.lastSender == request.auth.uid)
+          && (!('lastAt' in changed) || d.lastAt == request.time)
+          && d.get('unread', {}).keys().hasOnly(m)
+          && count(d.get('unread', {}).get(m[0], 0)) && count(d.get('unread', {}).get(m[1], 0))
+          && count(d.get('sent', {}).get(request.auth.uid, 0));
+      }
       allow delete: if false;
 
       function canSend() {
@@ -206,10 +285,14 @@ service cloud.firestore {
       // Voice note recordings (at most about 3 minutes of AAC).
       match /audio/{mid} {
         allow read: if isMemberOf(cid);
+        // Only together with its voice message (no recordings on their own).
         allow create: if canSend()
           && request.resource.data.keys().hasOnly(['senderId', 'data', 'createdAt'])
           && request.resource.data.data is bytes
-          && request.resource.data.data.size() <= 900000;
+          && request.resource.data.data.size() <= 900000
+          && request.resource.data.createdAt == request.time
+          && getAfter(/databases/$(db)/documents/conversations/$(cid)/messages/$(mid)).data.type == 'voice'
+          && getAfter(/databases/$(db)/documents/conversations/$(cid)/messages/$(mid)).data.senderId == request.auth.uid;
         allow update: if false;
         allow delete: if isMemberOf(cid) && resource.data.senderId == request.auth.uid;
       }
@@ -256,44 +339,105 @@ service cloud.firestore {
         && text(request.resource.data.get('teacherName', null), 80)
         && validAvatar(request.resource.data.get('studentAvatar', null), request.resource.data.studentId)
         && validAvatar(request.resource.data.get('teacherAvatar', null), request.auth.uid);
-      // The student rings teachers (approved, same gender), cancels, hangs
-      // up and sends the offer.
+      // What a call holds, and the sizes allowed.
+      function callShape() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['studentId', 'studentName', 'studentAvatar', 'teacherId', 'teacherName',
+             'teacherAvatar', 'gender', 'status', 'direction', 'tried', 'createdAt', 'ringAt', 'acceptedAt',
+             'endedAt', 'offer', 'answer'])
+          && d.status in ['searching', 'ringing', 'declined', 'active', 'ended', 'cancelled', 'unmatched']
+          && text(d.get('studentName', null), 80) && text(d.get('teacherName', null), 80)
+          && d.get('tried', []) is list && d.get('tried', []).size() <= 60
+          && description(d.get('offer', null)) && description(d.get('answer', null))
+          && stamp('ringAt') && stamp('endedAt');
+      }
+      // A WebRTC session description: {type, sdp} (an audio-only one is a
+      // few thousand letters).
+      function description(v) {
+        return v == null || (v is map && v.keys().hasOnly(['type', 'sdp'])
+          && v.type in ['offer', 'answer'] && v.sdp is string && v.sdp.size() <= 20000);
+      }
+      function from(states) { return resource.data.status in states; }
+      function to(states) { return request.resource.data.status in states; }
+      function only(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+      // Deleting an account blanks the person's own name and picture.
+      function scrubbed(nameKey, avatarKey) {
+        return only([nameKey, avatarKey])
+          && request.resource.data.get(nameKey, '') == '' && request.resource.data.get(avatarKey, null) == null;
+      }
+      // After a call, either phone removes the connection details (they hold
+      // network addresses).
+      function routesCleared() {
+        return from(['ended', 'cancelled', 'unmatched', 'declined']) && only(['offer', 'answer'])
+          && !('offer' in request.resource.data) && !('answer' in request.resource.data);
+      }
+
+      // The student looks for a teacher: rings one (approved, the same
+      // gender, available and not paused), goes back to looking when they
+      // don't answer, cancels or gives up; and, once answered, sends the
+      // offer and hangs up. A call only ends after it was answered, and an
+      // ended, cancelled or unmatched call never changes again.
+      allow update: if isStudent() && !fromTeacher() && callShape()
+        && unchanged(['studentId', 'gender', 'direction', 'teacherName', 'teacherAvatar', 'answer', 'createdAt',
+             'acceptedAt'])
+        && (scrubbed('studentName', 'studentAvatar') || routesCleared()
+          || (from(['searching']) && to(['ringing', 'cancelled', 'unmatched']))
+          || (from(['ringing', 'declined']) && to(['searching', 'cancelled', 'unmatched']))
+          || (from(['active']) && to(['ended']) && only(['status', 'endedAt']))
+          || (from(['active']) && to(['active']) && only(['offer'])))
+        && (to(['ringing'])
+          ? (!paused(request.auth.uid)
+            && isApproved(request.resource.data.teacherId)
+            && !paused(request.resource.data.teacherId)
+            && teacherGender(request.resource.data.teacherId) == resource.data.gender
+            && get(/databases/$(db)/documents/presence/$(request.resource.data.teacherId)).data.available == true)
+          : unchanged(['teacherId', 'tried']));
       // For a call from their teacher, the student answers or declines it,
-      // and can't put anyone else through.
-      allow update: if isStudent()
-        && unchanged(['studentId', 'gender', 'teacherName', 'teacherAvatar', 'answer', 'direction'])
-        && (request.resource.data.status in ['searching', 'ringing', 'ended', 'cancelled', 'unmatched']
-            || request.resource.data.status == resource.data.status
-            || (fromTeacher() && resource.data.status == 'ringing'
-                && request.resource.data.status in ['active', 'declined']
-                && (request.resource.data.status == 'declined' || !paused(request.auth.uid))))
-        && (!fromTeacher() || unchanged(['teacherId', 'tried']))
-        && (request.resource.data.teacherId == resource.data.teacherId
-            || (isApproved(request.resource.data.teacherId)
-                && !paused(request.resource.data.teacherId)
-                && teacherGender(request.resource.data.teacherId) == resource.data.gender));
-      // The teacher being rung answers or declines, then sends the answer
-      // and can hang up.
+      // then sends the offer and can hang up; they can't put anyone else
+      // through.
+      allow update: if isStudent() && fromTeacher() && callShape()
+        && unchanged(['studentId', 'gender', 'direction', 'teacherId', 'tried', 'teacherName', 'teacherAvatar',
+             'answer', 'createdAt', 'ringAt'])
+        && (scrubbed('studentName', 'studentAvatar') || routesCleared()
+          || (from(['ringing']) && to(['declined']) && only(['status']))
+          || (from(['ringing']) && to(['active']) && only(['status', 'acceptedAt'])
+              && request.resource.data.acceptedAt == request.time && !paused(request.auth.uid))
+          || (from(['active']) && to(['ended']) && only(['status', 'endedAt']))
+          || (from(['active']) && to(['active']) && only(['offer'])));
+      // The teacher being rung answers (with their name and picture) or
+      // declines, then sends the answer and can hang up.
       // For a call the teacher made, they can't answer it themselves, but
       // can give up while it rings (cancelled, or unmatched: no answer).
-      allow update: if isTeacher()
-        && unchanged(['studentId', 'studentName', 'studentAvatar', 'gender', 'teacherId', 'tried', 'offer', 'direction'])
-        && (request.resource.data.status in ['active', 'declined', 'ended']
-            || (fromTeacher() && resource.data.status == 'ringing'
-                && request.resource.data.status in ['cancelled', 'unmatched']))
-        && (resource.data.status in ['ringing', 'active'])
-        && (request.resource.data.status != 'active' || resource.data.status == 'active'
-            || (!fromTeacher() && !paused(request.auth.uid)));
+      allow update: if isTeacher() && callShape()
+        && unchanged(['studentId', 'studentName', 'studentAvatar', 'gender', 'teacherId', 'tried', 'offer',
+             'direction', 'createdAt', 'ringAt'])
+        && (scrubbed('teacherName', 'teacherAvatar') || routesCleared()
+          || (!fromTeacher() && from(['ringing']) && to(['declined']) && only(['status']))
+          || (!fromTeacher() && from(['ringing']) && to(['active'])
+              && only(['status', 'teacherName', 'teacherAvatar', 'acceptedAt'])
+              && request.resource.data.acceptedAt == request.time
+              && validAvatar(request.resource.data.get('teacherAvatar', null), request.auth.uid)
+              && !paused(request.auth.uid))
+          || (fromTeacher() && from(['ringing']) && to(['cancelled', 'unmatched']) && only(['status', 'endedAt']))
+          || (from(['active']) && to(['ended']) && only(['status', 'endedAt']))
+          || (from(['active']) && to(['active']) && only(['answer'])));
       allow delete: if false;
 
-      // Network routes for the connection, from each side.
+      // Network routes for the connection, from each side, while the call is
+      // on. Each phone removes its own when the call is over.
       match /ice/{c} {
-        allow read: if signedIn() && request.auth.uid in [get(/databases/$(db)/documents/calls/$(id)).data.studentId,
-                                                          get(/databases/$(db)/documents/calls/$(id)).data.teacherId];
+        allow read: if signedIn() && request.auth.uid in [callDoc(id).studentId, callDoc(id).teacherId];
         allow create: if signedIn() && request.resource.data.senderId == request.auth.uid
+          && callDoc(id).status == 'active'
+          && request.resource.data.keys().hasOnly(['from', 'senderId', 'c'])
+          && request.resource.data.c is map
+          && request.resource.data.c.keys().hasOnly(['candidate', 'sdpMid', 'sdpMLineIndex'])
+          && text(request.resource.data.c.get('candidate', null), 1000)
+          && text(request.resource.data.c.get('sdpMid', null), 20)
           && ((request.resource.data.from == 'student' && request.auth.uid == callDoc(id).studentId)
               || (request.resource.data.from == 'teacher' && request.auth.uid == callDoc(id).teacherId));
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if signedIn() && resource.data.senderId == request.auth.uid;
       }
     }
 
@@ -316,9 +460,22 @@ service cloud.firestore {
         && callDoc(id).teacherId == request.resource.data.teacherId
         && callDoc(id).status in ['active', 'ended']
         && request.resource.data.gender == callDoc(id).gender
-        && request.resource.data.durationSec is int
         && request.resource.data.keys().hasOnly(['studentId', 'teacherId', 'studentName', 'teacherName',
-             'studentAvatar', 'teacherAvatar', 'gender', 'startedAt', 'durationSec', 'createdAt']);
+             'studentAvatar', 'teacherAvatar', 'gender', 'startedAt', 'durationSec', 'createdAt'])
+        && text(request.resource.data.get('studentName', null), 80)
+        && text(request.resource.data.get('teacherName', null), 80)
+        && validAvatar(request.resource.data.get('studentAvatar', null), request.resource.data.studentId)
+        && validAvatar(request.resource.data.get('teacherAvatar', null), request.resource.data.teacherId)
+        && request.resource.data.createdAt == request.time
+        // When it started, and how long it lasted: no longer than the time
+        // since the call was answered (plus a little for clocks).
+        && request.resource.data.startedAt is timestamp
+        && request.resource.data.startedAt > request.time - duration.value(4, 'h')
+        && request.resource.data.startedAt < request.time + duration.value(10, 'm')
+        && request.resource.data.durationSec is int
+        && request.resource.data.durationSec >= 0
+        && callDoc(id).acceptedAt is timestamp
+        && request.resource.data.durationSec <= (request.time - callDoc(id).acceptedAt).seconds() + 120;
       allow update: if (signedIn() && request.auth.uid == resource.data.teacherId
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notes'])
           && request.resource.data.notes.keys().hasOnly(['recited', 'grade', 'practise', 'next', 'note', 'at'])
@@ -329,7 +486,14 @@ service cloud.firestore {
           && text(request.resource.data.notes.note, 2000))
         || (signedIn() && request.auth.uid == resource.data.studentId
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating'])
-          && request.resource.data.rating in [0, 1, 2]);
+          && request.resource.data.rating in [0, 1, 2])
+        // Deleting an account blanks the person's own name and picture.
+        || (signedIn() && request.auth.uid == resource.data.studentId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['studentName', 'studentAvatar'])
+          && request.resource.data.get('studentName', '') == '' && request.resource.data.get('studentAvatar', null) == null)
+        || (signedIn() && request.auth.uid == resource.data.teacherId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['teacherName', 'teacherAvatar'])
+          && request.resource.data.get('teacherName', '') == '' && request.resource.data.get('teacherAvatar', null) == null);
       allow delete: if false;
     }
 
@@ -339,6 +503,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['reporterId', 'reporterName', 'reportedId', 'reportedName',
              'conversationId', 'reason', 'details', 'status', 'createdAt'])
         && request.resource.data.status == 'open'
+        && request.resource.data.createdAt == request.time
         && request.resource.data.reason in ['words', 'respect', 'personal', 'other']
         && text(request.resource.data.details, 1000)
         && text(request.resource.data.reporterName, 80)
@@ -363,6 +528,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['gender', 'until'])
         && request.resource.data.gender == userDoc(uid).gender
         && request.resource.data.until is timestamp
+        && request.resource.data.until > request.time - duration.value(5, 'm')
         && request.resource.data.until <= request.time + duration.value(65, 'm');
       allow delete: if isMe(uid);
     }

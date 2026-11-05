@@ -50,7 +50,7 @@ mixin FirestoreTeachers implements TeacherDirectoryApi {
   }
 
   static TeacherState _state(Map<String, dynamic> p) {
-    if (p['available'] != true || !FirestoreCalls.isFresh(p)) return TeacherState.away;
+    if (p['available'] != true || !FirestoreCalls.isListed(p)) return TeacherState.away;
     return p['busy'] == true ? TeacherState.busy : TeacherState.available;
   }
 

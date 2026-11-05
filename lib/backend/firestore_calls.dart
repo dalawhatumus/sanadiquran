@@ -15,6 +15,7 @@ import 'user_stream.dart';
 ///   student and (once rung) its teacher can read it.
 /// - calls/{id}/ice/{id}: network routes from each side.
 /// - presence/{uid}.busy: a teacher in a call isn't rung by anyone else.
+/// - beats/{uid}.at: an available teacher's "still here", every minute.
 mixin FirestoreCalls implements CallApi {
   FirebaseFirestore get db;
   FirebaseAuth get auth;
@@ -66,10 +67,22 @@ mixin FirestoreCalls implements CallApi {
         .where('available', isEqualTo: true)
         .where('gender', isEqualTo: gender.name)
         .get();
-    final free = [
+    final listed = [
       for (final d in s.docs)
-        if (d.data()['busy'] != true && d.id != _me && !exclude.contains(d.id) && isFresh(d.data()))
-          Candidate(d.id, lessonsToday: lessonsToday(d.data())),
+        if (d.data()['busy'] != true && d.id != _me && !exclude.contains(d.id) && isListed(d.data())) d,
+    ];
+    // Only teachers whose phone said "still here" lately are rung.
+    final beats = <String, Object?>{};
+    for (var i = 0; i < listed.length; i += 30) {
+      final ids = [for (final d in listed.skip(i).take(30)) d.id];
+      final b = await db.collection('beats').where(FieldPath.documentId, whereIn: ids).get();
+      for (final d in b.docs) {
+        beats[d.id] = d.data()['at'];
+      }
+    }
+    final free = [
+      for (final d in listed)
+        if (isBeatFresh(beats[d.id])) Candidate(d.id, lessonsToday: lessonsToday(d.data())),
     ]..shuffle(Random());
     return free;
   }
@@ -92,17 +105,59 @@ mixin FirestoreCalls implements CallApi {
   @override
   Future<void> setCallStatus(String callId, CallStatus status) => _calls.doc(callId).update({
     'status': status.name,
+    if (status == CallStatus.active) 'acceptedAt': FieldValue.serverTimestamp(),
     if (status == CallStatus.ended || status == CallStatus.cancelled || status == CallStatus.unmatched)
       'endedAt': FieldValue.serverTimestamp(),
   });
 
   @override
-  Future<void> acceptCall(String callId, {required String name, String? avatar}) => _calls.doc(callId).update({
-    'status': CallStatus.active.name,
-    'teacherName': name,
-    'teacherAvatar': avatar,
-    'acceptedAt': FieldValue.serverTimestamp(),
-  });
+  Future<void> acceptCall(String callId, {required String name, String? avatar}) async {
+    final me = _me;
+    final ref = _calls.doc(callId);
+    // Only while it still rings for this teacher: the student may have
+    // given up, or moved on to someone else, a moment ago.
+    await db.runTransaction((tx) async {
+      final d = await tx.get(ref);
+      final c = d.data();
+      if (c == null || c['status'] != CallStatus.ringing.name || c['teacherId'] != me) throw const CallGone();
+      tx.update(ref, {
+        'status': CallStatus.active.name,
+        'teacherName': name,
+        'teacherAvatar': avatar,
+        'acceptedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  @override
+  Future<CallStatus> unring(String callId, String teacherId) async {
+    final ref = _calls.doc(callId);
+    return db.runTransaction((tx) async {
+      final d = await tx.get(ref);
+      final c = d.data();
+      final status = CallStatus.values.where((s) => s.name == c?['status']).firstOrNull ?? CallStatus.ended;
+      if (c == null || c['teacherId'] != teacherId) return status;
+      if (status != CallStatus.ringing && status != CallStatus.declined) return status;
+      tx.update(ref, {'status': CallStatus.searching.name});
+      return CallStatus.searching;
+    });
+  }
+
+  @override
+  Future<void> clearRoutes(String callId) async {
+    final me = _me;
+    if (me == null) return;
+    final ref = _calls.doc(callId);
+    // Each phone removes its own routes (that's all the rules allow), and
+    // the connection details once the call is over.
+    final mine = await ref.collection('ice').where('senderId', isEqualTo: me).get();
+    final batch = db.batch();
+    for (final d in mine.docs) {
+      batch.delete(d.reference);
+    }
+    batch.update(ref, {'offer': FieldValue.delete(), 'answer': FieldValue.delete()});
+    await batch.commit();
+  }
 
   @override
   Stream<CallInfo?> watchCall(String callId) => _calls.doc(callId).snapshots().map((d) => d.exists ? _info(d) : null);
@@ -188,10 +243,13 @@ mixin FirestoreCalls implements CallApi {
   }
 
   @override
-  Future<void> presenceHeartbeat() async {
+  Future<void> presenceHeartbeat({bool list = false}) async {
     final me = _me;
     if (me == null) return;
-    await db.collection('presence').doc(me).update({'updatedAt': FieldValue.serverTimestamp()});
+    // Kept apart from presence/{uid}, which every student of that gender
+    // watches: a beat there would be a read for each of them every minute.
+    await db.collection('beats').doc(me).set({'at': FieldValue.serverTimestamp()});
+    if (list) await db.collection('presence').doc(me).update({'updatedAt': FieldValue.serverTimestamp()});
   }
 
   @override
@@ -204,13 +262,16 @@ mixin FirestoreCalls implements CallApi {
     });
   }
 
-  /// Whether a presence entry has had a heartbeat recently (a write still on
-  /// its way counts as now).
-  static bool isFresh(Map<String, dynamic> p) {
+  /// Whether a presence entry was refreshed recently enough to be listed
+  /// (a write still on its way counts as now).
+  static bool isListed(Map<String, dynamic> p) {
     final at = p['updatedAt'];
     if (at is! Timestamp) return at == null;
-    return DateTime.now().difference(at.toDate()) < presenceFresh;
+    return DateTime.now().difference(at.toDate()) < listFresh;
   }
+
+  /// Whether a teacher's last "still here" beat is recent enough to ring them.
+  static bool isBeatFresh(Object? at) => at is Timestamp && DateTime.now().difference(at.toDate()) < presenceFresh;
 
   @override
   Future<void> openChatAfterCall(CallInfo call) async {

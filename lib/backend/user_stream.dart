@@ -45,7 +45,8 @@ Stream<T> followUser<T>(
       retry = Timer(Duration(seconds: wait), () {
         if (!out.isClosed && currentUid() == uid) watch(uid);
       });
-      wait = min(wait * 2, 60);
+      // Up to 5 minutes between tries if it keeps failing.
+      wait = min(wait * 2, 300);
     }
 
     inner = build(uid).listen(
